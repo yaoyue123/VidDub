@@ -1,0 +1,38 @@
+# Secrets — never commit
+.env
+
+# Database
+*.sqlite3
+*.sqlite3-journal
+data/*.db
+data/*.db-journal
+
+# Downloads & artifacts
+downloads/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Test fixtures — ignore all WAV/MP3 except whitelisted samples
+tests/fixtures/*.wav
+tests/fixtures/*.mp3
+!tests/fixtures/sample_en.wav
+!tests/fixtures/sample_en.mp3
+!tests/fixtures/silent.wav
+tests/fixtures/*.json
+!tests/fixtures/stt_smoke_result.json
+!tests/fixtures/sample_en_segmented.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

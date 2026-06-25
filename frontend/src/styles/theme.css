@@ -1,0 +1,302 @@
+/**
+ * you2bili Phase 12 — Global design tokens.
+ * Spec: .planning/DESIGN.md §4 视觉规范.
+ *
+ * Indigo-600 primary, 8pt spacing scale, 3 radii, 3 shadows, 4 font sizes.
+ * All padding/margin/color in app code MUST reference these variables.
+ */
+:root {
+  /* ── Brand color (§4.1) ── */
+  --color-primary: #4F46E5;
+  --color-primary-hover: #4338CA;
+  --color-primary-light: #EEF2FF;
+  --color-primary-disabled: #C7D2FE;
+  --color-primary-light-3: #6366F1;
+  --color-primary-light-5: #818CF8;
+  --color-primary-light-7: #A5B4FC;
+  --color-primary-light-9: #EEF2FF;
+
+  /* ── Neutrals (§4.2) ── */
+  --color-bg: #FFFFFF;
+  --color-bg-soft: #F9FAFB;
+  --color-bg-page: #F9FAFB;
+  --color-border: #E5E7EB;
+  --color-border-soft: #F3F4F6;
+  --color-sidebar-bg: #1E293B;
+
+  /* ── Text ── */
+  --color-text: #111827;
+  --color-text-regular: #4B5563;
+  --color-text-muted: #9CA3AF;
+  --color-text-on-primary: #FFFFFF;
+
+  /* ── Status (§4.3, aligned with Element Plus) ── */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --color-info: #6B7280;
+
+  /* ── Spacing (§4.6) — 8pt grid + 4 half-steps ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius (§4.7) ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ── Shadow (§4.8) ── */
+  --shadow-flat: none;
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 10px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+  /* ── Font (§4.4) ── */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Source Han Sans CN',
+    'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  /* ── Font size (§4.5) ── */
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-lg: 18px;
+  --fs-2xl: 24px;
+  --lh-xs: 1.4;
+  --lh-sm: 1.5;
+  --lh-lg: 1.4;
+  --lh-2xl: 1.3;
+
+  /* ── Element Plus overrides (§4.1) ── */
+  --el-color-primary: #4F46E5;
+  --el-color-primary-light-3: #6366F1;
+  --el-color-primary-light-5: #818CF8;
+  --el-color-primary-light-7: #A5B4FC;
+  --el-color-primary-light-9: #EEF2FF;
+  --el-color-primary-dark-2: #4338CA;
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 4px;
+  --el-font-family: var(--font-sans);
+}
+
+/* ── Global base ── */
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background-color: var(--color-bg-page);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* Mono numerals (§4.4) */
+.num-mono,
+.stat-value,
+.time-cell {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Reusable utility classes (DESIGN.md §4.9) ── */
+.y2b-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-flat);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.y2b-card:hover {
+  box-shadow: var(--shadow-subtle);
+}
+.y2b-card-pad {
+  padding: var(--space-4);
+}
+.y2b-card-pad-lg {
+  padding: var(--space-6);
+}
+
+.text-title {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: var(--lh-lg);
+  color: var(--color-text);
+}
+.text-body {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  line-height: var(--lh-sm);
+  color: var(--color-text);
+}
+.text-caption {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+/* Status badge text (§4.9 friendly labels) */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+}
+.status-badge.is-success { background: rgba(16, 185, 129, 0.12); color: var(--color-success); }
+.status-badge.is-warning { background: rgba(245, 158, 11, 0.12); color: var(--color-warning); }
+.status-badge.is-danger  { background: rgba(239, 68, 68, 0.12); color: var(--color-danger); }
+.status-badge.is-info    { background: rgba(107, 114, 128, 0.12); color: var(--color-info); }
+
+/* ── Friendly task step labels (§4.9) ── */
+.step-labels { display: flex; gap: var(--space-1); align-items: center; }
+
+/* Horizontal stepper (DESIGN.md §5.3) */
+.h-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.h-stepper .step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.h-stepper .step-dot.is-done {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.h-stepper .step-dot.is-current {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-light);
+}
+.h-stepper .step-dot.is-failed {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+.h-stepper .step-bar {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+}
+.h-stepper .step-bar.is-done {
+  background: var(--color-primary);
+}
+.h-stepper .step-label {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+  text-align: center;
+}
+.h-stepper .step-label.is-current { color: var(--color-primary); font-weight: 600; }
+.h-stepper .step-label.is-done    { color: var(--color-text); }
+.h-stepper .step-label.is-failed  { color: var(--color-danger); }
+
+/* ── Element Plus deep overrides (§4.1, validated via spike R13) ── */
+.el-menu {
+  --el-menu-bg-color: var(--color-sidebar-bg);
+  --el-menu-text-color: rgba(255, 255, 255, 0.75);
+  --el-menu-hover-text-color: #fff;
+  --el-menu-hover-bg-color: rgba(255, 255, 255, 0.08);
+  --el-menu-active-color: #fff;
+  border-right: none !important;
+}
+.el-menu-item.is-active {
+  background-color: var(--color-primary) !important;
+  color: #fff !important;
+}
+.el-button--primary {
+  --el-button-bg-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+  --el-button-hover-bg-color: var(--color-primary-hover);
+  --el-button-hover-border-color: var(--color-primary-hover);
+  --el-button-active-bg-color: var(--color-primary-hover);
+  --el-button-active-border-color: var(--color-primary-hover);
+  --el-button-disabled-bg-color: var(--color-primary-disabled);
+  --el-button-disabled-border-color: var(--color-primary-disabled);
+}
+.el-button--large {
+  height: 48px;
+  padding: 0 var(--space-6);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.el-tabs__item.is-active { color: var(--color-primary); }
+.el-tabs__active-bar { background-color: var(--color-primary); }
+.el-tabs__item:hover { color: var(--color-primary); }
+.el-radio__input.is-checked .el-radio__inner {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+.el-radio__label { color: var(--color-text); }
+.el-radio__input.is-checked + .el-radio__label { color: var(--color-primary); }
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.el-checkbox__input.is-checked + .el-checkbox__label { color: var(--color-primary); }
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus,
+.el-select .el-input.is-focus .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--color-primary) inset !important;
+}
+.el-switch.is-checked .el-switch__core {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+.el-progress-bar__inner { background-color: var(--color-primary); }
+.el-progress-bar__inner.is-success { background-color: var(--color-success); }
+.el-progress-bar__inner.is-exception { background-color: var(--color-danger); }
+.el-tag.el-tag--primary {
+  --el-tag-bg-color: var(--color-primary-light);
+  --el-tag-border-color: var(--color-primary-light);
+  --el-tag-text-color: var(--color-primary);
+}
+.el-collapse-item__header.is-active { color: var(--color-primary); }
+.el-steps .el-step__head.is-finish .el-step__icon { background-color: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.el-steps .el-step__head.is-process .el-step__icon { background-color: var(--color-primary); border-color: var(--color-primary); }
+.el-steps .el-step__title.is-finish,
+.el-steps .el-step__title.is-process { color: var(--color-primary); }
+.el-steps .el-step__line { background-color: var(--color-border); }
+.el-steps .el-step__icon.is-text { background-color: var(--color-bg); }
+
+/* Drawer / Dialog rounded corners */
+.el-drawer__header,
+.el-dialog__header { border-bottom: 1px solid var(--color-border); margin-right: 0; padding: var(--space-4) var(--space-6); }
+.el-drawer__body,
+.el-dialog__body { padding: var(--space-6); }
+.el-drawer__footer,
+.el-dialog__footer { border-top: 1px solid var(--color-border); padding: var(--space-4) var(--space-6); }
