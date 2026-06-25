@@ -75,10 +75,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # 2. Seed default config
+    # 2. Seed default config + rule templates
     async with async_session_factory() as db:
         await seed_default_config(db)
         await db.commit()
+
+    from app.services.scoring.rule_engine import seed_rule_templates
+    await seed_rule_templates()
 
     # 3. Read config for scheduler
     from sqlalchemy import select

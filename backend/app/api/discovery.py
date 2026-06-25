@@ -246,3 +246,252 @@ async def trigger_download(
     video.status = "pending"
 
     return {"task_id": task.id, "video_id": video.id, "status": "queued"}
+
+
+# ── Phase 14: Discovery source management ──
+
+class DiscoverySourceCreate(BaseModel):
+    type: str  # channel | keyword | category | trending
+    source_value: str
+    label: str
+    scan_interval_hours: int = 24
+    max_results_per_scan: int = 20
+
+
+class DiscoverySourceUpdate(BaseModel):
+    label: Optional[str] = None
+    enabled: Optional[bool] = None
+    scan_interval_hours: Optional[int] = None
+    max_results_per_scan: Optional[int] = None
+
+
+@router.get("/sources")
+async def list_discovery_sources(db: AsyncSession = Depends(get_db)):
+    """List all discovery sources."""
+    from app.models.discovery import DiscoverySource
+    result = await db.execute(
+        select(DiscoverySource).order_by(DiscoverySource.created_at.desc()),
+    )
+    sources = result.scalars().all()
+    return {"items": sources, "total": len(sources)}
+
+
+@router.post("/sources")
+async def create_discovery_source(
+    body: DiscoverySourceCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Add a new discovery source."""
+    from app.models.discovery import DiscoverySource
+    source = DiscoverySource(
+        type=body.type,
+        source_value=body.source_value,
+        label=body.label,
+        scan_interval_hours=body.scan_interval_hours,
+        max_results_per_scan=body.max_results_per_scan,
+    )
+    db.add(source)
+    await db.commit()
+    await db.refresh(source)
+    return source
+
+
+@router.put("/sources/{source_id}")
+async def update_discovery_source(
+    source_id: int,
+    body: DiscoverySourceUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a discovery source."""
+    from app.models.discovery import DiscoverySource
+    source = await db.get(DiscoverySource, source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+    if body.label is not None:
+        source.label = body.label
+    if body.enabled is not None:
+        source.enabled = body.enabled
+    if body.scan_interval_hours is not None:
+        source.scan_interval_hours = body.scan_interval_hours
+    if body.max_results_per_scan is not None:
+        source.max_results_per_scan = body.max_results_per_scan
+    await db.commit()
+    await db.refresh(source)
+    return source
+
+
+@router.delete("/sources/{source_id}")
+async def delete_discovery_source(
+    source_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a discovery source and its results."""
+    from app.models.discovery import DiscoverySource
+    source = await db.get(DiscoverySource, source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+    await db.delete(source)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/sources/{source_id}/scan")
+async def scan_discovery_source(
+    source_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger a scan of a discovery source."""
+    from app.models.discovery import DiscoverySource
+    source = await db.get(DiscoverySource, source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    from app.services.scoring.discovery_pipeline import run_discovery
+    try:
+        results = await run_discovery(source_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Discovery scan failed: {e}",
+        )
+
+    return {
+        "source_id": source_id,
+        "results_count": len(results),
+        "results": [
+            {
+                "id": r.id,
+                "youtube_id": r.youtube_id,
+                "title": r.title,
+                "composite_score": r.composite_score,
+            }
+            for r in results[:20]
+        ],
+    }
+
+
+@router.get("/results")
+async def list_discovery_results(
+    status: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
+    """List discovery results with optional status filter."""
+    from app.models.discovery import DiscoveryResult
+
+    query = select(DiscoveryResult).order_by(
+        DiscoveryResult.discovered_at.desc(),
+    )
+    if status:
+        query = query.where(DiscoveryResult.status == status)
+
+    total = len((await db.execute(select(DiscoveryResult))).scalars().all())
+    result = await db.execute(query.offset(offset).limit(limit))
+    items = result.scalars().all()
+
+    return {"items": items, "total": total}
+
+
+@router.put("/results/{result_id}/ignore")
+async def ignore_discovery_result(
+    result_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a discovery result as ignored."""
+    from app.models.discovery import DiscoveryResult
+    from sqlalchemy import update as sql_update
+
+    result = await db.get(DiscoveryResult, result_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    await db.execute(
+        sql_update(DiscoveryResult)
+        .where(DiscoveryResult.id == result_id)
+        .values(status="ignored"),
+    )
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/results/{result_id}/dub")
+async def dub_discovery_result(
+    result_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a dub task from a discovered video."""
+    from app.models.discovery import DiscoveryResult
+    from app.models.enums import TaskType, TaskStatus, VideoStatus
+    from sqlalchemy import update as sql_update
+
+    result = await db.get(DiscoveryResult, result_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    # Create or find the Video record
+    youtube_url = f"https://www.youtube.com/watch?v={result.youtube_id}"
+    existing = (
+        await db.execute(
+            select(Video).where(Video.youtube_id == result.youtube_id),
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        video = existing
+    else:
+        video = Video(
+            youtube_url=youtube_url,
+            youtube_id=result.youtube_id,
+            title=result.title,
+            channel=result.channel_name,
+            status=VideoStatus.PENDING,
+            source="discovery",
+        )
+        db.add(video)
+        await db.flush()
+
+    # Create download task
+    task = Task(
+        video_id=video.id,
+        type=TaskType.DOWNLOAD,
+        status=TaskStatus.PENDING,
+        progress=0.0,
+        message="从发现页创建，等待下载...",
+    )
+    db.add(task)
+
+    # Update discovery result status
+    await db.execute(
+        sql_update(DiscoveryResult)
+        .where(DiscoveryResult.id == result_id)
+        .values(status="dubbed", video_id=video.id),
+    )
+    await db.commit()
+
+    return {"task_id": task.id, "video_id": video.id, "status": "queued"}
+
+
+@router.get("/channels")
+async def list_tracked_channels(db: AsyncSession = Depends(get_db)):
+    """List tracked channel sources with stats."""
+    from app.models.discovery import DiscoverySource
+    result = await db.execute(
+        select(DiscoverySource).where(
+            DiscoverySource.type == "channel",
+            DiscoverySource.enabled == True,
+        ),
+    )
+    sources = result.scalars().all()
+
+    channels = []
+    for s in sources:
+        channels.append({
+            "id": s.id,
+            "label": s.label,
+            "source_value": s.source_value,
+            "last_scanned_at": s.last_scanned_at.isoformat() if s.last_scanned_at else None,
+            "scan_interval_hours": s.scan_interval_hours,
+        })
+
+    return {"items": channels, "total": len(channels)}
