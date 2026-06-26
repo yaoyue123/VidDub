@@ -20,6 +20,7 @@ import {
   statsApi, dubApi, platformApi, configApi,
   type DashboardData, type PlatformStateItem,
 } from '@/api'
+import api from '@/api'
 import DubCreateDialog from '@/components/DubCreateDialog.vue'
 import PlatformLoginDrawer from '@/components/PlatformLoginDrawer.vue'
 
@@ -27,6 +28,7 @@ const router = useRouter()
 
 const dashboard = ref<DashboardData | null>(null)
 const loading = ref(false)
+const topPicks = ref<any[]>([])
 const dialogVisible = ref(false)
 const platformDrawerVisible = ref(false)
 const platformStates = ref<PlatformStateItem[]>([])
@@ -46,6 +48,29 @@ const STEP_LABELS: Record<string, string> = {
 function stepIndex(step: string | undefined): number {
   if (!step) return -1
   return STEP_ORDER.indexOf(step)
+}
+
+async function fetchTopPicks() {
+  try {
+    const res = await api.get('/scoring/history', { params: { limit: 6 } })
+    topPicks.value = (res.data.items || []).sort(
+      (a: any, b: any) => b.composite_score - a.composite_score,
+    )
+  } catch {
+    // Scoring not yet available — no worries
+  }
+}
+
+function formatViews(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  return String(n)
+}
+
+function scoreClass(s: number): string {
+  if (s >= 80) return 'score-high'
+  if (s >= 60) return 'score-mid'
+  return 'score-low'
 }
 
 async function fetchDashboard() {
@@ -184,6 +209,7 @@ onMounted(() => {
   fetchDashboard()
   fetchPlatformStates()
   fetchApiKeyConfigured()
+  fetchTopPicks()
 })
 </script>
 
@@ -222,6 +248,42 @@ onMounted(() => {
         </el-button>
       </template>
     </el-alert>
+
+    <!-- ── 今日推荐（智能选题）── -->
+    <section v-if="topPicks.length > 0" class="section-card y2b-card y2b-card-pad-lg picks-section">
+      <div class="section-header">
+        <h2 class="section-title">推荐视频</h2>
+        <el-button text type="primary" size="small" @click="router.push('/discover')">
+          查看全部 →
+        </el-button>
+      </div>
+      <div class="picks-grid">
+        <div
+          v-for="v in topPicks"
+          :key="v.youtube_id"
+          class="pick-card"
+          @click="router.push('/discover')"
+        >
+          <img
+            v-if="v.thumbnail_url"
+            :src="v.thumbnail_url"
+            :alt="v.title"
+            class="pick-thumb"
+            loading="lazy"
+          />
+          <div v-else class="pick-thumb pick-thumb-placeholder">
+            <el-icon :size="20"><VideoPlay /></el-icon>
+          </div>
+          <div class="pick-body">
+            <div class="pick-title">{{ v.title }}</div>
+            <div class="pick-channel">{{ v.channel_name }}</div>
+            <span class="pick-score" :class="scoreClass(v.composite_score)">
+              {{ v.composite_score?.toFixed(0) || '-' }}分
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- ── In-Progress + Platform Account row ── -->
     <el-row :gutter="24" class="main-row">
@@ -740,4 +802,43 @@ onMounted(() => {
 .welcome-steps li { font-size: var(--fs-sm); }
 .welcome-steps strong { color: var(--color-text); display: block; margin-bottom: var(--space-1); }
 .welcome-steps p { margin: 0; }
+
+/* ── Recommendation picks ── */
+.picks-section { margin-bottom: var(--space-6); }
+.picks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.pick-card {
+  cursor: pointer; border-radius: var(--radius-md);
+  overflow: hidden; background: var(--color-bg-page);
+  transition: transform 0.15s;
+}
+.pick-card:hover { transform: translateY(-2px); }
+.pick-thumb {
+  width: 100%; aspect-ratio: 16/9; object-fit: cover;
+  display: block;
+}
+.pick-thumb-placeholder {
+  background: var(--color-bg); display: flex;
+  align-items: center; justify-content: center;
+  color: var(--color-text-placeholder);
+}
+.pick-body { padding: var(--space-2) var(--space-3); }
+.pick-title {
+  font-size: var(--fs-xs); font-weight: 500;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; margin-bottom: 2px;
+}
+.pick-channel { font-size: 11px; color: var(--color-text-placeholder); }
+.pick-score {
+  display: inline-block; margin-top: 4px; padding: 1px 8px;
+  border-radius: var(--radius-sm); font-size: 11px; font-weight: 600;
+  color: #fff;
+}
+.score-high { background: #22c55e; }
+.score-mid  { background: #f59e0b; }
+.score-low  { background: #ef4444; }
 </style>

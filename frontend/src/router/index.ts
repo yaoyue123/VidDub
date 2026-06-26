@@ -26,6 +26,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '首页', icon: 'HomeFilled' },
       },
       {
+        path: 'discover',
+        name: 'Discover',
+        component: () => import('@/views/DiscoverView.vue'),
+        meta: { title: '智能发现', icon: 'Search' },
+      },
+      {
         path: 'tasks',
         name: 'Tasks',
         component: () => import('@/views/TasksView.vue'),

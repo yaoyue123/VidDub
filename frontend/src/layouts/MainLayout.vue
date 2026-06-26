@@ -34,6 +34,7 @@ const menuGroups: MenuGroup[] = [
     label: '主流程',
     items: [
       { path: '/dashboard', icon: 'HomeFilled', title: '首页' },
+      { path: '/discover', icon: 'Search', title: '发现' },
       { path: '/tasks', icon: 'List', title: '任务' },
     ],
   },
@@ -47,6 +48,7 @@ const activeMenu = computed(() => {
   // Map subtitle editor subroute to its parent (/tasks).
   if (route.path.startsWith('/tasks')) return '/tasks'
   if (route.path.startsWith('/dashboard')) return '/dashboard'
+  if (route.path.startsWith('/discover')) return '/discover'
   if (route.path.startsWith('/settings')) return '/settings'
   return route.path
 })
