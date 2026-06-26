@@ -29,6 +29,8 @@ interface ScoredVideo {
   view_count: number
   like_count: number
   duration_sec: number
+  rationale: string
+  source: string
 }
 
 interface RuleItem {
@@ -87,16 +89,20 @@ function categoryLabel(cat: string | null): string {
 async function fetchVideos() {
   loading.value = true
   try {
-    const res = await api.get('/scoring/history', { params: { limit: 50 } })
-    const items = res.data.items || []
-    // Enrich with raw metrics from history
-    videos.value = items.sort((a: any, b: any) => b.composite_score - a.composite_score)
+    // Auto-discover: first call seeds sources + fetches trending + scores all
+    const res = await api.get('/scoring/discover', { params: { limit: 40 } })
+    videos.value = (res.data.items || []).sort(
+      (a: any, b: any) => b.composite_score - a.composite_score,
+    )
+    videoSource.value = res.data.source || 'cache'
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.detail || '获取评分数据失败')
+    ElMessage.error(e?.response?.data?.detail || '发现失败，请稍后重试')
   } finally {
     loading.value = false
   }
 }
+
+const videoSource = ref<string>('cache')
 
 async function fetchRules() {
   try {
@@ -165,10 +171,12 @@ onMounted(() => {
     <div class="page-header">
       <h1 class="page-title">智能发现</h1>
       <div class="header-actions">
+        <span v-if="videoSource === 'fresh'" class="source-tag">实时数据</span>
+        <span v-else-if="videoSource === 'cache'" class="source-tag source-cache">缓存</span>
         <el-select
           v-model="activeRuleId"
           placeholder="选择评分策略"
-          style="width: 200px; margin-right: 12px"
+          style="width: 200px; margin: 0 12px"
           @change="evaluateRule"
         >
           <el-option
@@ -179,7 +187,7 @@ onMounted(() => {
           />
         </el-select>
         <el-button :icon="Refresh" @click="fetchVideos" :loading="loading">
-          刷新
+          发现新视频
         </el-button>
       </div>
     </div>
@@ -223,9 +231,10 @@ onMounted(() => {
             <h3 class="card-title">{{ v.title }}</h3>
             <p class="card-channel">{{ v.channel_name }}</p>
             <div class="card-meta">
-              <span>{{ formatViews(v.view_count) }} 观看</span>
+              <span>{{ formatViews(v.view_count || 0) }} 观看</span>
               <el-tag size="small" type="info">{{ categoryLabel(v.category) }}</el-tag>
             </div>
+            <p v-if="v.rationale" class="card-rationale">{{ v.rationale }}</p>
             <el-button
               size="small"
               type="primary"
@@ -234,7 +243,7 @@ onMounted(() => {
               @click.stop="dubVideo(v)"
               style="margin-top: 8px; width: 100%"
             >
-              搬运
+              加入配音
             </el-button>
           </div>
         </div>
@@ -338,6 +347,11 @@ onMounted(() => {
 }
 .page-title { font-size: var(--fs-2xl); font-weight: 600; margin: 0; }
 .header-actions { display: flex; align-items: center; }
+.source-tag {
+  font-size: var(--fs-xs); padding: 1px 10px; border-radius: var(--radius-sm);
+  background: #dcfce7; color: #16a34a; font-weight: 500;
+}
+.source-cache { background: var(--color-bg-page); color: var(--color-text-placeholder); }
 
 .discover-layout {
   display: flex;
@@ -393,7 +407,12 @@ onMounted(() => {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; margin: 0 0 4px 0;
 }
-.card-channel { font-size: var(--fs-xs); color: var(--color-text-placeholder); margin: 0 0 6px 0; }
+.card-channel { font-size: var(--fs-xs); color: var(--color-text-placeholder); margin: 0 0 4px 0; }
+.card-rationale {
+  font-size: 11px; color: var(--color-primary); margin: 4px 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .card-meta {
   display: flex; align-items: center; justify-content: space-between;
   font-size: var(--fs-xs); color: var(--color-text-regular);
