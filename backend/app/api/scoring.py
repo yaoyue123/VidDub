@@ -416,19 +416,20 @@ async def _curated_fallback(db: AsyncSession) -> list[dict]:
         "learn English conversation", "space exploration",
     ]
 
+    import subprocess as _sp
+
     all_videos = []
-    for kw in popular_searches[:2]:  # Just 2 to keep things fast
-        proc = await asyncio.create_subprocess_exec(
-            "yt-dlp", "--flat-playlist", "--dump-json",
-            "--playlist-end", "8",
-            f"ytsearch8:{kw}",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await proc.communicate()
-        if proc.returncode != 0:
+    for kw in popular_searches[:2]:
+        def _run(kw=kw):
+            return _sp.run(
+                ["yt-dlp", "--flat-playlist", "--dump-json",
+                 "--playlist-end", "8", f"ytsearch8:{kw}"],
+                capture_output=True, timeout=120,
+            )
+        result = await asyncio.get_running_loop().run_in_executor(None, _run)
+        if result.returncode != 0:
             continue
-        for line in stdout.decode("utf-8").strip().split("\n"):
+        for line in result.stdout.decode("utf-8").strip().split("\n"):
             if not line.strip():
                 continue
             try:
@@ -460,30 +461,26 @@ async def _resolve_channel_videos(
     channel_url: str, max_results: int,
 ) -> list[str]:
     """Resolve a channel URL to recent video IDs via yt-dlp."""
-    proc = await __import__("asyncio").create_subprocess_exec(
-        "yt-dlp",
-        "--flat-playlist",
-        "--dump-json",
-        "--playlist-end", str(max_results),
-        channel_url,
-        stdout=__import__("asyncio").subprocess.PIPE,
-        stderr=__import__("asyncio").subprocess.PIPE,
-    )
+    import subprocess as _sp
 
-    stdout, _ = await proc.communicate()
-    if proc.returncode != 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Failed to resolve channel URL",
+    def _run():
+        return _sp.run(
+            ["yt-dlp", "--flat-playlist", "--dump-json",
+             "--playlist-end", str(max_results), channel_url],
+            capture_output=True, timeout=120,
         )
 
+    result = await asyncio.get_running_loop().run_in_executor(None, _run)
+    if result.returncode != 0:
+        raise HTTPException(status_code=400, detail="Failed to resolve channel URL")
+
     ids = []
-    for line in stdout.decode("utf-8").strip().split("\n"):
+    for line in result.stdout.decode("utf-8").strip().split("\n"):
         if not line.strip():
             continue
         try:
             data = json.loads(line)
-            yid = data.get("id") or data.get("webpage_url", "").split("v=")[-1]
+            yid = data.get("id") or ""
             if yid:
                 ids.append(yid)
         except json.JSONDecodeError:

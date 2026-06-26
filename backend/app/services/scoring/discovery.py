@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import subprocess as _subprocess
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -13,6 +14,42 @@ from app.models.discovery import DiscoverySource, DiscoveryResult
 from app.models.video_score import VideoScore
 
 logger = logging.getLogger(__name__)
+
+
+async def _run_ytdlp(cmd: list[str]) -> tuple[int, bytes, bytes]:
+    """Run yt-dlp subprocess. Cross-platform: uses asyncio subprocess on
+    Linux/macOS, falls back to subprocess.run + thread pool on Windows
+    where the event loop doesn't support subprocess."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        return (proc.returncode, stdout, stderr)
+    except NotImplementedError:
+        def _run():
+            return _subprocess.run(cmd, capture_output=True, timeout=120)
+        result = await asyncio.to_thread(_run)
+        return (result.returncode, result.stdout, result.stderr)
+
+
+async def _ytdlp_json(cmd: list[str]) -> list[dict]:
+    """Run yt-dlp --dump-json and parse each line as JSON."""
+    code, stdout, stderr = await _run_ytdlp(cmd)
+    if code != 0:
+        logger.debug("yt-dlp failed: %s", stderr.decode("utf-8", errors="replace")[-200:])
+        return []
+    results = []
+    for line in stdout.decode("utf-8").strip().split("\n"):
+        if not line.strip():
+            continue
+        try:
+            results.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return results
 
 # Trending YouTube categories (browse IDs)
 TRENDING_CATEGORIES = {
@@ -38,38 +75,23 @@ async def recommend_channels(
     if seed_channel_id:
         query = f"channel similar to {seed_channel_id}"
 
-    search_url = (
-        f"ytsearch{max_results}:{query} channel"
-    )
+    search_url = f"ytsearch{max_results}:{query} channel"
 
-    proc = await asyncio.create_subprocess_exec(
+    items = await _ytdlp_json([
         "yt-dlp", "--flat-playlist", "--dump-json",
-        "--playlist-end", str(max_results),
-        search_url,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
-    stdout, _ = await proc.communicate()
-    if proc.returncode != 0:
-        return []
+        "--playlist-end", str(max_results), search_url,
+    ])
 
     channels = []
-    for line in stdout.decode("utf-8").strip().split("\n"):
-        if not line.strip():
-            continue
-        try:
-            data = json.loads(line)
-            channels.append({
-                "channel_id": data.get("channel_id") or data.get("uploader_id", ""),
-                "channel_name": data.get("uploader") or data.get("channel", ""),
-                "channel_url": data.get("channel_url") or data.get("uploader_url", ""),
-                "subscriber_count": int(data.get("channel_follower_count") or 0),
-                "video_count": int(data.get("playlist_count") or 0),
-                "description": (data.get("description") or "")[:200],
-            })
-        except json.JSONDecodeError:
-            continue
+    for data in items:
+        channels.append({
+            "channel_id": data.get("channel_id") or data.get("uploader_id", ""),
+            "channel_name": data.get("uploader") or data.get("channel", ""),
+            "channel_url": data.get("channel_url") or data.get("uploader_url", ""),
+            "subscriber_count": int(data.get("channel_follower_count") or 0),
+            "video_count": int(data.get("playlist_count") or 0),
+            "description": (data.get("description") or "")[:200],
+        })
 
     return channels
 
@@ -94,36 +116,20 @@ async def scrape_trending(
             if not url:
                 return
 
-            proc = await asyncio.create_subprocess_exec(
+            items = await _ytdlp_json([
                 "yt-dlp", "--flat-playlist", "--dump-json",
-                "--playlist-end", str(max_per_category),
-                url,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-
-            stdout, _ = await proc.communicate()
-            if proc.returncode != 0:
-                return
-
-            cat_results = []
-            for line in stdout.decode("utf-8").strip().split("\n"):
-                if not line.strip():
-                    continue
-                try:
-                    data = json.loads(line)
-                    cat_results.append({
-                        "youtube_id": data.get("id") or "",
-                        "title": data.get("title") or "",
-                        "channel_name": data.get("uploader") or data.get("channel") or "",
-                        "channel_id": data.get("channel_id") or "",
-                        "duration_sec": float(data.get("duration") or 0),
-                        "view_count": int(data.get("view_count") or 0),
-                        "category": cat,
-                    })
-                except json.JSONDecodeError:
-                    continue
-            results.extend(cat_results)
+                "--playlist-end", str(max_per_category), url,
+            ])
+            for data in items:
+                results.append({
+                    "youtube_id": data.get("id") or "",
+                    "title": data.get("title") or "",
+                    "channel_name": data.get("uploader") or data.get("channel") or "",
+                    "channel_id": data.get("channel_id") or "",
+                    "duration_sec": float(data.get("duration") or 0),
+                    "view_count": int(data.get("view_count") or 0),
+                    "category": cat,
+                })
 
     await asyncio.gather(*[_scrape_one(c) for c in cats])
     return results

@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import subprocess as _subprocess
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -16,6 +17,40 @@ from app.services.scoring.metrics import fetch_video_metrics
 from app.services.scoring.scorer import score_video
 
 logger = logging.getLogger(__name__)
+
+
+async def _run_ytdlp(cmd: list[str]) -> tuple[int, bytes, bytes]:
+    """Cross-platform yt-dlp runner."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        return (proc.returncode, stdout, stderr)
+    except NotImplementedError:
+        def _run():
+            return _subprocess.run(cmd, capture_output=True, timeout=120)
+        result = await asyncio.to_thread(_run)
+        return (result.returncode, result.stdout, result.stderr)
+
+
+async def _ytdlp_json(cmd: list[str]) -> list[dict]:
+    """Run yt-dlp --dump-json and parse results."""
+    code, stdout, stderr = await _run_ytdlp(cmd)
+    if code != 0:
+        logger.debug("yt-dlp failed: %s", stderr.decode("utf-8", errors="replace")[-200:])
+        return []
+    results = []
+    for line in stdout.decode("utf-8").strip().split("\n"):
+        if not line.strip():
+            continue
+        try:
+            results.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return results
 
 
 async def run_discovery(source_id: int) -> list[DiscoveryResult]:
@@ -166,59 +201,21 @@ async def _fetch_from_source(
 
 async def _fetch_channel(url: str, max_results: int) -> list[str]:
     """Get recent video IDs from a channel via yt-dlp."""
-    proc = await asyncio.create_subprocess_exec(
+    items = await _ytdlp_json([
         "yt-dlp", "--flat-playlist", "--dump-json",
-        "--playlist-end", str(max_results),
-        url,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
-    stdout, _ = await proc.communicate()
-    if proc.returncode != 0:
-        return []
-
-    ids = []
-    for line in stdout.decode("utf-8").strip().split("\n"):
-        if not line.strip():
-            continue
-        try:
-            data = json.loads(line)
-            yid = data.get("id") or ""
-            if yid:
-                ids.append(yid)
-        except json.JSONDecodeError:
-            continue
-    return ids
+        "--playlist-end", str(max_results), url,
+    ])
+    return [d.get("id") for d in items if d.get("id")]
 
 
 async def _fetch_keyword(keyword: str, max_results: int) -> list[str]:
     """Search YouTube for keyword, return video IDs."""
-    search = f"ytsearch{max_results}:{keyword}"
-    proc = await asyncio.create_subprocess_exec(
+    items = await _ytdlp_json([
         "yt-dlp", "--flat-playlist", "--dump-json",
         "--playlist-end", str(max_results),
-        search,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
-    stdout, _ = await proc.communicate()
-    if proc.returncode != 0:
-        return []
-
-    ids = []
-    for line in stdout.decode("utf-8").strip().split("\n"):
-        if not line.strip():
-            continue
-        try:
-            data = json.loads(line)
-            yid = data.get("id") or ""
-            if yid:
-                ids.append(yid)
-        except json.JSONDecodeError:
-            continue
-    return ids
+        f"ytsearch{max_results}:{keyword}",
+    ])
+    return [d.get("id") for d in items if d.get("id")]
 
 
 async def _fetch_trending_ids(max_results: int) -> list[str]:
