@@ -683,7 +683,7 @@ class TaskScheduler:
                         ])
                     return {"aligned_path": aligned_path, "segment": p}
 
-                # Idempotency: skip TTS/align if output already exists
+                # Idempotency: skip TTS if output already exists
                 if not os.path.exists(tts_path):
                     tts_service = TTSService()
                     await tts_service.synthesize(
@@ -691,12 +691,12 @@ class TaskScheduler:
                         model=tts_model, voice=tts_voice,
                         response_format=tts_format, speed=tts_speed, gain=tts_gain,
                     )
-                    if not os.path.exists(aligned_path):
-                        await align_segment(
-                            tts_path, float(p["start"]), float(p["end"]), aligned_path,
-                            atempo_min=atempo_min, atempo_max=atempo_max,
-                        )
-                    return {"aligned_path": aligned_path, "segment": p}
+                if not os.path.exists(aligned_path):
+                    await align_segment(
+                        tts_path, float(p["start"]), float(p["end"]), aligned_path,
+                        atempo_min=atempo_min, atempo_max=atempo_max,
+                    )
+                return {"aligned_path": aligned_path, "segment": p}
 
         # Build merged Chinese text per paragraph from per-segment translations
         tasks = []
