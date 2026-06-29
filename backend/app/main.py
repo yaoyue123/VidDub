@@ -50,6 +50,7 @@ from app.core.websocket import manager as ws_manager
 from app.services.scheduler import TaskScheduler
 from app.services.config_seeder import seed_default_config
 from app.services.channel_scanner import ChannelScanner, set_channel_scanner
+from app.services.ytdlp_wrapper import set_ytdlp_wrapper, YtDlpWrapper
 
 
 # ── Global scheduler instance ──
@@ -70,13 +71,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(init_db)
 
-    # 2. Seed default config + rule templates
+    # 2. Seed default config
     async with async_session_factory() as db:
         await seed_default_config(db)
         await db.commit()
-
-    from app.services.scoring.rule_engine import seed_rule_templates
-    await seed_rule_templates()
 
     # 3. Read config for scheduler
     from sqlalchemy import select
@@ -90,7 +88,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     max_concurrent = int(configs.get("max_concurrent_downloads", "3"))
     max_res = int(configs.get("max_resolution", "1080"))
 
-    # 4. Start scheduler
+    # 4. Initialize global YtDlpWrapper (INFRA-01)
+    cookies_file = configs.get("ytdlp_cookie_file")
+    extractor_args = configs.get("ytdlp_extractor_args")
+    ytdlp_wrapper = YtDlpWrapper(
+        cookies_file=cookies_file,
+        extractor_args=extractor_args,
+    )
+    set_ytdlp_wrapper(ytdlp_wrapper)
+    logger.info("YtDlpWrapper initialized (cookies=%s, extractor_args=%s)",
+                 cookies_file, "set" if extractor_args else "none")
+
+    # 5. Start scheduler
     scheduler = TaskScheduler(
         download_dir=download_dir,
         max_concurrent=max_concurrent,
@@ -98,7 +107,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     await scheduler.start()
 
-    # 5. Phase 9: Start channel scanner (APScheduler)
+    # 6. Phase 9: Start channel scanner (APScheduler)
     scan_max_concurrent = int(configs.get("scan_max_concurrent", "3"))
     scan_default_interval = int(configs.get("scan_default_interval_hours", "6"))
     channel_scanner = ChannelScanner(
@@ -108,7 +117,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     set_channel_scanner(channel_scanner)
     await channel_scanner.start()
 
-    # 6. Phase 5 B3: Mount /static/downloads — serve dubbed audio/video preview files.
+    # 7. Phase 5 B3: Mount /static/downloads
     # download_dir is relative to backend cwd; convert to absolute and ensure exists.
     static_dir = download_dir if os.path.isabs(download_dir) else os.path.abspath(download_dir)
     os.makedirs(static_dir, exist_ok=True)
@@ -123,12 +132,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    # 7. Shutdown channel scanner
+    # 8. Shutdown channel scanner
     if channel_scanner:
         await channel_scanner.stop()
         set_channel_scanner(None)
 
-    # 8. Shutdown scheduler
+    # 9. Shutdown scheduler
     if scheduler:
         await scheduler.stop()
 

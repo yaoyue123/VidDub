@@ -4,12 +4,18 @@ yt-dlp Python API 封装
 Provides search, channel scanning, metadata extraction, and video download.
 All download operations are synchronous (yt-dlp is blocking) and should be
 run via asyncio.to_thread / loop.run_in_executor.
+
+All yt-dlp extraction calls go through the global YtDlpWrapper singleton
+for shared rate limiting, circuit breaking, cookie management, and
+extractor-args configuration.
 """
 
 import os
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
+
+from app.services.ytdlp_wrapper import YtDlpWrapper, get_ytdlp_wrapper
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +38,12 @@ class VideoMeta:
 
 
 class YoutubeService:
-    """yt-dlp Python API wrapper for video discovery and download."""
+    """yt-dlp Python API wrapper for video discovery and download.
 
-    # Default yt-dlp options
-    EXTRACT_OPTS: dict[str, Any] = {
-        "quiet": True,
-        "no_warnings": True,
-        "extract_flat": True,
-        "skip_download": True,
-        "ignoreerrors": True,
-        "no_color": True,
-        "sleep_interval": 1,
-        "max_sleep_interval": 3,
-    }
+    All yt-dlp extraction operations delegate to the shared
+    :class:`YtDlpWrapper` singleton for rate limiting, circuit breaking,
+    cookie management, and extractor-args configuration.
+    """
 
     DOWNLOAD_OPTS_TEMPLATE: dict[str, Any] = {
         "quiet": True,
@@ -65,84 +64,80 @@ class YoutubeService:
         "throttledratelimit": 100_000,
     }
 
-    def __init__(self, download_dir: str = "./downloads", max_resolution: int = 1080):
+    def __init__(
+        self,
+        download_dir: str = "./downloads",
+        max_resolution: int = 1080,
+        ytdlp_wrapper: Optional[YtDlpWrapper] = None,
+    ):
         self.download_dir = download_dir
         self.max_resolution = max_resolution
+        self._wrapper = ytdlp_wrapper or get_ytdlp_wrapper()
         os.makedirs(self.download_dir, exist_ok=True)
 
     # ── Search ──
 
     def search_sync(self, query: str, max_results: int = 20) -> list[dict[str, Any]]:
         """Search YouTube (synchronous, run via executor)."""
-        from yt_dlp import YoutubeDL
+        try:
+            entries = self._wrapper.search_sync(query, max_results=max_results)
+        except Exception as e:
+            logger.error("yt-dlp search failed: %s", e)
+            return []
 
-        search_query = f"ytsearch{max_results}:{query}"
-        opts = {**self.EXTRACT_OPTS, "extract_flat": "in_playlist"}
-        with YoutubeDL(opts) as ydl:
-            try:
-                result = ydl.extract_info(search_query, download=False)
-            except Exception as e:
-                logger.error("yt-dlp search failed: %s", e)
-                return []
-
-            entries = result.get("entries") or []
-            return [self._normalize_entry(e) for e in entries if e]
+        return [self._normalize_entry(e) for e in entries if e]
 
     async def search(
         self, query: str, max_results: int = 20
     ) -> list[dict[str, Any]]:
         """Search YouTube (async)."""
-        import asyncio
-        return await asyncio.to_thread(self.search_sync, query, max_results)
+        try:
+            entries = await self._wrapper.search(query, max_results=max_results)
+        except Exception as e:
+            logger.error("yt-dlp search failed: %s", e)
+            return []
+
+        return [self._normalize_entry(e) for e in entries if e]
 
     # ── Channel scan ──
 
     def get_channel_videos_sync(self, channel_url: str, max_results: int = 50) -> list[dict[str, Any]]:
         """Scan channel for videos (synchronous)."""
-        from yt_dlp import YoutubeDL
+        try:
+            entries = self._wrapper.get_channel_videos_sync(channel_url, max_results=max_results)
+        except Exception as e:
+            logger.error("yt-dlp channel scan failed: %s", e)
+            return []
 
-        opts = {**self.EXTRACT_OPTS, "extract_flat": "in_playlist"}
-        with YoutubeDL(opts) as ydl:
-            try:
-                result = ydl.extract_info(channel_url, download=False)
-            except Exception as e:
-                logger.error("yt-dlp channel scan failed: %s", e)
-                return []
-
-            entries = result.get("entries") or []
-            return [self._normalize_entry(e) for e in entries if e][:max_results]
+        return [self._normalize_entry(e) for e in entries if e][:max_results]
 
     async def get_channel_videos(
         self, channel_url: str, max_results: int = 50
     ) -> list[dict[str, Any]]:
         """Scan channel for videos (async)."""
-        import asyncio
-        return await asyncio.to_thread(
-            self.get_channel_videos_sync, channel_url, max_results
-        )
+        try:
+            entries = await self._wrapper.get_channel_videos(channel_url, max_results=max_results)
+        except Exception as e:
+            logger.error("yt-dlp channel scan failed: %s", e)
+            return []
+
+        return [self._normalize_entry(e) for e in entries if e][:max_results]
 
     # ── Single video info (full metadata) ──
 
     def get_video_info_sync(self, url: str) -> Optional[dict[str, Any]]:
         """Get full metadata for a single video (synchronous)."""
-        from yt_dlp import YoutubeDL
-
-        opts = {
-            **self.EXTRACT_OPTS,
-            "extract_flat": False,  # full extraction for detailed metadata
-        }
-        with YoutubeDL(opts) as ydl:
-            try:
-                info = ydl.extract_info(url, download=False)
-                return self._normalize_entry(info)
-            except Exception as e:
-                logger.error("yt-dlp get_video_info failed: %s", e)
-                return None
+        info = self._wrapper.get_video_info_sync(url)
+        if info is None:
+            return None
+        return self._normalize_entry(info)
 
     async def get_video_info(self, url: str) -> Optional[dict[str, Any]]:
         """Get full metadata for a single video (async)."""
-        import asyncio
-        return await asyncio.to_thread(self.get_video_info_sync, url)
+        info = await self._wrapper.get_video_info(url)
+        if info is None:
+            return None
+        return self._normalize_entry(info)
 
     # ── Download ──
 
@@ -224,8 +219,6 @@ class YoutubeService:
 
     def get_subtitles_sync(self, url: str, lang: str = "en") -> Optional[list[dict[str, Any]]]:
         """Extract available subtitles for a video."""
-        from yt_dlp import YoutubeDL
-
         opts: dict[str, Any] = {
             "quiet": True,
             "no_warnings": True,
@@ -235,15 +228,14 @@ class YoutubeService:
             "skip_download": True,
             "ignoreerrors": True,
         }
-        with YoutubeDL(opts) as ydl:
-            try:
-                info = ydl.extract_info(url, download=False)
-                if info is None:
-                    return None
-                return info.get("subtitles", {}).get(lang)
-            except Exception as e:
-                logger.error("Failed to get subtitles: %s", e)
+        try:
+            info = self._wrapper.extract_info_sync(opts, url)
+            if info is None:
                 return None
+            return info.get("subtitles", {}).get(lang)
+        except Exception as e:
+            logger.error("Failed to get subtitles: %s", e)
+            return None
 
     # ── Internal helpers ──
 
