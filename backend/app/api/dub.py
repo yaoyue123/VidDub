@@ -20,6 +20,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.storage import get_download_dir
 from app.models.video import Video
 from app.models.task import Task
 from app.models.config import Config
@@ -175,9 +176,7 @@ async def get_dub_status(
     error_msg = latest_task.error_msg if latest_task else None
 
     # 读取 download_dir 配置
-    cfg_result = await db.execute(select(Config).where(Config.key == "download_dir"))
-    cfg = cfg_result.scalar_one_or_none()
-    download_dir = cfg.value if cfg else "./downloads"
+    download_dir = get_download_dir()
 
     final_url = None
     srt_url = None
@@ -216,9 +215,7 @@ async def download_dubbed_video(
     final_path = v.dubbed_filepath
     if not final_path or not os.path.exists(final_path):
         # 兜底：按约定路径找
-        cfg_result = await db.execute(select(Config).where(Config.key == "download_dir"))
-        cfg = cfg_result.scalar_one_or_none()
-        download_dir = cfg.value if cfg else "./downloads"
+        download_dir = get_download_dir()
         final_path = os.path.join(download_dir, str(video_id), "final.mp4")
         if not os.path.exists(final_path):
             raise HTTPException(404, detail="final.mp4 not found on disk")
@@ -236,9 +233,7 @@ async def get_subtitle(
     if not v:
         raise HTTPException(404, detail="Video not found")
 
-    cfg_result = await db.execute(select(Config).where(Config.key == "download_dir"))
-    cfg = cfg_result.scalar_one_or_none()
-    download_dir = cfg.value if cfg else "./downloads"
+    download_dir = get_download_dir()
     srt_path = os.path.join(download_dir, str(video_id), "subtitle.srt")
 
     if not os.path.exists(srt_path):
@@ -345,9 +340,7 @@ async def preview_dub_artifact(
     if not v:
         raise HTTPException(404, detail="Video not found")
 
-    cfg_result = await db.execute(select(Config).where(Config.key == "download_dir"))
-    cfg = cfg_result.scalar_one_or_none()
-    download_dir = cfg.value if cfg else "./downloads"
+    download_dir = get_download_dir()
 
     filename = _PREVIEW_FILENAMES[kind]
     path = os.path.join(download_dir, str(video_id), filename)

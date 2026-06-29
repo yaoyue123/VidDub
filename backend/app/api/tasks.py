@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -11,6 +12,7 @@ from sqlalchemy.orm import selectinload
 logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
+from app.core.storage import get_download_dir
 from app.models.task import Task
 from app.models.video import Video
 from app.models.subtitle import Subtitle
@@ -319,9 +321,8 @@ async def get_task_detail(task_id: int, db: AsyncSession = Depends(get_db)):
 def _cleanup_video_files(video_id: int) -> None:
     """删除视频磁盘文件 (downloads/{video_id}/ 目录)."""
     import shutil
-    from pathlib import Path as _Path
-    work_dir = _Path(__file__).resolve().parent.parent.parent / "downloads" / str(video_id)
-    if work_dir.exists():
+    work_dir = os.path.join(get_download_dir(), str(video_id))
+    if os.path.exists(work_dir):
         try:
             shutil.rmtree(work_dir)
             logger.info("Cleaned up disk files for video %d: %s", video_id, work_dir)

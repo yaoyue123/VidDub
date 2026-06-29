@@ -9,8 +9,10 @@ Phase 8 完成后会被 AI 智能标题/标签替换。
 from __future__ import annotations
 
 import logging
+import os
 from typing import Optional
 
+from app.core.storage import get_download_dir
 from app.services.publish.base import PublishFields
 
 logger = logging.getLogger(__name__)
@@ -185,13 +187,11 @@ def _parse_translate_response(content: str) -> tuple[str, str, list[str]]:
 
 def _find_thumbnail_path(video_id: int, thumbnail_url: Optional[str]) -> Optional[str]:
     """尝试在 downloads/{video_id}/ 目录找到本地封面图文件."""
-    import os
+    base = get_download_dir()
     candidates = [
-        os.path.join("downloads", str(video_id), "thumbnail.jpg"),
-        os.path.join("downloads", str(video_id), "thumbnail.png"),
-        os.path.join("downloads", str(video_id), "cover.jpg"),
-        os.path.join("backend", "downloads", str(video_id), "thumbnail.jpg"),
-        os.path.join("backend", "downloads", str(video_id), "cover.jpg"),
+        os.path.join(base, str(video_id), "thumbnail.jpg"),
+        os.path.join(base, str(video_id), "thumbnail.png"),
+        os.path.join(base, str(video_id), "cover.jpg"),
     ]
     for p in candidates:
         if os.path.exists(p):

@@ -17,6 +17,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.storage import get_download_dir
 from app.models.subtitle import Subtitle
 from app.models.video import Video
 from app.models.config import Config
@@ -167,7 +168,7 @@ class RetranslateResponse(BaseModel):
 
 
 def _resolve_download_dir(db_configs: dict[str, str]) -> str:
-    return db_configs.get("download_dir", "./downloads")
+    return get_download_dir()
 
 
 def _load_translated_json(video_dir: str) -> list[dict]:

@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db, async_session_factory
+from app.core.storage import get_download_dir
 from app.core.websocket import manager as ws_manager
 from app.models.video import Video
 from app.models.task import Task
@@ -87,7 +88,7 @@ class BatchAddResponse(BaseModel):
 
 def _get_yt_service_from_db(configs: dict[str, str]) -> YoutubeService:
     """Build YoutubeService from config dict."""
-    download_dir = configs.get("download_dir", "./downloads")
+    download_dir = get_download_dir()
     max_res = int(configs.get("max_resolution", "1080"))
     return YoutubeService(download_dir=download_dir, max_resolution=max_res)
 

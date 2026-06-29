@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.storage import get_download_dir
 from app.models.video import Video
 from app.models.task import Task
 from app.models.config import Config
@@ -108,7 +109,7 @@ async def create_video(body: CreateVideoRequest, db: AsyncSession = Depends(get_
     try:
         config_result = await db.execute(select(Config))
         configs = {c.key: c.value for c in config_result.scalars().all()}
-        download_dir = configs.get("download_dir", "./downloads")
+        download_dir = get_download_dir()
         max_res = int(configs.get("max_resolution", "1080"))
         service = YoutubeService(download_dir=download_dir, max_resolution=max_res)
         info = await service.get_video_info(body.youtube_url)

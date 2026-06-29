@@ -19,11 +19,13 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from typing import Any, Optional
 
 import httpx
 
+from app.core.storage import get_download_dir
 from app.services.siliconflow.client import sf_post, get_async_client
 
 logger = logging.getLogger(__name__)
@@ -293,14 +295,13 @@ def _resolve_transcript_text(video: Any, whisper_transcript: Optional[list[dict]
                 texts.append(t)
         return "\n".join(texts)
 
-    import os
     vid = getattr(video, "id", None)
     if not vid:
         return ""
 
-    for base in (".", "./backend", ".."):
-        for fname in ("translated.json", "transcript.json"):
-            path = os.path.join(base, "downloads", str(vid), fname)
+    base = get_download_dir()
+    for fname in ("translated.json", "transcript.json"):
+        path = os.path.join(base, str(vid), fname)
             if os.path.exists(path):
                 try:
                     with open(path, "r", encoding="utf-8") as f:
