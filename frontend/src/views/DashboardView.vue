@@ -61,6 +61,17 @@ async function fetchTopPicks() {
   }
 }
 
+function _platformLogoText(p: string): string {
+  const map: Record<string, string> = {
+    douyin: '斗',
+    bilibili: 'B',
+    kuaishou: '快',
+    tencent: '微',
+    xiaohongshu: '红',
+  }
+  return map[p] || p[0]?.toUpperCase() || '?'
+}
+
 function formatViews(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
@@ -220,7 +231,7 @@ onMounted(() => {
     <section class="hero">
       <div class="hero-text">
         <h1 class="hero-title">👋 你好，欢迎使用 VidDub</h1>
-        <p class="hero-subtitle">把 YouTube 视频自动配音并发布到 B 站 / 西瓜。</p>
+        <p class="hero-subtitle">把 YouTube 视频自动配音并发布到 5 大平台。</p>
       </div>
       <el-button
         type="primary"
@@ -387,7 +398,7 @@ onMounted(() => {
               @click="platformDrawerVisible = true"
             >
               <div class="pm-left">
-                <div class="pm-logo">{{ p.platform === 'bilibili' ? 'B' : '西' }}</div>
+                <div class="pm-logo">{{ _platformLogoText(p.platform) }}</div>
                 <div class="pm-info">
                   <div class="pm-name">{{ p.display_name }}</div>
                   <div v-if="p.logged_in" class="pm-user is-success-text">
@@ -514,7 +525,7 @@ onMounted(() => {
           </li>
           <li>
             <strong>2. 扫码登录平台</strong>
-            <p class="text-caption">用 B 站 / 西瓜 App 扫码，授权后自动发布。</p>
+            <p class="text-caption">用 App 扫码，授权后自动发布到 5 大平台。</p>
           </li>
           <li>
             <strong>3. 粘贴 YouTube URL 启动</strong>

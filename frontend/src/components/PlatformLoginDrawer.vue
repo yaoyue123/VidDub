@@ -50,13 +50,28 @@ const dialogVisible = computed({
 const wsStore = useWsStore()
 
 const panels = ref<Record<PlatformName, PlatformPanelState>>({
+  douyin: {
+    platform: 'douyin', displayName: '抖音', logoColor: '#000000', logoText: '斗',
+    logged_in: false, expired: false, user_info: null, stage: 'idle',
+    qr_image_base64: null, expires_at: null, message: null,
+  },
   bilibili: {
     platform: 'bilibili', displayName: '哔哩哔哩', logoColor: '#fb7299', logoText: 'B',
     logged_in: false, expired: false, user_info: null, stage: 'idle',
     qr_image_base64: null, expires_at: null, message: null,
   },
-  ixigua: {
-    platform: 'ixigua', displayName: '西瓜视频', logoColor: '#ff5c5c', logoText: '西',
+  kuaishou: {
+    platform: 'kuaishou', displayName: '快手', logoColor: '#ff4906', logoText: '快',
+    logged_in: false, expired: false, user_info: null, stage: 'idle',
+    qr_image_base64: null, expires_at: null, message: null,
+  },
+  tencent: {
+    platform: 'tencent', displayName: '微信视频号', logoColor: '#07c160', logoText: '微',
+    logged_in: false, expired: false, user_info: null, stage: 'idle',
+    qr_image_base64: null, expires_at: null, message: null,
+  },
+  xiaohongshu: {
+    platform: 'xiaohongshu', displayName: '小红书', logoColor: '#ff2442', logoText: '红',
     logged_in: false, expired: false, user_info: null, stage: 'idle',
     qr_image_base64: null, expires_at: null, message: null,
   },

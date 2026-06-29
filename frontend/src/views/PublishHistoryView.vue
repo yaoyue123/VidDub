@@ -85,7 +85,9 @@ function platformLabel(p: string): string {
   const labels: Record<string, string> = {
     douyin: '抖音',
     bilibili: '哔哩哔哩',
-    ixigua: '西瓜视频',
+    kuaishou: '快手',
+    tencent: '微信视频号',
+    xiaohongshu: '小红书',
   }
   return labels[p] || p
 }
@@ -130,7 +132,9 @@ onMounted(() => {
             <el-option label="全部平台" value="" />
             <el-option label="抖音" value="douyin" />
             <el-option label="哔哩哔哩" value="bilibili" />
-            <el-option label="西瓜视频" value="ixigua" />
+            <el-option label="快手" value="kuaishou" />
+            <el-option label="微信视频号" value="tencent" />
+            <el-option label="小红书" value="xiaohongshu" />
           </el-select>
         </el-col>
         <el-col :span="6">

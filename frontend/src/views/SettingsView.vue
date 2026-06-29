@@ -187,15 +187,6 @@ const fields: FieldDef[] = [
     group: 'advanced',
   },
   {
-    key: 'ixigua_default_copyright', label: '西瓜视频版权类型', type: 'select',
-    options: [
-      { label: '转载 (推荐 — YouTube 搬运)', value: 'repost' },
-      { label: '原创', value: 'original' },
-    ],
-    help: '转载会自动填入原 YouTube URL 作为来源',
-    group: 'advanced',
-  },
-  {
     key: 'publish_default_tags', label: '默认标签', type: 'input',
     placeholder: '搬运,英语学习,翻译',
     help: '逗号分隔，最多 10 个，发布时与 AI 翻译标签合并',

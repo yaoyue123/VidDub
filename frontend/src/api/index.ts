@@ -165,7 +165,7 @@ export const statsApi = {
 }
 
 // ── Phase 6: PlatformApi 平台登录 ──
-export type PlatformName = 'douyin' | 'bilibili' | 'ixigua'
+export type PlatformName = 'douyin' | 'bilibili' | 'kuaishou' | 'tencent' | 'xiaohongshu'
 
 export interface PlatformQrStartResponse {
   platform: string
@@ -228,7 +228,7 @@ export const platformApi = {
 }
 
 // ── Phase 7: PublishApi 平台自动发布 ──
-export type PublishPlatformName = 'douyin' | 'bilibili' | 'ixigua'
+export type PublishPlatformName = 'douyin' | 'bilibili' | 'kuaishou' | 'tencent' | 'xiaohongshu'
 
 export interface PublishManualBody {
   title?: string
