@@ -550,6 +550,11 @@ export interface DiscoverySourceItem {
   last_scanned_at: string | null
   scan_interval_hours: number
   max_results_per_scan: number
+  filter_min_views: number | null
+  filter_max_views: number | null
+  filter_min_duration_sec: number | null
+  filter_max_duration_sec: number | null
+  filter_published_within_hours: number | null
   created_at: string | null
   updated_at: string | null
 }
@@ -591,13 +596,22 @@ export interface DiscoveryListResponse<T> {
   total: number
 }
 
+export interface DiscoverySearchParams {
+  query: string
+  max_results?: number
+  min_views?: number | null
+  max_views?: number | null
+  min_duration?: number | null
+  max_duration?: number | null
+  published_within_hours?: number | null
+  sort_by?: string
+  sort_order?: string
+}
+
 export const discoveryApi = {
   /** POST /api/discovery/search — YouTube 关键词搜索 */
-  search(query: string, maxResults = 12) {
-    return api.post<DiscoveryResponse>('/discovery/search', {
-      query,
-      max_results: maxResults,
-    })
+  search(params: DiscoverySearchParams) {
+    return api.post<DiscoveryResponse>('/discovery/search', params)
   },
   /** POST /api/discovery/channel — 扫描频道最新视频 */
   scanChannel(channelUrl: string, maxResults = 12) {

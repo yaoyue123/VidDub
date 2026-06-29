@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * DiscoverView.vue — Phase 10 rewrite.
+ * DiscoverView.vue — Phase 10 rewrite + enhancements.
  *
- * Multi-tab interface replacement for the old v4.0 scoring view.
- * Three tabs: Search (YouTube keyword search + VideoCard grid),
+ * Four tabs: Search (YouTube keyword search + filters + sort + save-as-source),
  * Keywords (keyword-type discovery source management),
- * Channels (channel-type discovery source management).
+ * Channels (channel-type discovery source management),
+ * Scan Results (view DiscoveryResult video cards with source filter).
  *
  * Requirements: UI-01, UI-02, UI-03, UI-04
  */
@@ -14,51 +14,102 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Refresh, Search as SearchIcon, Delete, EditPen,
+  SortUp, SortDown, Download,
 } from '@element-plus/icons-vue'
 import { useDiscoveryStore } from '@/stores/discoveryStore'
 import VideoCard from '@/components/VideoCard.vue'
-import type { DiscoverySourceItem, DiscoverySourceCreateBody, DiscoverySourceUpdateBody } from '@/api'
+import type { DiscoverySourceItem, DiscoverySourceCreateBody, DiscoverySourceUpdateBody, DiscoveryItem, DiscoveryResultItem } from '@/api'
 
 const store = useDiscoveryStore()
 const router = useRouter()
 
 // ── Tab state ──
-const activeTab = ref<'search' | 'keywords' | 'channels'>('search')
+const activeTab = ref<'search' | 'keywords' | 'channels' | 'results'>('search')
 
 function onTabChange(tab: string) {
-  store.setActiveTab(tab as 'search' | 'keywords' | 'channels')
+  store.setActiveTab(tab as any)
   if (tab === 'keywords' || tab === 'channels') {
     loadSources()
+  } else if (tab === 'results') {
+    loadResults()
   }
 }
 
 // ── Search tab state ──
 const searchQuery = ref('')
 const filterMinViews = ref<number | null>(null)
+const filterMaxViews = ref<number | null>(null)
 const filterMinDuration = ref<number | null>(null)
 const filterMaxDuration = ref<number | null>(null)
+const filterPublishedWithin = ref<number | null>(null)
+const sortBy = ref<string>('relevance')
+const sortOrder = ref<string>('desc')
 
 async function doSearch() {
   if (!searchQuery.value.trim()) {
     ElMessage.warning('请输入搜索关键词')
     return
   }
-  const filters: Record<string, number> = {}
-  if (filterMinViews.value !== null) filters.min_views = filterMinViews.value
-  if (filterMinDuration.value !== null) filters.min_duration = filterMinDuration.value
-  if (filterMaxDuration.value !== null) filters.max_duration = filterMaxDuration.value
+  // Sync to store filters
+  store.filters.minViews = filterMinViews.value
+  store.filters.maxViews = filterMaxViews.value
+  store.filters.minDuration = filterMinDuration.value
+  store.filters.maxDuration = filterMaxDuration.value
+  store.filters.publishedWithinHours = filterPublishedWithin.value
+  store.filters.sortBy = sortBy.value
+  store.filters.sortOrder = sortOrder.value
   await store.search(searchQuery.value, 20)
   if (store.error) {
     ElMessage.error(store.error)
   }
 }
 
+function toggleSortOrder() {
+  sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
+}
+
 function clearResults() {
   store.clearSearch()
   searchQuery.value = ''
   filterMinViews.value = null
+  filterMaxViews.value = null
   filterMinDuration.value = null
   filterMaxDuration.value = null
+  filterPublishedWithin.value = null
+}
+
+// ── Save search as source ──
+const saveSearchDialogVisible = ref(false)
+const saveSearchForm = reactive({
+  label: '',
+  scan_interval_hours: 24,
+})
+
+function openSaveSearch() {
+  saveSearchForm.label = searchQuery.value.trim()
+  saveSearchDialogVisible.value = true
+}
+
+async function saveSearchAsSource() {
+  if (!saveSearchForm.label.trim()) {
+    ElMessage.warning('请输入名称')
+    return
+  }
+  try {
+    const { discoveryApi } = await import('@/api')
+    await discoveryApi.createSource({
+      type: 'keyword',
+      source_value: searchQuery.value.trim(),
+      label: saveSearchForm.label.trim(),
+      scan_interval_hours: saveSearchForm.scan_interval_hours,
+      max_results_per_scan: 20,
+    })
+    saveSearchDialogVisible.value = false
+    ElMessage.success('已保存为关键词跟踪源')
+  } catch (e: any) {
+    const msg = e?.response?.data?.detail || e?.message || '保存失败'
+    ElMessage.error(msg)
+  }
 }
 
 // ── Source management state ──
@@ -179,17 +230,45 @@ async function scanSource(source: DiscoverySourceItem) {
   ElMessage.info(`正在扫描「${source.label}」...`)
   try {
     await store.triggerScan(source.id)
-    ElMessage.success('扫描已触发')
+    ElMessage.success('扫描已触发，可在「扫描结果」标签查看')
   } catch (e: any) {
     const msg = e?.response?.data?.detail || e?.message || '扫描失败'
     ElMessage.error(msg)
   }
 }
 
+// ── Scan Results tab state ──
+const resultsSourceFilter = ref<number | null>(null)
+const scanResultsLoading = ref(false)
+
+/** Map DiscoveryResultItem to DiscoveryItem for VideoCard compatibility */
+function resultToDiscoveryItem(r: DiscoveryResultItem): DiscoveryItem {
+  return {
+    youtube_id: r.youtube_id,
+    title: r.title,
+    channel: r.channel_name,
+    duration: r.duration_sec ?? 0,
+    view_count: r.view_count ?? 0,
+    like_count: r.like_count ?? 0,
+    thumbnail_url: r.thumbnail_url ?? '',
+    youtube_url: `https://www.youtube.com/watch?v=${r.youtube_id}`,
+  }
+}
+
+async function loadResults() {
+  scanResultsLoading.value = true
+  try {
+    await store.fetchResults({ source_id: resultsSourceFilter.value ?? undefined })
+  } finally {
+    scanResultsLoading.value = false
+  }
+}
+
 // ── Add-to-pipeline (UI-03) ──
 async function addToPipeline(video: any) {
   try {
-    await store.addToPipeline(video.youtube_url)
+    const youtubeUrl = video.youtube_url || `https://www.youtube.com/watch?v=${video.youtube_id}`
+    await store.addToPipeline(youtubeUrl)
     ElMessage.success(`已创建搬运任务: ${(video.title || '').slice(0, 40)}`)
     router.push('/tasks')
   } catch (e: any) {
@@ -206,6 +285,20 @@ function formatTime(s?: string | null): string {
   } catch {
     return s
   }
+}
+
+function statusLabel(status: string): string {
+  const map: Record<string, string> = {
+    new: '新发现', scored: '已评分', dubbed: '已搬运', ignored: '已忽略',
+  }
+  return map[status] || status
+}
+
+function statusType(status: string): 'success' | 'info' | 'warning' | 'danger' | '' {
+  const map: Record<string, 'success' | 'info' | 'warning' | 'danger' | ''> = {
+    new: 'info', scored: '', dubbed: 'success', ignored: 'info',
+  }
+  return map[status] || 'info'
 }
 
 onMounted(() => {
@@ -228,6 +321,7 @@ onMounted(() => {
       <el-tab-pane label="搜索" name="search" />
       <el-tab-pane label="关键词跟踪" name="keywords" />
       <el-tab-pane label="频道跟踪" name="channels" />
+      <el-tab-pane label="扫描结果" name="results" />
     </el-tabs>
 
     <!-- ─── Search Tab ─── -->
@@ -251,40 +345,84 @@ onMounted(() => {
         <el-button v-if="store.searchResults.length > 0 || store.error" @click="clearResults">
           清空
         </el-button>
+        <el-button
+          v-if="store.searchResults.length > 0"
+          type="success"
+          :icon="Download"
+          @click="openSaveSearch"
+        >
+          保存为跟踪源
+        </el-button>
       </div>
 
-      <!-- Filter bar -->
+      <!-- Sort + Filter bar -->
       <div class="filter-bar">
+        <div class="filter-item">
+          <label class="filter-label">排序</label>
+          <el-select v-model="sortBy" style="width: 110px" size="small">
+            <el-option value="relevance" label="相关性" />
+            <el-option value="views" label="播放量" />
+            <el-option value="duration" label="时长" />
+            <el-option value="date" label="发布日期" />
+          </el-select>
+          <el-button
+            :icon="sortOrder === 'desc' ? SortDown : SortUp"
+            size="small"
+            @click="toggleSortOrder"
+          />
+        </div>
         <div class="filter-item">
           <label class="filter-label">最少播放</label>
           <el-input-number
             v-model="filterMinViews"
             :min="0"
             :step="10000"
-            :step-strictly="false"
             controls-position="right"
             placeholder="0"
+            size="small"
           />
         </div>
         <div class="filter-item">
-          <label class="filter-label">最短时长(秒)</label>
+          <label class="filter-label">最多播放</label>
+          <el-input-number
+            v-model="filterMaxViews"
+            :min="0"
+            :step="100000"
+            controls-position="right"
+            placeholder="不限"
+            size="small"
+          />
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">最短(秒)</label>
           <el-input-number
             v-model="filterMinDuration"
             :min="0"
             :step="60"
             controls-position="right"
             placeholder="0"
+            size="small"
           />
         </div>
         <div class="filter-item">
-          <label class="filter-label">最长时长(秒)</label>
+          <label class="filter-label">最长(秒)</label>
           <el-input-number
             v-model="filterMaxDuration"
             :min="0"
             :step="60"
             controls-position="right"
             placeholder="不限"
+            size="small"
           />
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">发布时间</label>
+          <el-select v-model="filterPublishedWithin" placeholder="不限" size="small" style="width: 100px" clearable>
+            <el-option :value="24" label="24小时" />
+            <el-option :value="72" label="3天" />
+            <el-option :value="168" label="一周" />
+            <el-option :value="720" label="一月" />
+          </el-select>
         </div>
       </div>
 
@@ -439,6 +577,71 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- ─── Scan Results Tab ─── -->
+    <div v-if="activeTab === 'results'" class="results-tab">
+
+      <div class="section-header">
+        <h2 class="section-title">扫描结果</h2>
+        <div class="results-toolbar">
+          <el-select
+            v-model="resultsSourceFilter"
+            placeholder="按跟踪源筛选"
+            clearable
+            size="small"
+            style="width: 200px; margin-right: 8px"
+            @change="loadResults"
+          >
+            <el-option
+              v-for="s in store.sources"
+              :key="s.id"
+              :value="s.id"
+              :label="`${s.label} (${s.type === 'keyword' ? '关键词' : '频道'})`"
+            />
+          </el-select>
+          <el-button :icon="Refresh" size="small" @click="loadResults" :loading="scanResultsLoading">
+            刷新
+          </el-button>
+        </div>
+      </div>
+
+      <el-alert
+        v-if="store.error && store.scanResults.length === 0"
+        :title="store.error"
+        type="error"
+        show-icon
+        closable
+        style="margin-bottom: var(--space-4)"
+      />
+
+      <div v-loading="scanResultsLoading" class="video-grid-container">
+        <el-empty
+          v-if="!scanResultsLoading && store.scanResults.length === 0"
+          description="暂无扫描结果，对跟踪源执行扫描后将在此显示"
+        />
+
+        <div v-else-if="store.scanResults.length > 0" class="video-grid">
+          <div
+            v-for="r in store.scanResults"
+            :key="r.id"
+            class="result-card-wrap"
+          >
+            <div class="result-header">
+              <el-tag :type="statusType(r.status)" size="small" effect="plain">
+                {{ statusLabel(r.status) }}
+              </el-tag>
+              <span class="result-source-label">
+                {{ store.sources.find(s => s.id === r.source_id)?.label || `#${r.source_id}` }}
+              </span>
+            </div>
+            <VideoCard
+              :video="resultToDiscoveryItem(r)"
+              @add-to-pipeline="addToPipeline(r)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── Source Dialog (create/edit) ─── -->
     <el-dialog
       v-model="sourceDialogVisible"
@@ -484,6 +687,36 @@ onMounted(() => {
         <el-button type="primary" @click="saveSource">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- ─── Save Search Dialog ─── -->
+    <el-dialog
+      v-model="saveSearchDialogVisible"
+      title="保存搜索为跟踪源"
+      width="480"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="saveSearchForm" label-width="100px">
+        <el-form-item label="搜索关键词">
+          <el-input :model-value="searchQuery" disabled />
+        </el-form-item>
+        <el-form-item label="名称" required>
+          <el-input v-model="saveSearchForm.label" placeholder="便于识别的名称" />
+        </el-form-item>
+        <el-form-item label="扫描间隔">
+          <el-select v-model="saveSearchForm.scan_interval_hours" style="width: 100%">
+            <el-option :value="1" label="每 1 小时" />
+            <el-option :value="3" label="每 3 小时" />
+            <el-option :value="6" label="每 6 小时" />
+            <el-option :value="12" label="每 12 小时" />
+            <el-option :value="24" label="每天（默认）" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="saveSearchDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveSearchAsSource">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -522,12 +755,18 @@ onMounted(() => {
 
 .filter-bar {
   display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-2);
   margin-bottom: var(--space-4);
   padding: var(--space-3);
   background: var(--color-bg-soft);
   border-radius: var(--radius-md);
+}
+.filter-row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
 }
 .filter-item {
   display: flex;
@@ -540,7 +779,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 .filter-item .el-input-number {
-  width: 140px;
+  width: 120px;
 }
 
 .video-grid-container {
@@ -581,5 +820,29 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
+}
+
+/* ── Results tab ── */
+.results-tab {
+  margin-top: var(--space-4);
+}
+.results-toolbar {
+  display: flex;
+  align-items: center;
+}
+.result-card-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  padding: 0 4px;
+}
+.result-source-label {
+  font-size: var(--fs-2xs);
+  color: var(--color-text-muted);
 }
 </style>

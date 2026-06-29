@@ -22,18 +22,31 @@ export const useDiscoveryStore = defineStore('discovery', () => {
     maxViews: null as number | null,
     minDuration: null as number | null,
     maxDuration: null as number | null,
+    publishedWithinHours: null as number | null,
+    sortBy: 'relevance' as string,
+    sortOrder: 'desc' as string,
   })
   const searchQuery = ref('')
   const error = ref<string | null>(null)
 
   // ── Actions ──
 
-  /** Search YouTube videos by keyword */
+  /** Search YouTube videos by keyword with current filters and sort */
   async function search(query: string, maxResults = 20) {
     searchLoading.value = true
     error.value = null
     try {
-      const res = await discoveryApi.search(query, maxResults)
+      const res = await discoveryApi.search({
+        query,
+        max_results: maxResults,
+        min_views: filters.minViews,
+        max_views: filters.maxViews,
+        min_duration: filters.minDuration,
+        max_duration: filters.maxDuration,
+        published_within_hours: filters.publishedWithinHours,
+        sort_by: filters.sortBy,
+        sort_order: filters.sortOrder,
+      })
       searchResults.value = res.data.items
     } catch (e: any) {
       const msg = e.response?.data?.detail || e.message || '搜索失败'
