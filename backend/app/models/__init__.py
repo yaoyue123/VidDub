@@ -7,6 +7,7 @@ from app.models.publish_record import PublishRecord, PublishStatus, PublishPlatf
 from app.models.channel import Channel  # Phase 9
 from app.models.scan_log import ScanLog  # Phase 9
 from app.models.discovery import DiscoverySource, DiscoveryResult  # Phase 14
+from app.models.discovery_scan_log import DiscoveryScanLog  # Phase 8
 
 __all__ = [
     "Base",
@@ -22,4 +23,5 @@ __all__ = [
     "ScanLog",
     "DiscoverySource",
     "DiscoveryResult",
+    "DiscoveryScanLog",
 ]
