@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v5.1
 milestone_name: Discover 页面重构与 Bug 修复
 status: executing
-last_updated: "2026-06-29T13:12:00.000Z"
-last_activity: 2026-06-29 — Plan 07-02 completed (YtDlpWrapper + rate limiter)
+last_updated: "2026-06-29T14:30:00.000Z"
+last_activity: 2026-06-29 — Plan 07-04 completed (Remove v4.0 scoring frontend code)
 progress:
   total_phases: 11
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 12
-  completed_plans: 3
-  percent: 25
+  completed_plans: 5
+  percent: 42
 ---
 
 # Project State
@@ -31,10 +31,10 @@ Updated: 2026-06-29
 
 ## Current Position
 
-Phase: 7 (Infrastructure & Cleanup) — In Progress
-Plan: 02 (YtDlpWrapper with rate limiter) — Completed
-Status: In Progress
-Last activity: 2026-06-29 — Plan 07-02 completed (YtDlpWrapper + rate limiter + circuit breaker)
+Phase: 7 (Infrastructure & Cleanup) — Completed
+Plan: 04 (Remove v4.0 scoring frontend code) — Completed
+Status: Completed
+Last activity: 2026-06-29 — Plan 07-04 completed (Remove v4.0 scoring frontend code)
 
 ## v5.1 Roadmap Summary
 
@@ -53,7 +53,7 @@ Last activity: 2026-06-29 — Plan 07-02 completed (YtDlpWrapper + rate limiter 
 ## Performance Metrics
 
 - Phases completed: 0 / 5
-- Plans completed: 2 (07-01, 07-02)
+- Plans completed: 4 (07-01, 07-02, 07-03, 07-04)
 - Tests passing baseline: pending (will be established in Phase 7)
 - Open blockers: 0
 
@@ -87,8 +87,8 @@ Last activity: 2026-06-29 — Plan 07-02 completed (YtDlpWrapper + rate limiter 
 
 - [x] Phase 7, Plan 01: SQLite WAL mode + indexes + FTS5 (INFRA-02) — Done
 - [x] Phase 7, Plan 02: YtDlpWrapper with rate limiter (INFRA-01) — Done
-- [ ] Phase 7, Plan 03: Remove v4.0 scoring backend code (CLEANUP-01)
-- [ ] Phase 7, Plan 04: Remove v4.0 scoring frontend code (CLEANUP-02)
+- [x] Phase 7, Plan 03: Remove v4.0 scoring backend code (CLEANUP-01)
+- [x] Phase 7, Plan 04: Remove v4.0 scoring frontend code (CLEANUP-02)
 
 ### Blockers
 
@@ -98,13 +98,13 @@ Last activity: 2026-06-29 — Plan 07-02 completed (YtDlpWrapper + rate limiter 
 
 ## Session Continuity
 
-**Last activity:** 2026-06-29 — Plan 07-02 completed
+**Last activity:** 2026-06-29 — Plan 07-04 completed (Phase 7 complete)
 
 **Next steps:**
 
-1. Continue Phase 7: Execute Plan 07-03 (Remove v4.0 scoring backend code)
-2. Plan 07-04: Remove v4.0 scoring frontend code
-3. Phase 8: DiscoveryScanner + keyword search + channel tracking
+1. Phase 8: DiscoveryScanner + keyword search + channel tracking
+2. Phase 9: Tracking API & Filtering
+3. Phase 10: DiscoverView Frontend
 
 ---
-*Last updated: 2026-06-29 — Phase 7 Plan 02 completed (YtDlpWrapper)*
+*Last updated: 2026-06-29 — Phase 7 Plan 04 completed (Remove v4.0 scoring frontend code). Phase 7 complete.*

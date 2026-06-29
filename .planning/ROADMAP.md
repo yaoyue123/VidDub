@@ -19,7 +19,7 @@
 
 ### Phases
 
-- [ ] **Phase 7: Infrastructure & Cleanup** — yt-dlp 封装 + 全局限速器 + SQLite WAL 模式 + 索引 + 移除旧评分代码
+- [x] **Phase 7: Infrastructure & Cleanup** — yt-dlp 封装 + 全局限速器 + SQLite WAL 模式 + 索引 + 移除旧评分代码
 - [ ] **Phase 8: Tracking Scanner & Core Discovery** — DiscoveryScanner 协调器 + 关键词搜索 + 频道跟踪 + 自动去重 + 扫描历史
 - [ ] **Phase 9: Tracking API & Filtering** — 跟踪源筛选条件 API + 保存搜索为跟踪源 + 手动触发扫描 + 缩略图代理
 - [ ] **Phase 10: DiscoverView Frontend** — 多标签页 Discover 页面 + 视频卡片网格 + 一键搬运 + 跟踪源管理 UI
@@ -37,7 +37,7 @@
 
 **Requirements:** INFRA-01, INFRA-02, CLEANUP-01, CLEANUP-02
 
-**Progress:** 2/4 plans complete
+**Progress:** 4/4 plans complete
 
 **Success Criteria** (what must be TRUE):
 1. All yt-dlp calls go through a centralized `YtDlpWrapper` with shared sliding-window rate limiter, cookie management, and extractor-args configuration
@@ -52,8 +52,8 @@
 Plans:
 - [x] 07-01-PLAN.md — SQLite WAL mode + busy_timeout + indexes + FTS5 (INFRA-02)
 - [x] 07-02-PLAN.md — YtDlpWrapper with rate limiter + circuit breaker + wiring (INFRA-01)
-- [ ] 07-03-PLAN.md — Remove v4.0 scoring backend code (CLEANUP-01)
-- [ ] 07-04-PLAN.md — Remove v4.0 scoring frontend code (CLEANUP-02)
+- [x] 07-03-PLAN.md — Remove v4.0 scoring backend code (CLEANUP-01)
+- [x] 07-04-PLAN.md — Remove v4.0 scoring frontend code (CLEANUP-02)
 ```
 
 ### Phase 8: Tracking Scanner & Core Discovery
@@ -152,7 +152,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Infrastructure & Cleanup | 2/4 | In Progress | 2026-06-29 |
+| 7. Infrastructure & Cleanup | 4/4 | Complete | 2026-06-29 |
 | 8. Tracking Scanner & Core Discovery | 0/2 | Planned | - |
 | 9. Tracking API & Filtering | 0/2 | Plans created | - |
 | 10. DiscoverView Frontend | 0/3 | Plans created | - |

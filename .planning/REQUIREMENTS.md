@@ -32,8 +32,8 @@
 
 ### CLEANUP — 旧代码清理
 
-- [ ] **CLEANUP-01**: 移除 v4.0 评分引擎后端代码（scoring/ 目录、scoringApi、rulesApi、VideoScore 模型、ContentRule 模型、/api/scoring/ 路由、/api/rules/ 路由）
-- [ ] **CLEANUP-02**: 移除前端旧推荐系统引用（scoringApi 调用、rulesApi 调用、旧 DiscoverView 内联 API 逻辑）
+- [x] **CLEANUP-01**: 移除 v4.0 评分引擎后端代码（scoring/ 目录、scoringApi、rulesApi、VideoScore 模型、ContentRule 模型、/api/scoring/ 路由、/api/rules/ 路由）
+- [x] **CLEANUP-02**: 移除前端旧推荐系统引用（scoringApi 调用、rulesApi 调用、旧 DiscoverView 内联 API 逻辑）
 
 ### BUG — Bug 修复
 
@@ -98,7 +98,7 @@
 | INFRA-01 | Phase 7 | Done |
 | INFRA-02 | Phase 7 | Done |
 | CLEANUP-01 | Phase 7 | Pending |
-| CLEANUP-02 | Phase 7 | Pending |
+| CLEANUP-02 | Phase 7 | Complete | 07-04-PLAN.md |
 | TRACK-01 | Phase 8 | Pending |
 | TRACK-02 | Phase 8 | Pending |
 | TRACK-05 | Phase 8 | Pending |

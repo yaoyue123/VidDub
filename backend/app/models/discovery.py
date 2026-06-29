@@ -1,12 +1,15 @@
 """Phase 14: Discovery models for intelligent content sourcing."""
 
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.discovery_scan_log import DiscoveryScanLog
 
 
 class DiscoverySource(Base, TimestampMixin):
@@ -15,7 +18,7 @@ class DiscoverySource(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     type: Mapped[str] = mapped_column(
         String(32), nullable=False,
-        comment="channel | keyword | category | trending",
+        comment="keyword | creator | playlist | trending | topic",
     )
     source_value: Mapped[str] = mapped_column(
         String(512), nullable=False,
@@ -30,6 +33,34 @@ class DiscoverySource(Base, TimestampMixin):
     )
     scan_interval_hours: Mapped[int] = mapped_column(Integer, default=24)
     max_results_per_scan: Mapped[int] = mapped_column(Integer, default=20)
+
+    # Filter conditions (nullable = no filter applied)
+    filter_min_views: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+        comment="Minimum view count filter",
+    )
+    filter_max_views: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+        comment="Maximum view count filter",
+    )
+    filter_min_duration_sec: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+        comment="Minimum video duration in seconds",
+    )
+    filter_max_duration_sec: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+        comment="Maximum video duration in seconds",
+    )
+    filter_published_within_hours: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+        comment="Only videos published within this many hours",
+    )
+
+    scan_logs: Mapped[list["DiscoveryScanLog"]] = relationship(
+        "DiscoveryScanLog", back_populates="source",
+        cascade="all, delete-orphan",
+        order_by="DiscoveryScanLog.scanned_at.desc()",
+    )
 
     def __repr__(self) -> str:
         return (
@@ -57,6 +88,26 @@ class DiscoveryResult(Base, TimestampMixin):
     discovered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False,
     )
+
+    # Display metadata for results grid (populated during scan)
+    view_count: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+    )
+    like_count: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+    )
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True,
+    )
+    published_at: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True,
+        comment="ISO 8601 publish date string from yt-dlp",
+    )
+    duration_sec: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
+        comment="Video duration in seconds",
+    )
+
     video_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("videos.id", ondelete="SET NULL"), nullable=True,
     )
