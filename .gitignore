@@ -19,6 +19,11 @@ downloads/
 *.log
 *.db
 
+# Runtime artifacts
+.pytest_cache/
+htmlcov/
+backend/*.png
+
 # Claude / GSD
 .claude/
 .planning/
