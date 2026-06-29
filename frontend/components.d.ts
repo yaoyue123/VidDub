@@ -8,7 +8,6 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AiTitleSelector: typeof import('./src/components/AiTitleSelector.vue')['default']
-    AudioPreview: typeof import('./src/components/AudioPreview.vue')['default']
     DubCreateDialog: typeof import('./src/components/DubCreateDialog.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAside: typeof import('element-plus/es')['ElAside']
