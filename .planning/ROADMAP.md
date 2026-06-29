@@ -137,7 +137,12 @@ Plans:
 2. No hardcoded `downloads/` or `./downloads` paths remain in configuration files, models, or services
 3. Application startup normalizes or validates the download directory path to prevent creation of duplicate directories
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+```
+Plans:
+- [ ] 11-01-PLAN.md — Single get_download_dir() helper to eliminate duplicate directory paths (BUG-02)
+```
 
 ---
 
@@ -147,9 +152,9 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Infrastructure & Cleanup | 0/4 | Planned | - |
 | 8. Tracking Scanner & Core Discovery | 0/2 | Planned | - |
-| 9. Tracking API & Filtering | 0/2 | Planned | - |
+| 9. Tracking API & Filtering | 0/2 | Plans created | - |
 | 10. DiscoverView Frontend | 0/3 | Plans created | - |
-| 11. Bug Fixes & Polish | 0/0 | Not started | - |
+| 11. Bug Fixes & Polish | 0/1 | Plans created | - |
 
 ---
 
@@ -192,4 +197,4 @@ Plans:
 
 ---
 
-*Last updated: 2026-06-29 — Phase 9-10 plans created (5 plans), ROADMAP updated*
+*Last updated: 2026-06-29 — Phase 11 plan created (1 plan), ROADMAP updated*

@@ -15,7 +15,12 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8000 "') do taskkill /f /pi
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5173 "') do taskkill /f /pid %%a >nul 2>&1
 
 echo [*] Starting backend http://localhost:8000
-start /min cmd /c "cd /d %~dp0backend && python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
+REM Use start_server.py launcher instead of direct uvicorn CLI because:
+REM   1. --loop none is rejected by uvicorn CLI validator (only auto/asyncio/uvloop accepted)
+REM   2. Programmatic loop="none" skips uvicorn's SelectorEventLoopPolicy override on Windows
+REM   3. ProactorEventLoopPolicy (set in start_server.py + main.py) is preserved for
+REM      create_subprocess_exec() used by patchright/Playwright to launch Chromium.
+start /min cmd /c "cd /d %~dp0backend && python start_server.py"
 
 echo [*] Starting frontend http://localhost:5173
 start /min cmd /c "cd /d %~dp0frontend && set PORT=5173 && npm run dev"

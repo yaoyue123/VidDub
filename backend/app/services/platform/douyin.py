@@ -56,7 +56,7 @@ class DouyinLogin(PlatformLoginBase):
                     handle=True,
                     return_detail=True,
                     qrcode_callback=_qrcode_callback,
-                    headless=True,
+                    headless=False,
                 )
                 self._final_status = result or {}
             except Exception as e:

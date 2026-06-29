@@ -7,18 +7,18 @@ import sys
 from typing import AsyncIterator
 
 # Windows: patchright/Playwright 使用 asyncio.create_subprocess_exec 启动 Chromium，
-# 必须用 ProactorEventLoop。先设 policy，再显式创建 loop，防止 uvicorn 先创建 default loop。
+# 必须用 ProactorEventLoop。uvicorn 0.30.0 --reload on Windows switches to
+# SelectorEventLoopPolicy (uvicorn.loops.asyncio.asyncio_setup), which breaks
+# create_subprocess_exec(). start.bat now passes --loop none to prevent this,
+# and we set the ProactorEventLoopPolicy explicitly for defense-in-depth.
 if sys.platform == "win32":
-    policy = asyncio.WindowsProactorEventLoopPolicy()
-    asyncio.set_event_loop_policy(policy)
-    loop = policy.new_event_loop()
-    asyncio.set_event_loop(loop)
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Debug log：在 startup 时打印 loop 类型，帮助确认 Proactor 是否生效
 def _log_loop_type():
     import logging
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         logging.getLogger("app.main").info(
             "Event loop type: %s (is_proactor=%s)",
             type(loop).__name__, isinstance(loop, asyncio.ProactorEventLoop),
