@@ -52,7 +52,7 @@ class PlatformDescriptor:
     cookie_file: str
 
     # Dispatch metadata
-    login_kind: str        # "sau_qrcode_callback" | "biliup_cli" | "viddub_playwright"
+    login_kind: str        # "sau_qrcode_callback" | "viddub_http_qr"
     publisher_module: str  # e.g. "app.services.publish.douyin"
     publisher_class: str   # e.g. "DouyinPublisher"
     login_module: str      # e.g. "app.services.platform.douyin"
@@ -83,8 +83,11 @@ _REGISTRY: dict[str, PlatformDescriptor] = {
         display_name="哔哩哔哩",
         brand_color="fb7299",
         logo_text="B",
-        cookie_file=_sau_cookie(f"bilibili_{VIDDUB_ACCOUNT}.json"),
-        login_kind="biliup_cli",
+        # Bilibili uses viddub's HTTP QR login (biliup CLI requires a TTY and
+        # cannot be embedded in a web UI). cookie_bridge.py converts the
+        # storage_state to biliup LoginInfo format at publish time.
+        cookie_file=os.path.join(VIDDUB_LOGIN_DATA_DIR, "bilibili_storage_state.json"),
+        login_kind="viddub_http_qr",
         publisher_module="app.services.publish.sau_bilibili",
         publisher_class="SauBilibiliPublisher",
         login_module="app.services.platform.bilibili",
@@ -159,4 +162,4 @@ def display_name_map() -> dict[str, str]:
 
 def is_sau_native(platform_id: str) -> bool:
     """True if the platform uses SAU's cookie file format (not viddub storage_state)."""
-    return get(platform_id).login_kind != "viddub_playwright"
+    return get(platform_id).login_kind == "sau_qrcode_callback"

@@ -52,8 +52,11 @@ def test_publish_status_constants():
 
 def test_publish_platform_constants():
     from app.models.publish_record import PublishPlatform
+    assert PublishPlatform.DOUYIN == "douyin"
     assert PublishPlatform.BILIBILI == "bilibili"
-    assert PublishPlatform.IXIGUA == "ixigua"
+    assert PublishPlatform.KUAISHOU == "kuaishou"
+    assert PublishPlatform.TENCENT == "tencent"
+    assert PublishPlatform.XIAOHONGSHU == "xiaohongshu"
 
 
 # ─────────────────────────────────────────────────────────────────
