@@ -288,7 +288,7 @@ def _score_quality(metrics: dict[str, Any]) -> float:
 def _score_market(
     metrics: dict[str, Any], category: Optional[str] = None,
 ) -> float:
-    """Score how well this content fits Chinese platforms (Bilibili, Xigua).
+    """Score how well this content fits Chinese platforms (Bilibili, etc.).
 
     Uses a category-to-market-fit lookup table. Unknown categories get a
     neutral score.

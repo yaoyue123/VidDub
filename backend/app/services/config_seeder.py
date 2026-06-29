@@ -149,10 +149,6 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "value": "122",
         "description": "哔哩哔哩默认分区 tid (122=野生技术协会)",
     },
-    "ixigua_default_copyright": {
-        "value": "repost",
-        "description": "西瓜视频默认版权类型 (original=原创 / repost=转载)",
-    },
     "publish_default_tags": {
         "value": "搬运,英语学习,翻译",
         "description": "发布默认标签 (逗号分隔，最多 10 个)",

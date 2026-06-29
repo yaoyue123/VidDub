@@ -23,10 +23,12 @@ class PublishStatus:
 
 
 class PublishPlatform:
-    """支持的平台标识 (v3.2 — 新增 douyin, 全部托管给 social-auto-upload)."""
+    """支持的平台标识 (v3.2 — 全部托管给 social-auto-upload)."""
     DOUYIN = "douyin"
     BILIBILI = "bilibili"
-    IXIGUA = "ixigua"
+    KUAISHOU = "kuaishou"
+    TENCENT = "tencent"
+    XIAOHONGSHU = "xiaohongshu"
 
 
 class PublishRecord(Base, TimestampMixin):

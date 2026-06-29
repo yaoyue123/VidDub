@@ -66,7 +66,6 @@ def calculate_actual_score(
 
     Different platforms have different scales:
     - Bilibili: views heavily favored, coins/favorites matter
-    - Xigua: views + likes + comments more balanced
     """
     if platform == "bilibili":
         # Bilibili: views dominate, likes/coins/favorites are secondary

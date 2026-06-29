@@ -98,7 +98,6 @@ async def prepare_publish_fields(video_id: int) -> PublishFields:
 
     # 配置项
     category_id = configs.get("bilibili_default_category", "122")
-    copyright_type = configs.get("ixigua_default_copyright", "repost")
     cover_path = _find_thumbnail_path(video_id, v.thumbnail_url)
 
     return PublishFields(
@@ -107,8 +106,8 @@ async def prepare_publish_fields(video_id: int) -> PublishFields:
         tags=combined_tags,
         cover_path=cover_path,
         category_id=category_id,
-        copyright_type=copyright_type,
-        source_url=v.youtube_url if copyright_type == "repost" else None,
+        copyright_type="repost",
+        source_url=v.youtube_url,
     )
 
 

@@ -126,19 +126,6 @@ _REGISTRY: dict[str, PlatformDescriptor] = {
         login_module="app.services.platform.xiaohongshu",
         login_class="XiaohongshuLogin",
     ),
-    # ── Transitional: ixigua is scheduled for removal in P5 ──
-    "ixigua": PlatformDescriptor(
-        platform_id="ixigua",
-        display_name="西瓜视频",
-        brand_color="ff0000",
-        logo_text="西",
-        cookie_file=os.path.join(VIDDUB_LOGIN_DATA_DIR, "ixigua_storage_state.json"),
-        login_kind="viddub_playwright",
-        publisher_module="app.services.publish.ixigua",
-        publisher_class="IxiguaPublisher",
-        login_module="app.services.platform.ixigua",
-        login_class="IxiguaLogin",
-    ),
 }
 
 

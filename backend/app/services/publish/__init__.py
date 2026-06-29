@@ -1,8 +1,7 @@
-"""v3.2 平台发布 — 全部迁移到 social-auto-upload.
+"""v3.2 平台发布 — 全部由 social-auto-upload 驱动.
 
-Douyin  → SAU DouYinVideo (Playwright browser)
+Douyin / Kuaishou / Tencent / Xiaohongshu → SAU Playwright browser uploaders
 Bilibili → SAU biliup Rust binary
-Ixigua  → Playwright browser (SAU 暂无, 保留 viddub 实现)
 """
 from app.services.publish.base import (  # noqa: F401
     PlatformPublisher,
