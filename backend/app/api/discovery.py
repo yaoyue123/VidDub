@@ -5,6 +5,7 @@ All discovery operations use yt-dlp and run via executor threads.
 """
 
 import logging
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -259,6 +260,11 @@ class DiscoverySourceCreate(BaseModel):
     label: str
     scan_interval_hours: int = 24
     max_results_per_scan: int = 20
+    filter_min_views: Optional[int] = Field(None, ge=0)
+    filter_max_views: Optional[int] = Field(None, ge=0)
+    filter_min_duration_sec: Optional[int] = Field(None, ge=0)
+    filter_max_duration_sec: Optional[int] = Field(None, ge=0)
+    filter_published_within_hours: Optional[int] = Field(None, ge=1)
 
 
 class DiscoverySourceUpdate(BaseModel):
@@ -266,25 +272,53 @@ class DiscoverySourceUpdate(BaseModel):
     enabled: Optional[bool] = None
     scan_interval_hours: Optional[int] = None
     max_results_per_scan: Optional[int] = None
+    filter_min_views: Optional[int] = Field(None, ge=0)
+    filter_max_views: Optional[int] = Field(None, ge=0)
+    filter_min_duration_sec: Optional[int] = Field(None, ge=0)
+    filter_max_duration_sec: Optional[int] = Field(None, ge=0)
+    filter_published_within_hours: Optional[int] = Field(None, ge=1)
+
+
+class DiscoverySourceResponse(BaseModel):
+    id: int
+    type: str
+    source_value: str
+    label: str
+    enabled: bool
+    last_scanned_at: Optional[datetime] = None
+    scan_interval_hours: int
+    max_results_per_scan: int
+    filter_min_views: Optional[int] = None
+    filter_max_views: Optional[int] = None
+    filter_min_duration_sec: Optional[int] = None
+    filter_max_duration_sec: Optional[int] = None
+    filter_published_within_hours: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 @router.get("/sources")
 async def list_discovery_sources(db: AsyncSession = Depends(get_db)):
-    """List all discovery sources."""
+    """List all discovery sources with filter fields."""
     from app.models.discovery import DiscoverySource
     result = await db.execute(
         select(DiscoverySource).order_by(DiscoverySource.created_at.desc()),
     )
     sources = result.scalars().all()
-    return {"items": sources, "total": len(sources)}
+    return {
+        "items": [DiscoverySourceResponse.model_validate(s) for s in sources],
+        "total": len(sources),
+    }
 
 
-@router.post("/sources")
+@router.post("/sources", response_model=DiscoverySourceResponse, status_code=201)
 async def create_discovery_source(
     body: DiscoverySourceCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    """Add a new discovery source."""
+    """Add a new discovery source with optional filter conditions."""
     from app.models.discovery import DiscoverySource
     source = DiscoverySource(
         type=body.type,
@@ -292,35 +326,37 @@ async def create_discovery_source(
         label=body.label,
         scan_interval_hours=body.scan_interval_hours,
         max_results_per_scan=body.max_results_per_scan,
+        filter_min_views=body.filter_min_views,
+        filter_max_views=body.filter_max_views,
+        filter_min_duration_sec=body.filter_min_duration_sec,
+        filter_max_duration_sec=body.filter_max_duration_sec,
+        filter_published_within_hours=body.filter_published_within_hours,
     )
     db.add(source)
     await db.commit()
     await db.refresh(source)
-    return source
+    return DiscoverySourceResponse.model_validate(source)
 
 
-@router.put("/sources/{source_id}")
+@router.put("/sources/{source_id}", response_model=DiscoverySourceResponse)
 async def update_discovery_source(
     source_id: int,
     body: DiscoverySourceUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a discovery source."""
+    """Update a discovery source including filter conditions."""
     from app.models.discovery import DiscoverySource
     source = await db.get(DiscoverySource, source_id)
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
-    if body.label is not None:
-        source.label = body.label
-    if body.enabled is not None:
-        source.enabled = body.enabled
-    if body.scan_interval_hours is not None:
-        source.scan_interval_hours = body.scan_interval_hours
-    if body.max_results_per_scan is not None:
-        source.max_results_per_scan = body.max_results_per_scan
+
+    update_data = body.model_dump(exclude_unset=True)
+    for k, v in update_data.items():
+        setattr(source, k, v)
+
     await db.commit()
     await db.refresh(source)
-    return source
+    return DiscoverySourceResponse.model_validate(source)
 
 
 @router.delete("/sources/{source_id}")
