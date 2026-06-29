@@ -89,6 +89,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         configs = {c.key: c.value for c in result.scalars().all()}
 
     download_dir = configs.get("download_dir", "./downloads")
+    from app.core.storage import set_download_dir
+    set_download_dir(download_dir)
     max_concurrent = int(configs.get("max_concurrent_downloads", "3"))
     max_res = int(configs.get("max_resolution", "1080"))
 
@@ -129,10 +131,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await discovery_scanner.start()
 
     # 7. Phase 5 B3: Mount /static/downloads
-    # download_dir is relative to backend cwd; convert to absolute and ensure exists.
-    static_dir = download_dir if os.path.isabs(download_dir) else os.path.abspath(download_dir)
+
+    from app.core.storage import get_download_dir
+    static_dir = get_download_dir()
     os.makedirs(static_dir, exist_ok=True)
-    # Mount only if not already mounted (idempotent across reloads)
     existing_routes = {r.path for r in app.routes}
     if "/static/downloads/{path:path}" not in existing_routes:
         app.mount(

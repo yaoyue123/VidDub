@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     whisper_language: str = "en"
 
     # ── Storage ──
+    # NOTE: This is ONLY a startup fallback for get_download_dir() in storage.py.
+    # The runtime source of truth is the DB Config `download_dir` key, cached in
+    # storage.py at startup and settable via the Settings UI. Do not read this
+    # field directly in service code — always call get_download_dir().
     downloads_dir: str = "./downloads"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
