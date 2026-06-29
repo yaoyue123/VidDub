@@ -36,8 +36,12 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="搜索关键词")
     max_results: int = Field(20, ge=1, le=100)
     min_views: Optional[int] = Field(None, ge=0)
+    max_views: Optional[int] = Field(None, ge=0)
     min_duration: Optional[int] = Field(None, ge=0, description="最短时长（秒）")
     max_duration: Optional[int] = Field(None, ge=0, description="最长时长（秒）")
+    published_within_hours: Optional[int] = Field(None, ge=1, description="发布时间窗口（小时）")
+    sort_by: str = Field("relevance", description="排序方式: relevance | views | duration | date")
+    sort_order: str = Field("desc", description="排序方向: asc | desc")
 
 
 class ChannelScanRequest(BaseModel):
@@ -123,13 +127,38 @@ async def search_youtube(
     # Apply client-side filters
     filtered = []
     for item in results:
-        if body.min_views and (item.get("view_count") or 0) < body.min_views:
+        views = item.get("view_count") or 0
+        duration = item.get("duration") or 0
+        if body.min_views and views < body.min_views:
             continue
-        if body.min_duration and (item.get("duration") or 0) < body.min_duration:
+        if body.max_views and views > body.max_views:
             continue
-        if body.max_duration and (item.get("duration") or 0) > body.max_duration:
+        if body.min_duration and duration < body.min_duration:
             continue
+        if body.max_duration and duration > body.max_duration:
+            continue
+        # published_within_hours filter: check upload_date (yyyymmdd format from yt-dlp)
+        if body.published_within_hours:
+            upload_date = item.get("upload_date") or ""
+            if upload_date and len(upload_date) == 8:
+                from datetime import datetime as dt, timedelta, timezone
+                try:
+                    video_dt = dt.strptime(upload_date, "%Y%m%d").replace(tzinfo=timezone.utc)
+                    cutoff = dt.now(timezone.utc) - timedelta(hours=body.published_within_hours)
+                    if video_dt < cutoff:
+                        continue
+                except (ValueError, TypeError):
+                    pass  # can't parse date, include it
         filtered.append(item)
+
+    # Apply sorting
+    if body.sort_by == "views":
+        filtered.sort(key=lambda x: x.get("view_count") or 0, reverse=body.sort_order == "desc")
+    elif body.sort_by == "duration":
+        filtered.sort(key=lambda x: x.get("duration") or 0, reverse=body.sort_order == "desc")
+    elif body.sort_by == "date":
+        filtered.sort(key=lambda x: x.get("upload_date") or "", reverse=body.sort_order == "desc")
+    # "relevance" keeps yt-dlp's native ordering
 
     return DiscoveryResponse(items=[DiscoveryItem(**i) for i in filtered])
 
