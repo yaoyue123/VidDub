@@ -50,6 +50,9 @@ from app.core.websocket import manager as ws_manager
 from app.services.scheduler import TaskScheduler
 from app.services.config_seeder import seed_default_config
 from app.services.channel_scanner import ChannelScanner, set_channel_scanner
+from app.services.discovery_scanner import (
+    DiscoveryScanner, set_discovery_scanner,
+)
 from app.services.ytdlp_wrapper import set_ytdlp_wrapper, YtDlpWrapper
 
 
@@ -57,11 +60,12 @@ from app.services.ytdlp_wrapper import set_ytdlp_wrapper, YtDlpWrapper
 
 scheduler: TaskScheduler | None = None
 channel_scanner: ChannelScanner | None = None
+discovery_scanner: DiscoveryScanner | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    global scheduler, channel_scanner
+    global scheduler, channel_scanner, discovery_scanner
 
     # Debug: 打印当前运行中的 loop 类型
     _log_loop_type()
@@ -117,6 +121,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     set_channel_scanner(channel_scanner)
     await channel_scanner.start()
 
+    # 6b. Phase 8: Start DiscoveryScanner (single-coordinator loop)
+    discovery_scanner = DiscoveryScanner(
+        max_concurrent=scan_max_concurrent,
+    )
+    set_discovery_scanner(discovery_scanner)
+    await discovery_scanner.start()
+
     # 7. Phase 5 B3: Mount /static/downloads
     # download_dir is relative to backend cwd; convert to absolute and ensure exists.
     static_dir = download_dir if os.path.isabs(download_dir) else os.path.abspath(download_dir)
@@ -136,6 +147,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if channel_scanner:
         await channel_scanner.stop()
         set_channel_scanner(None)
+
+    # 8b. Shutdown discovery scanner
+    if discovery_scanner:
+        await discovery_scanner.stop()
+        set_discovery_scanner(None)
 
     # 9. Shutdown scheduler
     if scheduler:

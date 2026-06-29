@@ -7,7 +7,7 @@ All discovery operations use yt-dlp and run via executor threads.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,7 @@ from app.models.task import Task
 from app.models.config import Config
 from app.models.enums import VideoStatus, TaskType, TaskStatus
 from app.services.youtube import YoutubeService
+from app.services.discovery_scanner import get_discovery_scanner
 from app.schemas import VideoResponse
 
 logger = logging.getLogger(__name__)
@@ -341,21 +342,46 @@ async def scan_discovery_source(
     source_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger a scan of a discovery source."""
+    """Trigger a manual scan of a discovery source using DiscoveryScanner."""
     from app.models.discovery import DiscoverySource
     source = await db.get(DiscoverySource, source_id)
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    # Scanner not yet implemented for non-channel source types.
-    # DiscoveryScanner will be built in Phase 8 (v5.1 tracking feature).
-    # Return stub until Phase 8 implements DiscoveryScanner
+    scanner = get_discovery_scanner()
+    result = await scanner.scan_once(source_id)
+
     return {
         "source_id": source_id,
-        "results_count": 0,
-        "results": [],
-        "note": "自动扫描尚未实现。Phase 8 将添加 DiscoveryScanner。",
+        "found_count": result.found_count,
+        "added_count": result.added_count,
+        "status": result.status,
+        "error_msg": result.error_msg,
     }
+
+
+@router.get("/sources/{source_id}/scan-logs")
+async def list_discovery_scan_logs(
+    source_id: int,
+    limit: int = Query(20, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+):
+    """List scan logs for a discovery source."""
+    from app.models.discovery_scan_log import DiscoveryScanLog
+    from app.models.discovery import DiscoverySource
+
+    source = await db.get(DiscoverySource, source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    query = (
+        select(DiscoveryScanLog)
+        .where(DiscoveryScanLog.source_id == source_id)
+        .order_by(DiscoveryScanLog.scanned_at.desc())
+        .limit(limit)
+    )
+    items = (await db.execute(query)).scalars().all()
+    return {"items": items, "total": len(items)}
 
 
 @router.get("/results")
