@@ -19,12 +19,6 @@ class TestActualScore:
         score = calculate_actual_score(0, 0, 0, platform="bilibili")
         assert score == 0.0
 
-    def test_xigua_platform(self):
-        score = calculate_actual_score(
-            100_000, 5_000, 1_000, platform="ixigua",
-        )
-        assert 30 <= score <= 80
-
     def test_unknown_platform(self):
         score = calculate_actual_score(
             50_000, 2_000, 500, platform="unknown",

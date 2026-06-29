@@ -6,8 +6,8 @@
 - Bilib poll 状态机：code 0 (success) / 86038 (expired) / 86090 (scanned) / 86039 (waiting)
 - Bilib check_login_status（mocked nav API）
 - LoginManager 平台分发 + 不支持平台报错
-- Ixigua Playwright tests: 标记为 requires_playwright，默认 skip
 """
+
 from __future__ import annotations
 
 import base64
@@ -33,10 +33,10 @@ def test_manager_storage_state_path_single_account(tmp_login_manager):
     assert p.endswith("bilibili_storage_state.json")
 
 
-def test_manager_storage_state_path_multi_account(tmp_login_manager):
-    """多账号接口预留：{platform}_{account_id}_storage_state.json"""
-    p = tmp_login_manager.storage_state_path("ixigua", account_id="acc1")
-    assert p.endswith("ixigua_acc1_storage_state.json")
+def test_manager_storage_state_path_returns_registry_path(tmp_login_manager):
+    """SAU-native platforms return the registry cookie path directly."""
+    p = tmp_login_manager.storage_state_path("kuaishou")
+    assert "kuaishou_viddub.json" in p
 
 
 def test_manager_save_load_storage_state(tmp_login_manager):
@@ -78,7 +78,7 @@ def test_manager_unsupported_platform_raises(tmp_login_manager):
 
 def test_manager_supported_platforms():
     from app.services.platform.manager import LoginManager
-    assert set(LoginManager.SUPPORTED_PLATFORMS) == {"ixigua", "bilibili"}
+    assert set(LoginManager.SUPPORTED_PLATFORMS) == {"douyin", "bilibili", "kuaishou", "tencent", "xiaohongshu"}
 
 
 def test_manager_get_bilibili_returns_instance(tmp_login_manager):
@@ -385,12 +385,10 @@ async def test_bilibili_logout_removes_state_file(tmp_path):
 # ── Platform API endpoints (HTTP smoke) ──
 
 def test_platform_state_endpoint_returns_both_platforms():
-    """GET /api/platform/state 返回 ixigua + bilibili 两项."""
+    """GET /api/platform/state 返回 5 平台."""
     from fastapi.testclient import TestClient
 
-    # 用临时 data_dir，避免污染开发环境
     with tempfile.TemporaryDirectory() as tmp_data:
-        # 重置 manager 单例
         import app.services.platform.manager as mgr_mod
         mgr_mod._manager = mgr_mod.LoginManager(data_dir=tmp_data)
 
@@ -401,13 +399,11 @@ def test_platform_state_endpoint_returns_both_platforms():
     assert resp.status_code == 200
     body = resp.json()
     platforms = {p["platform"]: p for p in body["platforms"]}
-    assert set(platforms.keys()) == {"ixigua", "bilibili", "douyin"}
+    assert set(platforms.keys()) == {"douyin", "bilibili", "kuaishou", "tencent", "xiaohongshu"}
     assert platforms["bilibili"]["display_name"] == "哔哩哔哩"
-    assert platforms["ixigua"]["display_name"] == "西瓜视频"
+    assert platforms["kuaishou"]["display_name"] == "快手"
     assert platforms["douyin"]["display_name"] == "抖音"
-    # 无登录态 — bilibili/ixigua 使用 temp data dir，douyin 可能已经有本地 cookie
     assert platforms["bilibili"]["logged_in"] is False
-    assert platforms["ixigua"]["logged_in"] is False
 
 
 def test_platform_unknown_returns_404():
@@ -448,48 +444,3 @@ def test_platform_logout_no_state_still_succeeds():
     assert resp.status_code == 200
     body = resp.json()
     assert body["success"] is True
-
-
-# ── Ixigua Playwright tests (skip by default) ──
-
-@pytest.mark.requires_playwright
-@pytest.mark.asyncio
-async def test_ixigua_playwright_start_qr_login(tmp_path):
-    """实际启动 Playwright — 默认 skip."""
-    from app.services.platform.ixigua import IxiguaLogin
-    login = IxiguaLogin(storage_state_path=str(tmp_path / "ixg.json"), headless=True)
-    png = await login.start_qr_login()
-    assert isinstance(png, bytes)
-    await login.logout()
-
-
-def test_ixigua_check_login_status_no_state(tmp_path):
-    """无 storage_state → check_login_status=False (不需 Playwright)."""
-    import asyncio
-    from app.services.platform.ixigua import IxiguaLogin
-    login = IxiguaLogin(storage_state_path=str(tmp_path / "missing.json"))
-    result = asyncio.get_event_loop().run_until_complete(login.check_login_status())
-    assert result is False
-
-
-def test_ixigua_storage_state_load_save(tmp_path):
-    """Ixigua 共用 manager 流程的子集 — 直接测 _load/_persist."""
-    from app.services.platform.ixigua import IxiguaLogin
-    state_path = tmp_path / "ixg.json"
-    login = IxiguaLogin(storage_state_path=str(state_path))
-
-    # 初始无文件
-    assert login._load_storage_state() is None
-
-    # 持久化
-    login._persist_storage_state({
-        "platform": "ixigua",
-        "cookies": {"sessionid": "abc"},
-        "user_info": {"uid": 99, "username": "xigua_user"},
-    })
-    assert state_path.exists()
-
-    loaded = login._load_storage_state()
-    assert loaded is not None
-    assert loaded["cookies"]["sessionid"] == "abc"
-    assert loaded["user_info"]["uid"] == 99

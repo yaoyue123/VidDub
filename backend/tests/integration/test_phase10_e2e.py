@@ -348,7 +348,7 @@ def test_phase10_config_seeder_has_all_phase_keys():
         "phase4": ["whisper_model", "tts_voice_simple", "atempo_min", "atempo_max"],
         "phase6": [],  # 平台登录配置不进 DB（走 storage_state）
         "phase7": ["auto_publish_enabled", "publish_retry_max",
-                   "bilibili_default_category", "ixigua_default_copyright"],
+                   "bilibili_default_category"],
         "phase8": ["title_generator_enabled", "title_generator_candidate_count",
                    "title_generator_tag_count"],
         "phase9": ["scan_max_concurrent", "scan_default_interval_hours"],

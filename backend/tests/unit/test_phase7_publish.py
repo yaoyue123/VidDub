@@ -3,8 +3,7 @@
 覆盖范围 (V1)：
 - PublishRecord 模型 CRUD
 - BilibiliPublisher (mocked Playwright)
-- IxiguaPublisher (mocked Playwright)
-- PublishManager 编排 (mocked 两个 publisher)
+- PublishManager 编排 (mocked publishers)
 - title_translate (mocked SiliconFlow)
 - publish API endpoints (mocked services)
 
@@ -88,54 +87,6 @@ def test_safe_text_truncation():
 
 
 # ─────────────────────────────────────────────────────────────────
-# IxiguaPublisher — mocked
-# ─────────────────────────────────────────────────────────────────
-
-@pytest.fixture
-def ixigua_state_file(tmp_path):
-    state = {
-        "platform": "ixigua",
-        "saved_at": 1234567890,
-        "cookies": {"sessionid": "abc"},
-        "user_info": {"uid": 99},
-    }
-    p = tmp_path / "ixigua_storage_state.json"
-    p.write_text(json.dumps(state), encoding="utf-8")
-    return str(p)
-
-
-@pytest.mark.asyncio
-async def test_ixigua_validate_login(ixigua_state_file):
-    from app.services.publish.ixigua import IxiguaPublisher
-    pub = IxiguaPublisher(storage_state_path=ixigua_state_file)
-    with patch("app.services.platform.manager.get_login_manager") as gm:
-        login = MagicMock()
-        login.check_login_status = AsyncMock(return_value=True)
-        gm.return_value.get.return_value = login
-        assert await pub.validate_login() is True
-
-
-@pytest.mark.asyncio
-async def test_ixigua_publish_missing_video(ixigua_state_file):
-    from app.services.publish.ixigua import IxiguaPublisher
-    from app.services.publish.base import PublishFields
-    pub = IxiguaPublisher(storage_state_path=ixigua_state_file)
-    result = await pub.publish(video_id=1,
-                                fields=PublishFields(title="t"),
-                                video_file_path="/nonexistent.mp4")
-    assert result.success is False
-
-
-@pytest.mark.asyncio
-async def test_ixigua_load_storage_state_for_playwright(ixigua_state_file):
-    from app.services.publish.ixigua import IxiguaPublisher
-    pub = IxiguaPublisher(storage_state_path=ixigua_state_file)
-    state = pub._load_storage_state_for_playwright()
-    assert state is not None
-    assert state["cookies"][0]["domain"] == ".ixigua.com"
-
-
-# ─────────────────────────────────────────────────────────────────
 # PublishManager — mocked publishers
 # ─────────────────────────────────────────────────────────────────
 
@@ -154,8 +105,8 @@ async def test_publish_manager_get_returns_publisher():
         assert isinstance(p, PlatformPublisher)
         assert p.platform == "bilibili"
 
-        p2 = pm.get("ixigua")
-        assert p2.platform == "ixigua"
+        p2 = pm.get("kuaishou")
+        assert p2.platform == "kuaishou"
 
         # cache
         assert pm.get("bilibili") is p
@@ -231,9 +182,6 @@ async def test_prepare_publish_fields_translates_title(monkeypatch):
     cfg2 = MagicMock()
     cfg2.key = "bilibili_default_category"
     cfg2.value = "122"
-    cfg3 = MagicMock()
-    cfg3.key = "ixigua_default_copyright"
-    cfg3.value = "repost"
 
     class _MockSession:
         async def __aenter__(self): return self
@@ -244,7 +192,7 @@ async def test_prepare_publish_fields_translates_title(monkeypatch):
             # 通过 select model 区分 — 简化：第一次是 Video，之后是 Config
             calls = [0]
             def scalars_all():
-                return [cfg1, cfg2, cfg3]
+                return [cfg1, cfg2]
             def scalars_one():
                 return v
             # 用一个简单的"第几次调用"区分
@@ -253,7 +201,7 @@ async def test_prepare_publish_fields_translates_title(monkeypatch):
                 result.scalar_one_or_none = lambda: v
             else:
                 m = MagicMock()
-                m.all = lambda: [cfg1, cfg2, cfg3]
+                m.all = lambda: [cfg1, cfg2]
                 result.scalars = lambda: m
             return result
         def scalars(self):

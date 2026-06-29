@@ -56,11 +56,14 @@ class LoginManager:
 
     # ── 路径辅助（仅用于 transitional viddub_playwright 平台）──
 
-    def storage_state_path(self, platform: str, account_id: Optional[str] = None) -> str:
-        """For SAU-native platforms, returns the registry cookie path.
-        For viddub_playwright platforms, returns the legacy storage_state path.
-        """
-        descriptor = get_descriptor(platform)
+    def _storage_state_path_or_none(
+        self, platform: str, account_id: Optional[str] = None
+    ) -> Optional[str]:
+        """Return the storage_state path, or None if platform is unknown."""
+        try:
+            descriptor = get_descriptor(platform)
+        except ValueError:
+            return None
         if descriptor.login_kind != "viddub_playwright":
             return descriptor.cookie_file
         if account_id:
@@ -69,10 +72,16 @@ class LoginManager:
             fname = f"{platform}_storage_state.json"
         return os.path.join(self.data_dir, fname)
 
+    def storage_state_path(self, platform: str, account_id: Optional[str] = None) -> str:
+        """Public method — returns path or raises ValueError for unknown platform."""
+        return get_descriptor(platform).cookie_file
+
     # ── storage_state 加载 / 保存 (legacy, 仅 transitional 用) ──
 
     def load_storage_state(self, platform: str, account_id: Optional[str] = None) -> Optional[dict]:
-        path = self.storage_state_path(platform, account_id)
+        path = self._storage_state_path_or_none(platform, account_id)
+        if path is None:
+            return None
         if not os.path.exists(path):
             return None
         try:
@@ -95,7 +104,9 @@ class LoginManager:
         return path
 
     def clear_storage_state(self, platform: str, account_id: Optional[str] = None) -> bool:
-        path = self.storage_state_path(platform, account_id)
+        path = self._storage_state_path_or_none(platform, account_id)
+        if path is None:
+            return False
         if os.path.exists(path):
             try:
                 os.remove(path)

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-SUPPORTED_PLATFORMS = {PublishPlatform.DOUYIN, PublishPlatform.BILIBILI, PublishPlatform.IXIGUA}
+SUPPORTED_PLATFORMS = {PublishPlatform.DOUYIN, PublishPlatform.BILIBILI, PublishPlatform.KUAISHOU, PublishPlatform.TENCENT, PublishPlatform.XIAOHONGSHU}
 
 
 # ── Schemas ──
