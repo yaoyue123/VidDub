@@ -57,7 +57,7 @@ async def main():
     from uploader.douyin_uploader.main import DouYinVideo, douyin_setup
     from utils.log import douyin_logger
 
-    account_file = os.path.join(SAU_DIR, "cookies", "douyin_you2bili.json")
+    account_file = os.path.join(SAU_DIR, "cookies", "douyin_viddub.json")
 
     # Login
     douyin_logger.info("=" * 60)

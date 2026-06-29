@@ -8,7 +8,7 @@ and run_biliup_command for Rust CLI-based upload:
 - No browser automation required
 - Built-in retry, resume, and metadata support
 
-Cookie format: converts you2bili's storage_state to biliup's LoginInfo JSON
+Cookie format: converts viddub's storage_state to biliup's LoginInfo JSON
 via cookie_bridge.py (same format used by social-auto-upload).
 """
 from __future__ import annotations

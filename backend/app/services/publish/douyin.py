@@ -1,6 +1,6 @@
 """Douyin publisher using social-auto-upload's DouYinVideo class.
 
-Wraps SAU's Playwright-based Douyin uploader into you2bili's
+Wraps SAU's Playwright-based Douyin uploader into viddub's
 PlatformPublisher interface. Uses SAU's cookie/account file format
 at social-auto-upload/cookies/douyin_{account}.json.
 """
@@ -50,7 +50,7 @@ class DouyinPublisher(PlatformPublisher):
         self.storage_state_path = storage_state_path
         self.upload_timeout = upload_timeout
         self.headless = headless
-        self._account_name = "you2bili"
+        self._account_name = "viddub"
 
     async def validate_login(self) -> bool:
         """Check if Douyin account file is valid using SAU's cookie_auth."""

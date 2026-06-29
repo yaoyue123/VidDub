@@ -8,7 +8,7 @@ publishing backend:
 - ixigua  → Playwright browser automation (IxiguaPublisher, SAU 暂未支持)
 
 Cookie sync:
-- bilibili → cookie_bridge converts you2bili storage_state to biliup LoginInfo
+- bilibili → cookie_bridge converts viddub storage_state to biliup LoginInfo
 - douyin   → SAU native account file at cookies/douyin_{name}.json
 """
 from __future__ import annotations
@@ -60,7 +60,7 @@ class PublishManager:
             _sau_dir = os.path.normpath(
                 os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "social-auto-upload")
             )
-            state_path = os.path.join(_sau_dir, "cookies", "douyin_you2bili.json")
+            state_path = os.path.join(_sau_dir, "cookies", "douyin_viddub.json")
             from app.services.publish.douyin import DouyinPublisher
             inst: PlatformPublisher = DouyinPublisher(storage_state_path=state_path)
         elif platform == PublishPlatform.BILIBILI:
@@ -87,7 +87,7 @@ class PublishManager:
             _sau_dir = os.path.normpath(
                 os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "social-auto-upload")
             )
-            return os.path.join(_sau_dir, "cookies", "douyin_you2bili.json")
+            return os.path.join(_sau_dir, "cookies", "douyin_viddub.json")
         return None
 
     async def publish_to_platform(

@@ -2,7 +2,7 @@
 
 Douyin  → SAU DouYinVideo (Playwright browser)
 Bilibili → SAU biliup Rust binary
-Ixigua  → Playwright browser (SAU 暂无, 保留 you2bili 实现)
+Ixigua  → Playwright browser (SAU 暂无, 保留 viddub 实现)
 """
 from app.services.publish.base import (  # noqa: F401
     PlatformPublisher,

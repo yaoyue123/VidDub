@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# You2Bili 一键环境初始化脚本 (Linux / macOS)
+# VidDub 一键环境初始化脚本 (Linux / macOS)
 #
 # 用法:
 #   ./setup.sh [--whisper-model tiny|base|small|medium] [--skip-frontend] [--skip-playwright]
@@ -36,7 +36,7 @@ warn() { echo -e "${C_YELLOW}[!] $1${C_RESET}"; }
 die()  { echo -e "${C_RED}[FAIL] $1${C_RESET}"; exit 1; }
 
 echo "=================================="
-echo " You2Bili Setup (Linux/macOS)"
+echo " VidDub Setup (Linux/macOS)"
 echo "=================================="
 
 # ─────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ step "运行 Alembic 数据库迁移 ..."
 if (cd "$BACKEND" && "$VENV_PY" -m alembic upgrade head); then
     ok "数据库迁移完成"
 else
-    warn "Alembic 迁移失败 — 请检查 backend/alembic/versions/ 与 backend/data/you2bili.db 权限"
+    warn "Alembic 迁移失败 — 请检查 backend/alembic/versions/ 与 backend/data/viddub.db 权限"
 fi
 
 # ─────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for you2bili backend tests."""
+"""Shared pytest fixtures for viddub backend tests."""
 import asyncio
 import json
 import os

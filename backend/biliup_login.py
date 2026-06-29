@@ -29,7 +29,7 @@ QR_TIMEOUT = 180  # 3 minutes
 POLL_INTERVAL = 2  # seconds
 
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "social-auto-upload" / "cookies"
-OUTPUT_FILE = OUTPUT_DIR / "bilibili_you2bili.json"
+OUTPUT_FILE = OUTPUT_DIR / "bilibili_viddub.json"
 
 HEADERS = {
     "User-Agent": (

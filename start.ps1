@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    You2Bili 一键启动脚本 (Windows)
+    VidDub 一键启动脚本 (Windows)
 .DESCRIPTION
     启动后端 uvicorn (端口 8000) + 前端 vite dev (端口 5173)。
     关闭本窗口或按 Ctrl+C 退出。
@@ -29,7 +29,7 @@ function Write-Step([string]$m) { Write-Host "`n[*] $m" -ForegroundColor Cyan }
 function Die([string]$m) { Write-Host "[FAIL] $m" -ForegroundColor Red; exit 1 }
 
 Write-Host "==================================" -ForegroundColor White
-Write-Host " You2Bili 启动 (Windows)" -ForegroundColor White
+Write-Host " VidDub 启动 (Windows)" -ForegroundColor White
 Write-Host "==================================" -ForegroundColor White
 
 # 检查 venv

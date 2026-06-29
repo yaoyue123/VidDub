@@ -35,7 +35,7 @@ const platformStates = ref<PlatformStateItem[]>([])
 
 // Onboarding state (DESIGN.md R1 — banner persists until API key set).
 const apiKeyConfigured = ref<boolean | null>(null)
-const onboardingDismissed = (() => localStorage.getItem('you2bili.onboarding_v3_seen') === 'true')()
+const onboardingDismissed = (() => localStorage.getItem('viddub.onboarding_v3_seen') === 'true')()
 const showWelcomeModal = ref(!onboardingDismissed)
 
 // Stepper order (DESIGN.md §5.3): download → transcribe → translate → synthesize → compose → publish
@@ -196,7 +196,7 @@ function openExternal(url: string) {
 }
 
 function dismissOnboarding() {
-  localStorage.setItem('you2bili.onboarding_v3_seen', 'true')
+  localStorage.setItem('viddub.onboarding_v3_seen', 'true')
   showWelcomeModal.value = false
 }
 
@@ -219,7 +219,7 @@ onMounted(() => {
     <!-- ── Hero (DESIGN.md §5.1) ── -->
     <section class="hero">
       <div class="hero-text">
-        <h1 class="hero-title">👋 你好，欢迎使用 you2bili</h1>
+        <h1 class="hero-title">👋 你好，欢迎使用 VidDub</h1>
         <p class="hero-subtitle">把 YouTube 视频自动配音并发布到 B 站 / 西瓜。</p>
       </div>
       <el-button
@@ -500,7 +500,7 @@ onMounted(() => {
     <!-- ── Welcome modal (DESIGN.md §9 onboarding tour) ── -->
     <el-dialog
       v-model="showWelcomeModal"
-      title="欢迎使用 you2bili"
+      title="欢迎使用 VidDub"
       width="520px"
       :close-on-click-modal="false"
       :show-close="true"

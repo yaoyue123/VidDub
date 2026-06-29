@@ -1,6 +1,6 @@
 # 配置项完整说明
 
-> You2Bili 所有可配置项的清单。`.env` 用于敏感数据（API Key），`app_config` 表用于运行时可调参数。
+> VidDub 所有可配置项的清单。`.env` 用于敏感数据（API Key），`app_config` 表用于运行时可调参数。
 
 ---
 
@@ -17,7 +17,7 @@
 | `WHISPER_MODEL` | 否 | `tiny` | 本地 Whisper 模型：`tiny\|base\|small\|medium\|large`（覆盖 `app_config.whisper_model`） |
 | `WHISPER_LANGUAGE` | 否 | `en` | Whisper 源语言代码：`en\|zh\|ja\|...` |
 | `DOWNLOADS_DIR` | 否 | `./downloads` | 视频成品输出目录 |
-| `DATABASE_URL` | 否 | `sqlite+aiosqlite:///./data/you2bili.db` | 数据库连接串（建议保持 SQLite） |
+| `DATABASE_URL` | 否 | `sqlite+aiosqlite:///./data/viddub.db` | 数据库连接串（建议保持 SQLite） |
 | `HTTP_PROXY` | 否 | — | 出站 HTTP 代理（如有） |
 | `HTTPS_PROXY` | 否 | — | 出站 HTTPS 代理 |
 
@@ -36,7 +36,7 @@ WHISPER_MODEL=tiny
 WHISPER_LANGUAGE=en
 
 DOWNLOADS_DIR=./downloads
-DATABASE_URL=sqlite+aiosqlite:///./data/you2bili.db
+DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 
 # Network (optional, for proxy)
 # HTTP_PROXY=http://127.0.0.1:7890
@@ -175,7 +175,7 @@ curl -X POST http://localhost:8000/api/config/test-siliconflow
 ### 方式 3：直接改 DB（不推荐，调试用）
 
 ```bash
-sqlite3 backend/data/you2bili.db
+sqlite3 backend/data/viddub.db
 > SELECT key, value FROM app_config;
 > UPDATE app_config SET value='base' WHERE key='whisper_model';
 ```

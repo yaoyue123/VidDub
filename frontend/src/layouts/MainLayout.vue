@@ -67,7 +67,7 @@ wsStore.connect()
           <el-icon :size="isCollapsed ? 24 : 28" color="#fff">
             <VideoCamera />
           </el-icon>
-          <span v-show="!isCollapsed" class="logo-text">You2Bili</span>
+          <span v-show="!isCollapsed" class="logo-text">VidDub</span>
         </div>
       </div>
 

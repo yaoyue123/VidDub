@@ -67,9 +67,9 @@ sudo apt install -y nodejs
 ### A.2 部署代码
 
 ```bash
-sudo mkdir -p /opt/you2bili
-sudo chown $USER:$USER /opt/you2bili
-cd /opt/you2bili
+sudo mkdir -p /opt/viddub
+sudo chown $USER:$USER /opt/viddub
+cd /opt/viddub
 git clone <your-repo-url> .
 
 # 一键 setup
@@ -82,7 +82,7 @@ chmod +x setup.sh start.sh
 ```bash
 vim backend/.env
 # 填入 SILICONFLOW_API_KEY=sk_xxx
-# 设置 DATABASE_URL=sqlite+aiosqlite:////opt/you2bili/backend/data/you2bili.db
+# 设置 DATABASE_URL=sqlite+aiosqlite:////opt/viddub/backend/data/viddub.db
 ```
 
 ### A.4 构建前端
@@ -95,7 +95,7 @@ npm run build
 
 ### A.5 nginx 配置
 
-`/etc/nginx/sites-available/you2bili`：
+`/etc/nginx/sites-available/viddub`：
 
 ```nginx
 server {
@@ -114,7 +114,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
 
     # 前端静态
-    root /opt/you2bili/frontend/dist;
+    root /opt/viddub/frontend/dist;
     index index.html;
 
     # Vue Router history mode
@@ -151,7 +151,7 @@ server {
 
     # 静态成品（视频/音频文件）
     location /static/downloads/ {
-        alias /opt/you2bili/backend/downloads/;
+        alias /opt/viddub/backend/downloads/;
         # 限制访问（可选 basic auth）
         # auth_basic "restricted";
         # auth_basic_user_file /etc/nginx/.htpasswd;
@@ -161,7 +161,7 @@ server {
 
 启用：
 ```bash
-sudo ln -s /etc/nginx/sites-available/you2bili /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/viddub /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 
@@ -172,38 +172,38 @@ sudo certbot --nginx -d your-domain.com
 
 ### A.6 systemd 服务
 
-`/etc/systemd/system/you2bili.service`：
+`/etc/systemd/system/viddub.service`：
 
 ```ini
 [Unit]
-Description=You2Bili Backend (FastAPI + uvicorn)
+Description=VidDub Backend (FastAPI + uvicorn)
 After=network.target
 
 [Service]
 Type=simple
-User=you2bili
-Group=you2bili
-WorkingDirectory=/opt/you2bili/backend
-EnvironmentFile=/opt/you2bili/backend/.env
+User=viddub
+Group=viddub
+WorkingDirectory=/opt/viddub/backend
+EnvironmentFile=/opt/viddub/backend/.env
 
 # xvfb-run 让 Playwright headed 在无显示器环境下工作
 ExecStart=/usr/bin/xvfb-run -a --server-args="-screen 0 1920x1080x24" \
-    /opt/you2bili/backend/venv/bin/uvicorn app.main:app \
+    /opt/viddub/backend/venv/bin/uvicorn app.main:app \
     --host 127.0.0.1 --port 8000 \
     --workers 1 \
     --no-access-log
 
 Restart=on-failure
 RestartSec=5
-StandardOutput=append:/var/log/you2bili/uvicorn.log
-StandardError=append:/var/log/you2bili/uvicorn.err.log
+StandardOutput=append:/var/log/viddub/uvicorn.log
+StandardError=append:/var/log/viddub/uvicorn.err.log
 
 # 安全限制
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/you2bili/backend/data /opt/you2bili/backend/downloads
+ReadWritePaths=/opt/viddub/backend/data /opt/viddub/backend/downloads
 
 [Install]
 WantedBy=multi-user.target
@@ -211,13 +211,13 @@ WantedBy=multi-user.target
 
 启用：
 ```bash
-sudo mkdir -p /var/log/you2bili
-sudo chown you2bili:you2bili /var/log/you2bili
+sudo mkdir -p /var/log/viddub
+sudo chown viddub:viddub /var/log/viddub
 
 sudo systemctl daemon-reload
-sudo systemctl enable you2bili
-sudo systemctl start you2bili
-sudo systemctl status you2bili
+sudo systemctl enable viddub
+sudo systemctl start viddub
+sudo systemctl status viddub
 ```
 
 ---
@@ -233,20 +233,20 @@ sudo systemctl status you2bili
 **管理员 PowerShell**：
 
 ```powershell
-nssm install You2BiliBackend "C:\you2bili\backend\venv\Scripts\uvicorn.exe" `
+nssm install VidDubBackend "C:\viddub\backend\venv\Scripts\uvicorn.exe" `
     "app.main:app --host 127.0.0.1 --port 8000 --workers 1"
 
-nssm set You2BiliBackend AppDirectory "C:\you2bili\backend"
-nssm set You2BiliBackend AppEnvironmentExtra "PYTHONUNBUFFERED=1"
-nssm set You2BiliBackend AppStdout "C:\you2bili\logs\uvicorn.log"
-nssm set You2BiliBackend AppStderr "C:\you2bili\logs\uvicorn.err.log"
-nssm set You2BiliBackend AppRotateFiles 1
-nssm set You2BiliBackend AppRotateBytes 10485760   # 10MB 滚动
-nssm set You2BiliBackend Start SERVICE_AUTO_START
-nssm set You2BiliBackend Description "You2Bili FastAPI backend"
-nssm set You2BiliBackend DependOnService Tcpip
+nssm set VidDubBackend AppDirectory "C:\viddub\backend"
+nssm set VidDubBackend AppEnvironmentExtra "PYTHONUNBUFFERED=1"
+nssm set VidDubBackend AppStdout "C:\viddub\logs\uvicorn.log"
+nssm set VidDubBackend AppStderr "C:\viddub\logs\uvicorn.err.log"
+nssm set VidDubBackend AppRotateFiles 1
+nssm set VidDubBackend AppRotateBytes 10485760   # 10MB 滚动
+nssm set VidDubBackend Start SERVICE_AUTO_START
+nssm set VidDubBackend Description "VidDub FastAPI backend"
+nssm set VidDubBackend DependOnService Tcpip
 
-nssm start You2BiliBackend
+nssm start VidDubBackend
 ```
 
 ### B.3 IIS 反向代理（可选）
@@ -277,7 +277,7 @@ WebSocket 需在 IIS 管理器 → 站点 → Configuration Editor → 启用 We
 
 ### B.4 开机自启
 
-`nssm install` 时已设 `SERVICE_AUTO_START`，重启会自动启动。也可在 `services.msc` 看到 `You2BiliBackend` 服务。
+`nssm install` 时已设 `SERVICE_AUTO_START`，重启会自动启动。也可在 `services.msc` 看到 `VidDubBackend` 服务。
 
 ---
 
@@ -292,10 +292,10 @@ WebSocket 需在 IIS 管理器 → 站点 → Configuration Editor → 启用 We
 查看实时日志：
 ```bash
 # Linux systemd
-sudo journalctl -u you2bili -f
+sudo journalctl -u viddub -f
 
 # 或文件
-tail -f /var/log/you2bili/uvicorn.log
+tail -f /var/log/viddub/uvicorn.log
 ```
 
 ### 前端日志
@@ -314,7 +314,7 @@ tail -f /var/log/you2bili/uvicorn.log
 
 | 路径 | 内容 | 频率 |
 |------|------|------|
-| `backend/data/you2bili.db` | 数据库（视频/任务/配置/字幕元数据） | 每天 |
+| `backend/data/viddub.db` | 数据库（视频/任务/配置/字幕元数据） | 每天 |
 | `backend/data/login/*_storage_state.json` | 平台登录态 cookies | 每次登录后 |
 | `backend/.env` | API key + 配置 | 修改后 |
 
@@ -327,33 +327,33 @@ tail -f /var/log/you2bili/uvicorn.log
 
 ### 自动备份脚本
 
-`/opt/you2bili/scripts/backup.sh`：
+`/opt/viddub/scripts/backup.sh`：
 ```bash
 #!/bin/bash
 set -euo pipefail
-BACKUP_DIR="/var/backups/you2bili/$(date +%Y%m%d_%H%M%S)"
+BACKUP_DIR="/var/backups/viddub/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
 # SQLite 在线备份（不锁库）
-sqlite3 /opt/you2bili/backend/data/you2bili.db ".backup '$BACKUP_DIR/you2bili.db'"
+sqlite3 /opt/viddub/backend/data/viddub.db ".backup '$BACKUP_DIR/viddub.db'"
 
 # 登录态
-cp -r /opt/you2bili/backend/data/login "$BACKUP_DIR/"
+cp -r /opt/viddub/backend/data/login "$BACKUP_DIR/"
 
 # .env
-cp /opt/you2bili/backend/.env "$BACKUP_DIR/"
+cp /opt/viddub/backend/.env "$BACKUP_DIR/"
 
 # 压缩
 tar czf "${BACKUP_DIR}.tar.gz" -C "$BACKUP_DIR" .
 rm -rf "$BACKUP_DIR"
 
 # 保留 30 天
-find /var/backups/you2bili/ -mtime +30 -delete
+find /var/backups/viddub/ -mtime +30 -delete
 ```
 
 cron：
 ```bash
-0 3 * * * /opt/you2bili/scripts/backup.sh
+0 3 * * * /opt/viddub/scripts/backup.sh
 ```
 
 ---
@@ -361,8 +361,8 @@ cron：
 ## 升级流程
 
 ```bash
-cd /opt/you2bili
-sudo systemctl stop you2bili
+cd /opt/viddub
+sudo systemctl stop viddub
 
 # 拉新代码
 git pull origin main
@@ -377,8 +377,8 @@ npm install
 npm run build
 
 # 启动
-sudo systemctl start you2bili
-sudo systemctl status you2bili
+sudo systemctl start viddub
+sudo systemctl status viddub
 ```
 
 ---
@@ -407,7 +407,7 @@ sudo systemctl status you2bili
 
 ```nginx
 location /static/downloads/ {
-    alias /opt/you2bili/backend/downloads/;
+    alias /opt/viddub/backend/downloads/;
     sendfile on;
     tcp_nopush on;
     tcp_nodelay on;
@@ -428,9 +428,9 @@ location /static/downloads/ {
 4. **HTTPS 强制**：certbot 自动续签
 5. **文件权限**：
    ```bash
-   sudo chown -R you2bili:you2bili /opt/you2bili
-   sudo chmod 600 /opt/you2bili/backend/.env
-   sudo chmod 600 /opt/you2bili/backend/data/login/*.json
+   sudo chown -R viddub:viddub /opt/viddub
+   sudo chmod 600 /opt/viddub/backend/.env
+   sudo chmod 600 /opt/viddub/backend/data/login/*.json
    ```
 6. **防火墙**：仅开放 80/443，不要把 8000/5173 直接暴露公网
 
@@ -443,7 +443,7 @@ location /static/downloads/ {
 ```bash
 */5 * * * * curl -fs http://127.0.0.1:8000/api/stats/dashboard \
     | jq '.failed_tasks | length' \
-    | awk '{if($1>5) system("echo \"Too many failed tasks\" | mail -s \"You2Bili Alert\" you@example.com")}'
+    | awk '{if($1>5) system("echo \"Too many failed tasks\" | mail -s \"VidDub Alert\" you@example.com")}'
 ```
 
 进阶方案：Prometheus + Grafana + node_exporter（监控 CPU/磁盘/RAM），自定义 exporter 监控任务队列深度。

@@ -10,9 +10,9 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # ── App ──
-    app_name: str = "you2bili"
+    app_name: str = "viddub"
     debug: bool = False
-    database_url: str = "sqlite+aiosqlite:///./data/you2bili.db"
+    database_url: str = "sqlite+aiosqlite:///./data/viddub.db"
 
     # ── SiliconFlow credentials (loaded from .env) ──
     siliconflow_api_key: str = ""

@@ -84,7 +84,7 @@ PLATFORM_DISPLAY_NAMES = {
     "ixigua": "西瓜视频",
 }
 
-# SAU-native platforms (not managed by you2bili's LoginManager)
+# SAU-native platforms (not managed by viddub's LoginManager)
 # These use SAU's own cookie format at social-auto-upload/cookies/
 _SAU_NATIVE_PLATFORMS = {"douyin"}
 
@@ -251,7 +251,7 @@ async def all_state() -> AllStateResponse:
             _sau_dir = _os.path.normpath(
                 _os.path.join(_os.path.dirname(__file__), "..", "..", "..", "social-auto-upload")
             )
-            account_file = _os.path.join(_sau_dir, "cookies", f"douyin_you2bili.json")
+            account_file = _os.path.join(_sau_dir, "cookies", f"douyin_viddub.json")
             logged_in = _os.path.exists(account_file)
             items.append(PlatformStateItem(
                 platform=pf, display_name=name, logged_in=logged_in,

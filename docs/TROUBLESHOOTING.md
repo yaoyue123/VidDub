@@ -226,7 +226,7 @@ setup 脚本已包含，手动装 requirements 时漏装会出现。
 
 **原因**：Python / ffmpeg / Playwright 在含中文路径下偶发解析问题。
 
-**修复**：把项目放到**全英文**路径，例如 `C:\dev\you2bili\`（不要 `C:\Users\小明\Desktop\...`）。
+**修复**：把项目放到**全英文**路径，例如 `C:\dev\viddub\`（不要 `C:\Users\小明\Desktop\...`）。
 
 ### 5.2 PowerShell 执行策略阻止脚本运行
 
@@ -281,7 +281,7 @@ git config core.autocrlf false
 
 **原因**：
 - 数据库版本与代码迁移版本不匹配
-- `backend/data/you2bili.db` 文件被锁
+- `backend/data/viddub.db` 文件被锁
 - 迁移文件冲突
 
 **修复**：
@@ -295,7 +295,7 @@ venv/Scripts/python -m alembic current
 venv/Scripts/python -m alembic history
 
 # 回到上一个版本（危险！先备份）
-cp data/you2bili.db data/you2bili.db.bak
+cp data/viddub.db data/viddub.db.bak
 venv/Scripts/python -m alembic downgrade -1
 
 # 重新 upgrade
@@ -309,7 +309,7 @@ venv/Scripts/python -m alembic upgrade head
 ```bash
 cd backend
 # 停止 uvicorn
-rm data/you2bili.db data/*.db-wal data/*.db-shm 2>/dev/null
+rm data/viddub.db data/*.db-wal data/*.db-shm 2>/dev/null
 venv/Scripts/python -m alembic upgrade head   # 重新建表
 # 重启 uvicorn 会自动 seed 默认配置
 ```
@@ -385,7 +385,7 @@ find backend/downloads/ -name "*.wav" -mtime +1 -delete
 find backend/downloads/ -name "dubbing_segment_*.mp3" -mtime +1 -delete
 
 # SQLite WAL（停服时）
-sqlite3 backend/data/you2bili.db "PRAGMA wal_checkpoint(TRUNCATE);"
+sqlite3 backend/data/viddub.db "PRAGMA wal_checkpoint(TRUNCATE);"
 ```
 
 ### 8.3 内存占用高

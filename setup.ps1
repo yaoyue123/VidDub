@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    You2Bili 一键环境初始化脚本 (Windows PowerShell)
+    VidDub 一键环境初始化脚本 (Windows PowerShell)
 .DESCRIPTION
     - 检查 Python / Node / ffmpeg / yt-dlp 依赖
     - 创建 backend/venv 并安装 Python 依赖
@@ -39,7 +39,7 @@ function Die([string]$msg) {
 }
 
 Write-Host "==================================" -ForegroundColor White
-Write-Host " You2Bili Setup (Windows)" -ForegroundColor White
+Write-Host " VidDub Setup (Windows)" -ForegroundColor White
 Write-Host "==================================" -ForegroundColor White
 
 # ─────────────────────────────────────────────────────────
@@ -158,7 +158,7 @@ Push-Location $Backend
 try {
     & $VenvPython -m alembic upgrade head
     if ($LASTEXITCODE -ne 0) {
-        Write-Warn "Alembic 迁移失败 — 请检查 backend/alembic/versions/ 与 backend/data/you2bili.db 权限"
+        Write-Warn "Alembic 迁移失败 — 请检查 backend/alembic/versions/ 与 backend/data/viddub.db 权限"
     } else {
         Write-Ok "数据库迁移完成"
     }

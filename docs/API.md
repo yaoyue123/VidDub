@@ -1,6 +1,6 @@
 # API 速览
 
-> You2Bili 后端 FastAPI 提供的所有 REST 端点 + WebSocket 事件清单。
+> VidDub 后端 FastAPI 提供的所有 REST 端点 + WebSocket 事件清单。
 > **最权威文档**：启动后端后访问 **http://localhost:8000/docs**（Swagger UI）或 **http://localhost:8000/redoc**（ReDoc）。
 
 ---

@@ -1,4 +1,4 @@
-"""Cookie bridge: convert you2bili storage_state -> biliup LoginInfo format.
+"""Cookie bridge: convert viddub storage_state -> biliup LoginInfo format.
 
 biliup (Rust CLI / social-auto-upload) expects a cookie file with this LoginInfo JSON structure:
 {
@@ -47,7 +47,7 @@ def convert_storage_state_to_biliup(
     storage_state: dict,
     cookie_file_path: str,
 ) -> str:
-    """Convert you2bili storage_state dict to biliup LoginInfo JSON file.
+    """Convert viddub storage_state dict to biliup LoginInfo JSON file.
 
     Returns the cookie_file_path on success.
     Raises ValueError if critical cookies are missing.
@@ -177,19 +177,19 @@ def get_sau_cookies_dir() -> Optional[str]:
 
 def write_sau_bilibili_cookie(
     storage_state: dict,
-    account_name: str = "you2bili",
+    account_name: str = "viddub",
 ) -> Optional[str]:
     """Write a social-auto-upload compatible bilibili cookie file.
 
     Writes to: {project_root}/social-auto-upload/cookies/bilibili_{account_name}.json
 
     This enables direct use with social-auto-upload's CLI:
-        sau bilibili check --account you2bili
-        sau bilibili upload-video --account you2bili --file video.mp4 --title T --tid N
+        sau bilibili check --account viddub
+        sau bilibili upload-video --account viddub --file video.mp4 --title T --tid N
 
     Args:
-        storage_state: you2bili storage_state dict
-        account_name: account identifier (default: "you2bili")
+        storage_state: viddub storage_state dict
+        account_name: account identifier (default: "viddub")
 
     Returns:
         Path to the written cookie file, or None on failure.
@@ -215,11 +215,11 @@ def write_sau_bilibili_cookie(
 
 def sync_storage_state_to_sau(
     platform: str,
-    account_name: str = "you2bili",
+    account_name: str = "viddub",
 ) -> Optional[str]:
     """Sync a platform's storage_state to social-auto-upload's cookie directory.
 
-    Loads the storage_state from you2bili's login manager and writes
+    Loads the storage_state from viddub's login manager and writes
     it in social-auto-upload's expected cookie format.
 
     Currently supports: 'bilibili'

@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title You2Bili
+title VidDub
 cd /d "%~dp0"
 
 if not exist "frontend\node_modules" (

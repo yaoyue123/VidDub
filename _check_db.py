@@ -2,7 +2,7 @@
 import sqlite3, os
 
 db_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend', 'data')
-db_path = os.path.join(db_dir, 'you2bili.db')
+db_path = os.path.join(db_dir, 'viddub.db')
 
 if not os.path.isfile(db_path):
     print(f'DB not found: {db_path}')

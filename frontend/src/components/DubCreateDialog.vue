@@ -63,7 +63,7 @@ const whisperModels = [
 // Load persisted config or use DESIGN.md §5.2 defaults.
 const persisted = (() => {
   try {
-    const raw = localStorage.getItem('you2bili.dubConfig')
+    const raw = localStorage.getItem('viddub.dubConfig')
     if (raw) return JSON.parse(raw)
   } catch {}
   return {}
@@ -114,7 +114,7 @@ function canNext() {
 
 function persistCfg() {
   try {
-    localStorage.setItem('you2bili.dubConfig', JSON.stringify({
+    localStorage.setItem('viddub.dubConfig', JSON.stringify({
       voice: cfg.voice,
       whisperModel: cfg.whisperModel,
       autoPublish: cfg.autoPublish,

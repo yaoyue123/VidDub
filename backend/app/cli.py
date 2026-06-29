@@ -285,7 +285,7 @@ async def _cmd_resume(args: argparse.Namespace) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="python -m app.cli",
-        description="you2bili 端到端配音 CLI (Phase 4)",
+        description="viddub 端到端配音 CLI (Phase 4)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

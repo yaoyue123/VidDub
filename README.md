@@ -1,4 +1,4 @@
-# You2Bili — YouTube 视频中文配音 + 自动发布工具
+# VidDub — YouTube 视频中文配音 + 自动发布工具
 
 > 自动把 YouTube 英文视频转成中文配音视频，并一键发布到西瓜视频 / 哔哩哔哩。
 > v2.0 端到端管线：URL → 下载 → Whisper STT → SiliconFlow 翻译 → CosyVoice2 TTS → ffmpeg 合成 → AI 标题 → 自动发布。
@@ -96,7 +96,7 @@ $ ./start.sh
 ## 目录结构
 
 ```
-you2bili/
+viddub/
 ├── backend/
 │   ├── alembic/              # 数据库迁移
 │   │   └── versions/         # 各 Phase 迁移脚本

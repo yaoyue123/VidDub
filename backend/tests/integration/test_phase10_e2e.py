@@ -319,7 +319,7 @@ def test_phase10_docs_have_required_sections():
     )
 
     docs_to_check = {
-        "README.md": ["You2Bili", "setup", "SILICONFLOW_API_KEY"],
+        "README.md": ["VidDub", "setup", "SILICONFLOW_API_KEY"],
         "CHANGELOG.md": ["Phase 10", "Phase 4", "v2.0"],
         "docs/ARCHITECTURE.md": ["mermaid", "scheduler", "状态机"],
         "docs/API.md": ["/api/dub", "WebSocket", "/api/platform"],

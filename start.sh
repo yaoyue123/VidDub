@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# You2Bili 一键启动脚本 (Linux / macOS)
+# VidDub 一键启动脚本 (Linux / macOS)
 #
 # 用法: ./start.sh [backend_port] [frontend_port]
 #
@@ -18,7 +18,7 @@ VENV_UVICORN="$BACKEND/venv/bin/uvicorn"
 C_CYAN="\033[36m"; C_GREEN="\033[32m"; C_YELLOW="\033[33m"; C_RED="\033[31m"; C_RESET="\033[0m"
 
 echo "=================================="
-echo " You2Bili 启动 (Linux/macOS)"
+echo " VidDub 启动 (Linux/macOS)"
 echo "=================================="
 
 [[ -x "$VENV_PY" ]] || { echo -e "${C_RED}[FAIL] 未找到 backend/venv，请先运行 ./setup.sh${C_RESET}"; exit 1; }
