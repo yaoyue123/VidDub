@@ -21,7 +21,7 @@ from app.services.transcriber.base import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = settings.siliconflow_stt_model
+DEFAULT_MODEL = "FunAudioLLM/SenseVoiceSmall"
 
 
 def _get_api_key_sync() -> str:

@@ -1,6 +1,10 @@
 """
 Seed default (UI-adjustable) configuration values into the database on first startup.
 
+BOUNDARY (v5.0 Phase 3):
+- Settings (.env) = env-level config (API keys, base URLs, deployment defaults like whisper model)
+- DB Config (this table) = UI-adjustable runtime parameters (model selection, TTS voices, pipeline params)
+
 IMPORTANT: API credentials (keys, base URLs) live in Settings/.env — NOT here.
 This table is ONLY for runtime parameters users adjust via the Settings UI.
 """
@@ -37,15 +41,7 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "value": "",
         "description": "yt-dlp Cookie 文件路径 (可选)",
     },
-    # ── Whisper local STT ──
-    "whisper_model": {
-        "value": "tiny",
-        "description": "Whisper 模型 (tiny/base/small/medium/large)",
-    },
-    "whisper_language": {
-        "value": "en",
-        "description": "Whisper 源语言代码 (en/zh/ja 等)",
-    },
+    # ── Target language ──
     "target_language": {
         "value": "zh",
         "description": "翻译目标语言代码",

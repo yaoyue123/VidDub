@@ -18,7 +18,7 @@ from app.services.tts_new.base import TTSProvider, TTSResult
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = settings.siliconflow_tts_model
+DEFAULT_MODEL = "FunAudioLLM/CosyVoice2-0.5B"
 
 # Available voices (from SiliconFlow docs)
 # Male: alex, benjamin, charles, david

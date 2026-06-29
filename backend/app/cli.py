@@ -23,6 +23,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
+from app.core.config import settings
+
 logger = logging.getLogger("cli")
 
 
@@ -37,7 +39,7 @@ def _setup_logging(verbose: bool = False) -> None:
 
 def _check_env() -> None:
     """启动前检查必需的环境变量."""
-    key = os.getenv("SILICONFLOW_API_KEY", "").strip()
+    key = settings.siliconflow_api_key.strip()
     if not key:
         print("ERROR: SILICONFLOW_API_KEY 未设置。", file=sys.stderr)
         print("请复制 backend/.env.example 为 backend/.env 并填入密钥", file=sys.stderr)

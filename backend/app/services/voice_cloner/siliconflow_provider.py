@@ -14,7 +14,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = settings.siliconflow_tts_model
+DEFAULT_MODEL = "FunAudioLLM/CosyVoice2-0.5B"
 
 
 def _get_api_key_sync() -> str:

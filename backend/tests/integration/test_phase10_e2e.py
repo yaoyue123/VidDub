@@ -345,7 +345,7 @@ def test_phase10_config_seeder_has_all_phase_keys():
     from app.services.config_seeder import DEFAULT_CONFIGS
 
     required_keys_per_phase = {
-        "phase4": ["whisper_model", "tts_voice_simple", "atempo_min", "atempo_max"],
+        "phase4": ["tts_voice_simple", "atempo_min", "atempo_max"],
         "phase6": [],  # 平台登录配置不进 DB（走 storage_state）
         "phase7": ["auto_publish_enabled", "publish_retry_max",
                    "bilibili_default_category"],
