@@ -1,19 +1,14 @@
 """Publish orchestrator (v3.2 — full social-auto-upload migration).
 
-All platforms (douyin, bilibili, ixigua) now use social-auto-upload as the
-publishing backend:
-
-- douyin  → SAU DouYinVideo (Playwright browser automation)
-- bilibili → SAU biliup Rust binary (SauBilibiliPublisher)
-- ixigua  → Playwright browser automation (IxiguaPublisher, SAU 暂未支持)
-
-Cookie sync:
-- bilibili → cookie_bridge converts viddub storage_state to biliup LoginInfo
-- douyin   → SAU native account file at cookies/douyin_{name}.json
+Platform dispatch and metadata are owned by `app.services.platforms.registry`.
+This module orchestrates the publish lifecycle (record creation, WebSocket
+broadcasts, retries) and delegates the actual upload to the platform's
+publisher class resolved via the registry.
 """
 from __future__ import annotations
 
 import asyncio
+import importlib
 import logging
 import os
 from datetime import datetime, timezone
@@ -29,6 +24,12 @@ from app.models.publish_record import (
     PublishRecord,
     PublishStatus,
 )
+from app.services.platforms.registry import (
+    all_platforms,
+    cookie_path,
+    get as get_descriptor,
+    is_sau_native,
+)
 from app.services.publish.base import (
     PlatformPublisher,
     PublishFields,
@@ -39,55 +40,27 @@ logger = logging.getLogger(__name__)
 
 
 class PublishManager:
-    SUPPORTED_PLATFORMS = (
-        PublishPlatform.DOUYIN,
-        PublishPlatform.BILIBILI,
-        PublishPlatform.IXIGUA,
-    )
+    SUPPORTED_PLATFORMS = all_platforms()
 
     def __init__(self) -> None:
         self._instances: dict[str, PlatformPublisher] = {}
 
     def get(self, platform: str) -> PlatformPublisher:
-        if platform not in self.SUPPORTED_PLATFORMS:
-            raise ValueError(f"Unsupported platform: {platform}")
-
+        descriptor = get_descriptor(platform)  # raises ValueError for unknown
         if platform in self._instances:
             return self._instances[platform]
 
-        if platform == PublishPlatform.DOUYIN:
-            # SAU DouYinVideo — uses SAU's native account file format
-            _sau_dir = os.path.normpath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "social-auto-upload")
-            )
-            state_path = os.path.join(_sau_dir, "cookies", "douyin_viddub.json")
-            from app.services.publish.douyin import DouyinPublisher
-            inst: PlatformPublisher = DouyinPublisher(storage_state_path=state_path)
-        elif platform == PublishPlatform.BILIBILI:
-            from app.services.platform.manager import get_login_manager
-            lm = get_login_manager()
-            state_path = lm.storage_state_path(platform)
-            from app.services.publish.sau_bilibili import SauBilibiliPublisher
-            inst = SauBilibiliPublisher(storage_state_path=state_path)
-        elif platform == PublishPlatform.IXIGUA:
-            from app.services.platform.manager import get_login_manager
-            lm = get_login_manager()
-            state_path = lm.storage_state_path(platform)
-            from app.services.publish.ixigua import IxiguaPublisher
-            inst = IxiguaPublisher(storage_state_path=state_path)
-        else:  # pragma: no cover
-            raise ValueError(f"Unsupported platform: {platform}")
+        module = importlib.import_module(descriptor.publisher_module)
+        cls = getattr(module, descriptor.publisher_class)
+        inst: PlatformPublisher = cls(storage_state_path=descriptor.cookie_file)
 
         self._instances[platform] = inst
         return inst
 
     def _resolve_account_file(self, platform: str) -> Optional[str]:
         """Resolve account/cookie file path for SAU-based platforms."""
-        if platform == PublishPlatform.DOUYIN:
-            _sau_dir = os.path.normpath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "social-auto-upload")
-            )
-            return os.path.join(_sau_dir, "cookies", "douyin_viddub.json")
+        if is_sau_native(platform):
+            return cookie_path(platform)
         return None
 
     async def publish_to_platform(
@@ -283,8 +256,9 @@ class PublishManager:
             # 检查登录态 — 未登录则跳过，不阻塞其他平台
             try:
                 state = None
-                if pf == PublishPlatform.DOUYIN:
-                    # Douyin uses SAU's native account file format
+                if is_sau_native(pf):
+                    # SAU-native platforms (douyin, bilibili, kuaishou, tencent,
+                    # xiaohongshu) use SAU's cookie file at the registry path.
                     account_file = self._resolve_account_file(pf)
                     if account_file and os.path.exists(account_file):
                         state = {"cookies": {"__sau__": True}}  # non-empty sentinel

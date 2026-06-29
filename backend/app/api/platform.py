@@ -31,6 +31,12 @@ from app.services.platform.base import (
     LoginStatus,
 )
 from app.services.platform.manager import get_login_manager
+from app.services.platforms.registry import (
+    all_platforms,
+    cookie_path,
+    display_name_map,
+    is_sau_native,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -77,16 +83,13 @@ class AllStateResponse(BaseModel):
     platforms: list[PlatformStateItem]
 
 
-# 平台中文显示名 (v3.2 — 新增 douyin)
-PLATFORM_DISPLAY_NAMES = {
-    "douyin": "抖音",
-    "bilibili": "哔哩哔哩",
-    "ixigua": "西瓜视频",
-}
+# 平台中文显示名 — 单一来源：app.services.platforms.registry
+PLATFORM_DISPLAY_NAMES = display_name_map()
 
-# SAU-native platforms (not managed by viddub's LoginManager)
-# These use SAU's own cookie format at social-auto-upload/cookies/
-_SAU_NATIVE_PLATFORMS = {"douyin"}
+# SAU-native platforms (cookie file managed by social-auto-upload itself)
+# All current platforms are SAU-native; transitional viddub_playwright platforms
+# (e.g. ixigua before P5 removal) are excluded.
+_SAU_NATIVE_PLATFORMS = {p for p in all_platforms() if is_sau_native(p)}
 
 
 def _validate_platform(platform: str) -> None:
@@ -247,12 +250,8 @@ async def all_state() -> AllStateResponse:
     items: list[PlatformStateItem] = []
     for pf, name in PLATFORM_DISPLAY_NAMES.items():
         if pf in _SAU_NATIVE_PLATFORMS:
-            # SAU-native platforms: check account file existence
-            _sau_dir = _os.path.normpath(
-                _os.path.join(_os.path.dirname(__file__), "..", "..", "..", "social-auto-upload")
-            )
-            account_file = _os.path.join(_sau_dir, "cookies", f"douyin_viddub.json")
-            logged_in = _os.path.exists(account_file)
+            # SAU-native platforms: check account file existence at registry path
+            logged_in = _os.path.exists(cookie_path(pf))
             items.append(PlatformStateItem(
                 platform=pf, display_name=name, logged_in=logged_in,
             ))
