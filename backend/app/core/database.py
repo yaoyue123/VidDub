@@ -68,13 +68,46 @@ def _ensure_indexes(connection) -> None:
 
 
 def init_db(connection) -> None:
-    """Initialize database schema: indexes and FTS5 virtual table.
+    """Initialize database schema: indexes, FTS5 virtual table, and migrations.
 
     Call from main.py lifespan after Base.metadata.create_all.
     Runs idempotently via IF NOT EXISTS clauses.
     """
     _ensure_indexes(connection)
     _ensure_fts5(connection)
+    _ensure_discovery_columns(connection)
+
+
+# ── Schema migration: Phase 8 discovery columns (D-INFRA-03) ──
+
+_DISCOVERY_MIGRATION_SQL = [
+    # discovery_sources filter columns (Phase 8-01)
+    "ALTER TABLE discovery_sources ADD COLUMN filter_min_views INTEGER",
+    "ALTER TABLE discovery_sources ADD COLUMN filter_max_views INTEGER",
+    "ALTER TABLE discovery_sources ADD COLUMN filter_min_duration_sec INTEGER",
+    "ALTER TABLE discovery_sources ADD COLUMN filter_max_duration_sec INTEGER",
+    "ALTER TABLE discovery_sources ADD COLUMN filter_published_within_hours INTEGER",
+    # discovery_results display metadata columns (Phase 8-01)
+    "ALTER TABLE discovery_results ADD COLUMN view_count INTEGER",
+    "ALTER TABLE discovery_results ADD COLUMN like_count INTEGER",
+    "ALTER TABLE discovery_results ADD COLUMN thumbnail_url VARCHAR(512)",
+    "ALTER TABLE discovery_results ADD COLUMN published_at VARCHAR(64)",
+    "ALTER TABLE discovery_results ADD COLUMN duration_sec INTEGER",
+]
+
+
+def _ensure_discovery_columns(connection) -> None:
+    """Add Phase 8 discovery columns if they don't exist yet.
+
+    SQLite ALTER TABLE ADD COLUMN with IF NOT EXISTS isn't supported,
+    so we catch 'duplicate column' errors and continue.
+    """
+    for sql in _DISCOVERY_MIGRATION_SQL:
+        try:
+            connection.execute(text(sql))
+        except Exception:
+            # Column already exists — skip (SQLite lacks IF NOT EXISTS for ALTER TABLE)
+            pass
 
 
 # ── FTS5 virtual table for keyword search (D-INFRA-02) ──
