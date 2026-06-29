@@ -44,7 +44,15 @@
 4. All v4.0 scoring frontend code is removed: `scoringApi` calls, `rulesApi` calls, old inline API logic in `DiscoverView`
 5. All existing tests pass and `npm run build` succeeds after cleanup
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+```
+Plans:
+- [ ] 07-01-PLAN.md — SQLite WAL mode + busy_timeout + indexes + FTS5 (INFRA-02)
+- [ ] 07-02-PLAN.md — YtDlpWrapper with rate limiter + circuit breaker + wiring (INFRA-01)
+- [ ] 07-03-PLAN.md — Remove v4.0 scoring backend code (CLEANUP-01)
+- [ ] 07-04-PLAN.md — Remove v4.0 scoring frontend code (CLEANUP-02)
+```
 
 ### Phase 8: Tracking Scanner & Core Discovery
 
@@ -61,7 +69,13 @@
 4. Videos already downloaded (in the `videos` table) or already discovered (in the `DiscoveryResult` table) are excluded from new scan results
 5. Each scan produces a `DiscoveryScanLog` entry with timestamp, discovered count, and status (success/partial/failed)
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+```
+Plans:
+- [ ] 08-01-PLAN.md — Extend DiscoverySource/DiscoveryResult models + DiscoveryScanLog (TRACK-01, TRACK-02, SCAN-02)
+- [ ] 08-02-PLAN.md — DiscoveryScanner coordinator loop + dedup + scan logs + lifecycle wiring (SCAN-01, TRACK-05, SCAN-02)
+```
 
 ### Phase 9: Tracking API & Filtering
 
@@ -118,8 +132,8 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Infrastructure & Cleanup | 0/0 | Not started | - |
-| 8. Tracking Scanner & Core Discovery | 0/0 | Not started | - |
+| 7. Infrastructure & Cleanup | 0/4 | Planned | - |
+| 8. Tracking Scanner & Core Discovery | 0/2 | Planned | - |
 | 9. Tracking API & Filtering | 0/0 | Not started | - |
 | 10. DiscoverView Frontend | 0/0 | Not started | - |
 | 11. Bug Fixes & Polish | 0/0 | Not started | - |
@@ -128,7 +142,7 @@
 
 ## 已归档里程碑
 
-### v5.0 开源化深度改造 — Done ✅ (2026-06-29)
+### v5.0 开源化深度改造 — Done (2026-06-29)
 
 **核心目标：** 把项目从"能跑但混乱的内部工具"改造为"结构清晰、文档完善、便于社区使用和贡献的开源项目"。
 
@@ -165,4 +179,4 @@
 
 ---
 
-*Last updated: 2026-06-29 — v5.1 Discover 页面重构与 Bug 修复 roadmap created (phases 7-11)*
+*Last updated: 2026-06-29 — Phase 8 plans created (2 plans), ROADMAP updated*
