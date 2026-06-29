@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 from app.core.config import settings
+from app.core.storage import get_download_dir
 
 logger = logging.getLogger("cli")
 
@@ -110,7 +111,7 @@ async def _cmd_dub(args: argparse.Namespace) -> int:
         _print(f"Video 创建: id={video_id}, task_id={task.id}")
 
     # 4. 启动调度器
-    sched = TaskScheduler(download_dir="./downloads", max_concurrent=1)
+    sched = TaskScheduler(download_dir=get_download_dir(), max_concurrent=1)
     await sched.start()
 
     # 5. 轮询 DB 输出进度，直到 completed 或 failed
@@ -247,7 +248,7 @@ async def _cmd_resume(args: argparse.Namespace) -> int:
         await db.commit()
         _print(f"Task {failed.id} ({failed.type}) 已重置为 pending (video_status={new_video_status})")
 
-    sched = TaskScheduler(download_dir="./downloads", max_concurrent=1)
+    sched = TaskScheduler(download_dir=get_download_dir(), max_concurrent=1)
     await sched.start()
     try:
         last_step = ""

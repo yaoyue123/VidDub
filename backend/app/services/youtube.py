@@ -15,6 +15,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+from app.core.storage import get_download_dir
 from app.services.ytdlp_wrapper import YtDlpWrapper, get_ytdlp_wrapper
 
 logger = logging.getLogger(__name__)
@@ -66,11 +67,11 @@ class YoutubeService:
 
     def __init__(
         self,
-        download_dir: str = "./downloads",
+        download_dir: str | None = None,
         max_resolution: int = 1080,
         ytdlp_wrapper: Optional[YtDlpWrapper] = None,
     ):
-        self.download_dir = download_dir
+        self.download_dir = download_dir if download_dir is not None else get_download_dir()
         self.max_resolution = max_resolution
         self._wrapper = ytdlp_wrapper or get_ytdlp_wrapper()
         os.makedirs(self.download_dir, exist_ok=True)

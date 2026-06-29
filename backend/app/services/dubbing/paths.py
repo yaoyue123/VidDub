@@ -9,6 +9,8 @@ import re
 import unicodedata
 from typing import Any
 
+from app.core.storage import get_download_dir
+
 
 def sanitize_filename(title: str, max_len: int = 80) -> str:
     """Convert a title into a safe filename stem.
@@ -45,16 +47,17 @@ def sanitize_filename(title: str, max_len: int = 80) -> str:
     return cleaned
 
 
-def video_work_dir(video_id: int, base_dir: str = "./downloads") -> str:
+def video_work_dir(video_id: int, base_dir: str | None = None) -> str:
     """返回 downloads/{video_id}/ 目录（自动创建）."""
     if not isinstance(video_id, int) or video_id <= 0:
         raise ValueError(f"video_id must be a positive int (got {video_id!r})")  # Threat T-04-08
+    base_dir = base_dir if base_dir is not None else get_download_dir()
     path = os.path.join(base_dir, str(video_id))
     os.makedirs(path, exist_ok=True)
     return path
 
 
-def video_file(video_id: int, name: str, base_dir: str = "./downloads") -> str:
+def video_file(video_id: int, name: str, base_dir: str | None = None) -> str:
     """返回 downloads/{video_id}/{name} 路径（不创建文件）."""
     # 校验 name 不含路径分隔符（防路径穿越）
     if os.path.sep in name or "/" in name or "\\" in name or ".." in name:

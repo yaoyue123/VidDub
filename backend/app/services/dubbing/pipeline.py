@@ -27,6 +27,7 @@ from app.services.dubbing.alignment import align_segment, AlignResult
 from app.services.dubbing.stitcher import build_dubbing_track
 from app.services.dubbing.composer import compose_final_video
 from app.services.dubbing.paths import video_file, video_work_dir, group_segments_by_silence
+from app.core.storage import get_download_dir
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ async def run_dubbing_pipeline(
     video_id: int,
     video_path: str,
     *,
-    work_base_dir: str = "./downloads",
+    work_base_dir: str | None = None,
     resume_from: str = "",
     whisper_model: str = "tiny",
     whisper_language: str = "en",
@@ -70,6 +71,7 @@ async def run_dubbing_pipeline(
         progress_callback: async 进度回调
         http_client: 可选共享 httpx 客户端（None 时内部创建）
     """
+    work_base_dir = work_base_dir if work_base_dir is not None else get_download_dir()
     work_dir = video_work_dir(video_id, base_dir=work_base_dir)
 
     async def _emit(step: str, percent: float, **extra):

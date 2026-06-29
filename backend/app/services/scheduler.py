@@ -18,6 +18,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session_factory
+from app.core.storage import get_download_dir
 from app.core.websocket import manager as ws_manager
 from app.models.video import Video
 from app.models.task import Task
@@ -164,12 +165,12 @@ class TaskScheduler:
 
     def __init__(
         self,
-        download_dir: str = "./downloads",
+        download_dir: str | None = None,
         max_concurrent: int = 3,
         poll_interval: float = 2.0,
         max_resolution: int = 1080,
     ):
-        self.download_dir = download_dir
+        self.download_dir = download_dir if download_dir is not None else get_download_dir()
         self.max_concurrent = max_concurrent
         self.poll_interval = poll_interval
         self.max_resolution = max_resolution
@@ -327,7 +328,7 @@ class TaskScheduler:
     async def _handle_download(self, task_id: int, video_id: int) -> None:
         """下载视频 + 末尾自动创建 transcribe Task."""
         configs = await _load_configs()
-        download_dir = configs.get("download_dir", self.download_dir)
+        download_dir = get_download_dir()
 
         async with async_session_factory() as session:
             await session.execute(
@@ -411,7 +412,7 @@ class TaskScheduler:
 
         # Optional: 背景音分离 (demucs) → 用分离后的人声轨转录，更准确
         from app.services.dubbing.paths import video_file, video_work_dir
-        work_base = configs.get("download_dir", self.download_dir)
+        work_base = get_download_dir()
         work_dir = video_work_dir(video_id, base_dir=work_base)
         bg_sep_enabled = configs.get("background_separation_enabled", "false").lower() in ("true", "1", "yes")
         vocals_path = video_file(video_id, "vocals.wav", base_dir=work_base)
@@ -459,7 +460,7 @@ class TaskScheduler:
             for i, seg in enumerate(result.get("segments", []))
         ]
         import json
-        transcript_path = video_file(video_id, "transcript.json", base_dir=configs.get("download_dir", self.download_dir))
+        transcript_path = video_file(video_id, "transcript.json", base_dir=get_download_dir())
         with open(transcript_path, "w", encoding="utf-8") as f:
             json.dump(segments, f, ensure_ascii=False, indent=2)
 
@@ -502,7 +503,7 @@ class TaskScheduler:
         })
 
         from app.services.dubbing.paths import video_file
-        work_base = configs.get("download_dir", self.download_dir)
+        work_base = get_download_dir()
         transcript_path = video_file(video_id, "transcript.json", base_dir=work_base)
 
         import json
@@ -563,7 +564,7 @@ class TaskScheduler:
         })
 
         from app.services.dubbing.paths import video_file, video_work_dir, group_segments_by_silence
-        work_base = configs.get("download_dir", self.download_dir)
+        work_base = get_download_dir()
         transcript_path = video_file(video_id, "transcript.json", base_dir=work_base)
         translated_path = video_file(video_id, "translated.json", base_dir=work_base)
 
@@ -757,8 +758,7 @@ class TaskScheduler:
     # ── COMPOSE ──
 
     async def _handle_compose(self, task_id: int, video_id: int) -> None:
-        configs = await _load_configs()
-        work_base = configs.get("download_dir", self.download_dir)
+        work_base = get_download_dir()
 
         async with async_session_factory() as session:
             await session.execute(

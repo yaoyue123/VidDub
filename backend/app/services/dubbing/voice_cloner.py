@@ -13,6 +13,8 @@ import os
 import random
 from typing import Optional
 
+from app.core.storage import get_download_dir
+
 logger = logging.getLogger(__name__)
 
 # Built-in voices by gender
@@ -29,7 +31,7 @@ async def clone_voice_from_vocals(
     segments: list[dict],
     video_id: int,
     *,
-    base_dir: str = "./downloads",
+    base_dir: str | None = None,
 ) -> Optional[dict[str, str]]:
     """Extract best speech sample and clone via SiliconFlow.
 
@@ -42,6 +44,7 @@ async def clone_voice_from_vocals(
     Returns:
         {"uri": str, "name": str, "voice": str} or None if cloning fails.
     """
+    base_dir = base_dir if base_dir is not None else get_download_dir()
     # Find the best segment for cloning
     sample_info = _extract_speech_sample(vocals_path, segments, video_id, base_dir)
     if not sample_info:
