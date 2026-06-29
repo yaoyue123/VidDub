@@ -1,4 +1,5 @@
 export { useVideoStore } from './videoStore'
 export { useTaskStore } from './taskStore'
 export { useConfigStore } from './configStore'
+export { useDiscoveryStore } from './discoveryStore'
 export { useWsStore } from './wsStore'
