@@ -303,7 +303,7 @@ _PREVIEW_KINDS = ("dubbing", "final", "original")
 # kind → file name 在 downloads/{video_id}/ 下的映射
 _PREVIEW_FILENAMES = {
     "dubbing": "dubbing.wav",   # 中文 TTS 合成的配音 (Phase 4 stitcher 产物)
-    "final": "final.mp4",       # 最终合成视频
+    "final": "final.mp4",       # 默认名；运行时优先从 DB 解析实际文件名
     "original": "original.mp4", # 原视频（download 阶段产物）
 }
 
@@ -313,6 +313,41 @@ _PREVIEW_CONTENT_TYPES = {
     "final": "video/mp4",
     "original": "video/mp4",
 }
+
+
+def _resolve_final_filename(video, work_dir: str) -> str:
+    """Resolve the actual final.mp4 filename for a video.
+
+    The composer uses sanitize_filename(video.title_zh or title) as the
+    output stem (e.g. ``AI_MKBHD_评测.mp4``), not a hardcoded "final.mp4".
+    This function finds the actual file so the preview endpoint returns
+    the correct FileResponse.
+    """
+    from app.services.dubbing.paths import sanitize_filename
+
+    # 1) Try the DB-resolved stem
+    candidate = (video.title_chosen or video.title_zh or video.title or "").strip()
+    if candidate:
+        stem = sanitize_filename(candidate) or f"video_{video.id}"
+        path = os.path.join(work_dir, f"{stem}.mp4")
+        if os.path.exists(path):
+            return os.path.basename(path)
+
+    # 2) Try "final.mp4" (legacy / fallback)
+    fallback = os.path.join(work_dir, "final.mp4")
+    if os.path.exists(fallback):
+        return "final.mp4"
+
+    # 3) Try any .mp4 that isn't original / _subtitled
+    try:
+        for f in os.listdir(work_dir):
+            if f.endswith(".mp4") and f not in ("original.mp4",) and "_subtitled" not in f:
+                return f
+    except OSError:
+        pass
+
+    # 4) Default — will 404 with a clear message
+    return "final.mp4"
 
 
 @router.get("/{video_id}/preview/{kind}")
@@ -341,14 +376,19 @@ async def preview_dub_artifact(
         raise HTTPException(404, detail="Video not found")
 
     download_dir = get_download_dir()
+    work_dir = os.path.join(download_dir, str(video_id))
 
     filename = _PREVIEW_FILENAMES[kind]
-    path = os.path.join(download_dir, str(video_id), filename)
+    # For "final" kind: resolve actual filename from DB (composer uses video title)
+    if kind == "final":
+        filename = _resolve_final_filename(v, work_dir)
+
+    path = os.path.join(work_dir, filename)
 
     if not os.path.exists(path):
         # 兜底：dubbing.wav 不存在时尝试 dubbing.mp3
         if kind == "dubbing":
-            alt = os.path.join(download_dir, str(video_id), "dubbing.mp3")
+            alt = os.path.join(work_dir, "dubbing.mp3")
             if os.path.exists(alt):
                 return FileResponse(alt, media_type="audio/mpeg")
         raise HTTPException(

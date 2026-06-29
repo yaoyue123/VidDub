@@ -906,7 +906,7 @@ class TaskScheduler:
             await session.execute(
                 update(Task).where(Task.id == task_id)
                 .values(status=TaskStatus.COMPLETED, progress=100.0,
-                        message=f"合成完成 final.mp4")
+                        message=f"合成完成 {os.path.basename(final_path)}")
             )
             db_update_values = {
                 "status": VideoStatus.COMPLETED,
