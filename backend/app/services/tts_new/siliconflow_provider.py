@@ -198,7 +198,7 @@ class SiliconFlowTTSProvider(TTSProvider):
                 )
 
                 return TTSResult(
-                    audio_path=output_path,
+                    audio_data=response.content,
                     duration=estimated_duration,
                     sample_rate=sample_rate,
                     format=response_format,
