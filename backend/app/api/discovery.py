@@ -299,6 +299,19 @@ class DiscoverySourceResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SaveSearchAsSourceRequest(BaseModel):
+    """Save search criteria as a new tracked DiscoverySource."""
+    query: str = Field(..., min_length=1, description="搜索关键词")
+    label: str = Field(..., max_length=128, description="显示名称")
+    max_results: int = Field(20, ge=1, le=100)
+    min_views: Optional[int] = Field(None, ge=0)
+    max_views: Optional[int] = Field(None, ge=0)
+    min_duration_sec: Optional[int] = Field(None, ge=0)
+    max_duration_sec: Optional[int] = Field(None, ge=0)
+    published_within_hours: Optional[int] = Field(None, ge=1)
+    scan_interval_hours: int = Field(24, ge=1, le=720)
+
+
 @router.get("/sources")
 async def list_discovery_sources(db: AsyncSession = Depends(get_db)):
     """List all discovery sources with filter fields."""
@@ -334,6 +347,32 @@ async def create_discovery_source(
     )
     db.add(source)
     await db.commit()
+    await db.refresh(source)
+    return DiscoverySourceResponse.model_validate(source)
+
+
+@router.post("/sources/from-search", response_model=DiscoverySourceResponse, status_code=201)
+async def save_search_as_source(
+    body: SaveSearchAsSourceRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Save search criteria as a new DiscoverySource for auto-scanning."""
+    from app.models.discovery import DiscoverySource
+
+    source = DiscoverySource(
+        type="keyword",
+        source_value=body.query,
+        label=body.label,
+        max_results_per_scan=body.max_results,
+        scan_interval_hours=body.scan_interval_hours,
+        filter_min_views=body.min_views,
+        filter_max_views=body.max_views,
+        filter_min_duration_sec=body.min_duration_sec,
+        filter_max_duration_sec=body.max_duration_sec,
+        filter_published_within_hours=body.published_within_hours,
+    )
+    db.add(source)
+    await db.flush()
     await db.refresh(source)
     return DiscoverySourceResponse.model_validate(source)
 
