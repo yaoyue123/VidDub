@@ -45,7 +45,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.database import engine, Base, async_session_factory
+from app.core.database import engine, Base, async_session_factory, init_db
 from app.core.websocket import manager as ws_manager
 from app.services.scheduler import TaskScheduler
 from app.services.config_seeder import seed_default_config
@@ -65,9 +65,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Debug: 打印当前运行中的 loop 类型
     _log_loop_type()
 
-    # 1. Create tables
+    # 1. Create tables + initialize indexes and FTS5 (INFRA-02)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(init_db)
 
     # 2. Seed default config + rule templates
     async with async_session_factory() as db:

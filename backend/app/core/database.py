@@ -1,4 +1,4 @@
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -45,3 +45,32 @@ async def get_db() -> AsyncSession:
             raise
         finally:
             await session.close()
+
+
+# ── Indexes for tracking query patterns (D-INFRA-02) ──
+
+_INDEX_SQL = [
+    "CREATE INDEX IF NOT EXISTS ix_videos_created_at ON videos(created_at)",
+    "CREATE INDEX IF NOT EXISTS ix_videos_view_count ON videos(view_count)",
+    "CREATE INDEX IF NOT EXISTS ix_videos_channel_id ON videos(channel_id)",
+    "CREATE INDEX IF NOT EXISTS ix_videos_source ON videos(source)",
+    "CREATE INDEX IF NOT EXISTS ix_discovery_results_source_id ON discovery_results(source_id)",
+    "CREATE INDEX IF NOT EXISTS ix_discovery_results_youtube_id ON discovery_results(youtube_id)",
+    "CREATE INDEX IF NOT EXISTS ix_discovery_results_discovered_at ON discovery_results(discovered_at)",
+    "CREATE INDEX IF NOT EXISTS ix_discovery_results_status ON discovery_results(status)",
+]
+
+
+def _ensure_indexes(connection) -> None:
+    """Create all tracking query pattern indexes using IF NOT EXISTS."""
+    for sql in _INDEX_SQL:
+        connection.execute(text(sql))
+
+
+def init_db(connection) -> None:
+    """Initialize database schema: indexes and FTS5 virtual table.
+
+    Call from main.py lifespan after Base.metadata.create_all.
+    Runs idempotently via IF NOT EXISTS clauses.
+    """
+    _ensure_indexes(connection)
