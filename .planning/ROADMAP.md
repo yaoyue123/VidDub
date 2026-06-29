@@ -108,8 +108,15 @@ Plans:
 4. Users can view a list of tracked sources, add new sources, edit existing sources, delete sources, and enable/disable sources from the UI
 5. Loading states, empty states, and error states are handled for all views — no blank screens or unhandled errors on API failures
 
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+```
+Plans:
+- [ ] 10-01-PLAN.md — API client extension + discoveryStore Pinia store (UI-01, UI-02, UI-03, UI-04)
+- [ ] 10-02-PLAN.md — VideoCard reusable component (UI-02, UI-03)
+- [ ] 10-03-PLAN.md — DiscoverView multi-tab rewrite with Search/Keywords/Channels tabs (UI-01, UI-02, UI-03, UI-04)
+```
 
 ### Phase 11: Bug Fixes & Polish
 
@@ -135,7 +142,7 @@ Plans:
 | 7. Infrastructure & Cleanup | 0/4 | Planned | - |
 | 8. Tracking Scanner & Core Discovery | 0/2 | Planned | - |
 | 9. Tracking API & Filtering | 0/0 | Not started | - |
-| 10. DiscoverView Frontend | 0/0 | Not started | - |
+| 10. DiscoverView Frontend | 0/3 | Plans created | - |
 | 11. Bug Fixes & Polish | 0/0 | Not started | - |
 
 ---
@@ -179,4 +186,4 @@ Plans:
 
 ---
 
-*Last updated: 2026-06-29 — Phase 8 plans created (2 plans), ROADMAP updated*
+*Last updated: 2026-06-29 — Phase 10 plans created (3 plans), ROADMAP updated*
