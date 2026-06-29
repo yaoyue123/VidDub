@@ -17,6 +17,7 @@ from app.core.websocket import manager as ws_manager
 from app.models.video import Video
 from app.models.task import Task
 from app.models.config import Config
+from app.models.enums import VideoStatus, TaskType, TaskStatus
 from app.services.youtube import YoutubeService
 from app.schemas import VideoResponse
 
@@ -198,7 +199,7 @@ async def add_discovered_videos(
             like_count=item.like_count,
             thumbnail_url=item.thumbnail_url,
             description=item.description,
-            status="pending",
+            status=VideoStatus.PENDING,
         )
         db.add(video)
         added.append(video)
@@ -227,14 +228,14 @@ async def trigger_download(
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
 
-    if video.status not in ("pending", "failed"):
+    if video.status not in (VideoStatus.PENDING, VideoStatus.FAILED):
         raise HTTPException(status_code=400, detail=f"视频当前状态不允许下载: {video.status}")
 
     # Create download task
     task = Task(
         video_id=video.id,
-        type="download",
-        status="pending",
+        type=TaskType.DOWNLOAD,
+        status=TaskStatus.PENDING,
         progress=0.0,
         message="等待下载...",
     )
@@ -243,7 +244,7 @@ async def trigger_download(
     await db.refresh(task)
 
     # Update video status
-    video.status = "pending"
+    video.status = VideoStatus.PENDING
 
     return {"task_id": task.id, "video_id": video.id, "status": "queued"}
 

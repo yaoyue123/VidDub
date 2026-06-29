@@ -7,12 +7,14 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from urllib.parse import urlparse
 
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.video import Video
 from app.models.task import Task
 from app.models.config import Config
+from app.models.enums import VideoStatus, TaskType, TaskStatus
 from app.schemas import VideoResponse, VideoListResponse, VideoStatusUpdate
 from app.services.youtube import YoutubeService
 from app.services.config_seeder import DEFAULT_CONFIGS
@@ -26,10 +28,50 @@ class CreateVideoRequest(BaseModel):
     title: str = ""
 
 
+# CR-03: SSRF 防护 — youtube_url 只允许 YouTube 主域名
+YOUTUBE_HOSTS = frozenset({
+    "youtube.com",
+    "www.youtube.com",
+    "m.youtube.com",
+    "music.youtube.com",
+    "youtu.be",
+})
+
+
+def _validate_youtube_url(url: str) -> None:
+    """校验 youtube_url 是否指向 YouTube 主域名（防 SSRF）."""
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(
+            status_code=422,
+            detail="youtube_url 必须是 http(s):// 开头",
+        )
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"不支持的 URL scheme: {parsed.scheme!r}",
+        )
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise HTTPException(
+            status_code=422,
+            detail="youtube_url 缺少 hostname",
+        )
+    if host not in YOUTUBE_HOSTS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"URL 必须指向 YouTube (允许: {sorted(YOUTUBE_HOSTS)})，"
+                   f"当前 host: {host!r}",
+        )
+
+
 @router.post("", response_model=VideoResponse, status_code=201)
 async def create_video(body: CreateVideoRequest, db: AsyncSession = Depends(get_db)):
     """Add a video by URL. Extracts metadata via yt-dlp if possible."""
     import re
+
+    url = str(body.youtube_url).strip()
+    _validate_youtube_url(url)  # CR-03: SSRF 防护
 
     # Parse YouTube ID from URL
     patterns = [
@@ -92,7 +134,7 @@ async def create_video(body: CreateVideoRequest, db: AsyncSession = Depends(get_
         like_count=like_count,
         thumbnail_url=thumbnail_url,
         description=description,
-        status="pending",
+        status=VideoStatus.PENDING,
     )
     db.add(video)
     await db.flush()

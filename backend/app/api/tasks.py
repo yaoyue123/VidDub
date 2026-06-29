@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.models.task import Task
 from app.models.video import Video
 from app.models.subtitle import Subtitle
+from app.models.enums import TaskStatus
 from app.schemas import TaskResponse, TaskListResponse, VideoResponse
 
 router = APIRouter()
@@ -101,7 +102,7 @@ async def create_task(
     task = Task(
         video_id=body.video_id,
         type=body.type,
-        status="pending",
+        status=TaskStatus.PENDING,
         progress=0.0,
         message="等待处理...",
     )
@@ -148,7 +149,7 @@ async def retry_task(task_id: int, db: AsyncSession = Depends(get_db)):
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    task.status = "pending"
+    task.status = TaskStatus.PENDING
     task.progress = 0.0
     task.error_msg = None
     await db.flush()
@@ -164,7 +165,7 @@ async def cancel_task(task_id: int, db: AsyncSession = Depends(get_db)):
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    task.status = "cancelled"
+    task.status = TaskStatus.CANCELLED
     await db.flush()
     await db.refresh(task)
     return _task_to_response(task)
@@ -204,24 +205,24 @@ async def batch_tasks(
                 continue
 
             if body.action == "pause":
-                if task.status == "pending":
-                    task.status = "cancelled"
+                if task.status == TaskStatus.PENDING:
+                    task.status = TaskStatus.CANCELLED
                     task.message = "批量暂停"
                 else:
                     failed += 1
                     errors.append({"id": tid, "error": f"当前状态 {task.status} 不可暂停"})
                     continue
             elif body.action == "resume":
-                if task.status in ("cancelled", "pending"):
-                    task.status = "pending"
+                if task.status in (TaskStatus.CANCELLED, TaskStatus.PENDING):
+                    task.status = TaskStatus.PENDING
                     task.message = "批量恢复"
                 else:
                     failed += 1
                     errors.append({"id": tid, "error": f"当前状态 {task.status} 不可恢复"})
                     continue
             elif body.action == "retry":
-                if task.status == "failed":
-                    task.status = "pending"
+                if task.status == TaskStatus.FAILED:
+                    task.status = TaskStatus.PENDING
                     task.progress = 0.0
                     task.error_msg = None
                     task.message = "批量重试"

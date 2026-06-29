@@ -4,6 +4,7 @@ TTS API endpoints.
 Provides text-to-speech synthesis using SiliconFlow.
 """
 
+import logging
 import os
 import tempfile
 from typing import Optional
@@ -16,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.services.tts_new.service import TTSService
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -93,7 +95,8 @@ async def synthesize_text(body: TTSSynthesizeRequest):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("TTS 语音合成失败: %s", e)
+        raise HTTPException(status_code=500, detail="语音合成失败，请稍后重试")
 
 
 @router.post("/stream")
@@ -139,7 +142,8 @@ async def synthesize_text_stream(body: TTSSynthesizeRequest):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("TTS 流式合成失败: %s", e)
+        raise HTTPException(status_code=500, detail="语音流式合成失败，请稍后重试")
 
 
 @router.get("/voices", response_model=list[TTSVoiceResponse])

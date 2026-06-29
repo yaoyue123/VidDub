@@ -4,6 +4,7 @@ Transcription API endpoints.
 Provides speech-to-text transcription using SiliconFlow or Whisper.
 """
 
+import logging
 import os
 import shutil
 import tempfile
@@ -12,6 +13,8 @@ from typing import Optional
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from app.schemas import TranscriptionResponse
 from app.services.transcriber.service import TranscriptionService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -69,7 +72,8 @@ async def transcribe_audio(
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("语音转文字失败: %s", e)
+        raise HTTPException(status_code=500, detail="语音转文字失败，请稍后重试")
 
     finally:
         # Cleanup temp files

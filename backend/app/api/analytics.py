@@ -1,16 +1,25 @@
 """Phase 17: Analytics API — performance tracking and reports."""
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.performance_log import PerformanceLog
 from app.models.video_score import VideoScore
+from app.schemas import (
+    PerformanceLogResponse,
+    PerformanceDetailResponse,
+    TopPerformerResponse,
+    PerformanceReportResponse,
+)
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -26,10 +35,10 @@ class PerformanceLogRequest(BaseModel):
     fetch_method: str = "manual"
 
 
-@router.post("/performance")
+@router.post("/performance", response_model=PerformanceLogResponse)
 async def log_performance_endpoint(
     body: PerformanceLogRequest,
-    db=Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Record platform performance for a dubbed video."""
     from app.services.scoring.performance import log_performance
@@ -46,20 +55,21 @@ async def log_performance_endpoint(
             fetch_method=body.fetch_method,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("记录平台表现失败: %s", e)
+        raise HTTPException(status_code=500, detail="记录平台表现失败，请稍后重试")
 
-    return {
-        "id": log.id,
-        "video_id": log.video_id,
-        "platform": log.platform,
-        "predicted_score": log.predicted_score,
-        "actual_score": log.actual_score,
-        "score_accuracy": log.score_accuracy,
-    }
+    return PerformanceLogResponse(
+        id=log.id,
+        video_id=log.video_id,
+        platform=log.platform,
+        predicted_score=log.predicted_score,
+        actual_score=log.actual_score,
+        score_accuracy=log.score_accuracy,
+    )
 
 
-@router.get("/performance/{video_id}")
-async def get_performance(video_id: int, db=Depends(get_db)):
+@router.get("/performance/{video_id}", response_model=PerformanceDetailResponse)
+async def get_performance(video_id: int, db: AsyncSession = Depends(get_db)):
     """Get performance data for a specific video."""
     from app.services.scoring.performance import compare_predicted_vs_actual
 
@@ -73,22 +83,23 @@ async def get_performance(video_id: int, db=Depends(get_db)):
     if not logs:
         raise HTTPException(status_code=404, detail="No performance data")
 
-    return {
-        "video_id": video_id,
-        "logs": [
-            {
-                "id": log.id,
-                "platform": log.platform,
-                "platform_views": log.platform_views,
-                "platform_likes": log.platform_likes,
-                "predicted_score": log.predicted_score,
-                "actual_score": log.actual_score,
-                "score_accuracy": log.score_accuracy,
-                "logged_at": log.logged_at.isoformat() if log.logged_at else None,
-            }
+    return PerformanceDetailResponse(
+        video_id=video_id,
+        logs=[
+            PerformanceLogResponse(
+                id=log.id,
+                video_id=log.video_id,
+                platform=log.platform,
+                platform_views=log.platform_views,
+                platform_likes=log.platform_likes,
+                predicted_score=log.predicted_score,
+                actual_score=log.actual_score,
+                score_accuracy=log.score_accuracy,
+                logged_at=log.logged_at.isoformat() if log.logged_at else None,
+            )
             for log in logs
         ],
-    }
+    )
 
 
 @router.get("/score-accuracy")
@@ -98,18 +109,18 @@ async def get_score_accuracy(days: int = Query(default=30)):
     return await get_score_accuracy_stats(days=days)
 
 
-@router.get("/top-performers")
+@router.get("/top-performers", response_model=TopPerformerResponse)
 async def get_top_performers(limit: int = Query(default=10, le=50)):
     """Get historically best-performing dubbed videos."""
     from app.services.scoring.performance import get_top_performers
-    return {"items": await get_top_performers(limit=limit)}
+    return TopPerformerResponse(items=await get_top_performers(limit=limit))
 
 
-@router.get("/monthly-report")
+@router.get("/monthly-report", response_model=PerformanceReportResponse)
 async def get_monthly_report(
     year: int = Query(default=2026),
     month: int = Query(default=6),
-    db=Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Generate a monthly performance report."""
     from app.services.scoring.performance import get_score_accuracy_stats
@@ -143,15 +154,15 @@ async def get_monthly_report(
         )
     ).scalars().all()
 
-    return {
-        "period": f"{year}-{month:02d}",
-        "summary": {
+    return PerformanceReportResponse(
+        period=f"{year}-{month:02d}",
+        summary={
             "videos_scored": total_scored,
             "performance_logs": total_performance_logs,
             "avg_score_accuracy": accuracy["avg_accuracy"],
             "over_estimate_ratio": accuracy["over_estimate_ratio"],
         },
-        "top_performers": [
+        top_performers=[
             {
                 "video_id": t.video_id,
                 "youtube_id": t.youtube_id,
@@ -162,5 +173,5 @@ async def get_monthly_report(
             }
             for t in top
         ],
-        "accuracy_interpretation": accuracy["interpretation"],
-    }
+        accuracy_interpretation=accuracy["interpretation"],
+    )

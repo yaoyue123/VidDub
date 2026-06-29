@@ -8,9 +8,11 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select, update as sql_update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db, async_session_factory
 from app.models.content_rule import ContentRule
+from app.schemas import RuleResponse, RuleListResponse, RuleEvaluateResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -39,18 +41,21 @@ class RuleUpdate(BaseModel):
     auto_create_dub: Optional[bool] = None
 
 
-@router.get("")
-async def list_rules(db=Depends(get_db)):
+@router.get("", response_model=RuleListResponse)
+async def list_rules(db: AsyncSession = Depends(get_db)):
     """List all rules (templates + custom), ordered by sort_order."""
     result = await db.execute(
         select(ContentRule).order_by(ContentRule.sort_order.asc()),
     )
     rules = result.scalars().all()
-    return {"items": [_rule_to_dict(r) for r in rules], "total": len(rules)}
+    return RuleListResponse(
+        items=[_rule_to_schema(r) for r in rules],
+        total=len(rules),
+    )
 
 
-@router.post("")
-async def create_rule(body: RuleCreate, db=Depends(get_db)):
+@router.post("", response_model=RuleResponse, status_code=201)
+async def create_rule(body: RuleCreate, db: AsyncSession = Depends(get_db)):
     """Create a custom rule."""
     from app.services.scoring.rule_engine import validate_rule
     ok, err = validate_rule(body.conditions, body.weights)
@@ -79,11 +84,11 @@ async def create_rule(body: RuleCreate, db=Depends(get_db)):
     db.add(rule)
     await db.commit()
     await db.refresh(rule)
-    return _rule_to_dict(rule)
+    return _rule_to_schema(rule)
 
 
-@router.put("/{rule_id}")
-async def update_rule(rule_id: int, body: RuleUpdate, db=Depends(get_db)):
+@router.put("/{rule_id}", response_model=RuleResponse)
+async def update_rule(rule_id: int, body: RuleUpdate, db: AsyncSession = Depends(get_db)):
     """Update a rule."""
     rule = await db.get(ContentRule, rule_id)
     if not rule:
@@ -123,11 +128,11 @@ async def update_rule(rule_id: int, body: RuleUpdate, db=Depends(get_db)):
 
     await db.commit()
     await db.refresh(rule)
-    return _rule_to_dict(rule)
+    return _rule_to_schema(rule)
 
 
-@router.delete("/{rule_id}")
-async def delete_rule(rule_id: int, db=Depends(get_db)):
+@router.delete("/{rule_id}", response_model=dict)
+async def delete_rule(rule_id: int, db: AsyncSession = Depends(get_db)):
     """Delete a rule (templates cannot be deleted)."""
     rule = await db.get(ContentRule, rule_id)
     if not rule:
@@ -139,11 +144,11 @@ async def delete_rule(rule_id: int, db=Depends(get_db)):
     return {"ok": True}
 
 
-@router.post("/{rule_id}/evaluate")
+@router.post("/{rule_id}/evaluate", response_model=RuleEvaluateResponse)
 async def evaluate_rule_endpoint(
     rule_id: int,
     limit: int = Query(default=100, le=500),
-    db=Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Evaluate a rule against all scored videos, return matches."""
     rule = await db.get(ContentRule, rule_id)
@@ -171,19 +176,19 @@ async def evaluate_rule_endpoint(
     )
     await db.commit()
 
-    return {
-        "rule_id": rule_id,
-        "rule_name": rule.name,
-        "total_scored": len(scores),
-        "total_matched": len(matches),
-        "matches": matches,
-    }
+    return RuleEvaluateResponse(
+        rule_id=rule_id,
+        rule_name=rule.name,
+        total_scored=len(scores),
+        total_matched=len(matches),
+        matches=matches,
+    )
 
 
-@router.post("/{rule_id}/test")
+@router.post("/{rule_id}/test", response_model=dict)
 async def test_rule_endpoint(
     rule_id: int,
-    db=Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Test a rule against 50 recent videos, showing preview results."""
     rule = await db.get(ContentRule, rule_id)
@@ -194,8 +199,8 @@ async def test_rule_endpoint(
     return await test_rule(rule, sample_size=50)
 
 
-@router.post("/{rule_id}/duplicate")
-async def duplicate_rule(rule_id: int, db=Depends(get_db)):
+@router.post("/{rule_id}/duplicate", response_model=RuleResponse)
+async def duplicate_rule(rule_id: int, db: AsyncSession = Depends(get_db)):
     """Duplicate a rule as a starting point for customization."""
     rule = await db.get(ContentRule, rule_id)
     if not rule:
@@ -217,32 +222,32 @@ async def duplicate_rule(rule_id: int, db=Depends(get_db)):
     db.add(new_rule)
     await db.commit()
     await db.refresh(new_rule)
-    return _rule_to_dict(new_rule)
+    return _rule_to_schema(new_rule)
 
 
-def _rule_to_dict(rule: ContentRule) -> dict:
-    """Convert ContentRule to API response dict."""
-    return {
-        "id": rule.id,
-        "name": rule.name,
-        "enabled": rule.enabled,
-        "is_template": rule.is_template,
-        "weights": json.loads(rule.weights),
-        "conditions": json.loads(rule.conditions) if rule.conditions else [],
-        "whitelist_channels": json.loads(
+def _rule_to_schema(rule: ContentRule) -> RuleResponse:
+    """Convert ContentRule to RuleResponse."""
+    return RuleResponse(
+        id=rule.id,
+        name=rule.name,
+        enabled=rule.enabled,
+        is_template=rule.is_template,
+        weights=json.loads(rule.weights),
+        conditions=json.loads(rule.conditions) if rule.conditions else [],
+        whitelist_channels=json.loads(
             rule.whitelist_channels,
         ) if rule.whitelist_channels else [],
-        "blacklist_keywords": json.loads(
+        blacklist_keywords=json.loads(
             rule.blacklist_keywords,
         ) if rule.blacklist_keywords else [],
-        "blacklist_channels": json.loads(
+        blacklist_channels=json.loads(
             rule.blacklist_channels,
         ) if rule.blacklist_channels else [],
-        "max_results": rule.max_results,
-        "auto_create_dub": rule.auto_create_dub,
-        "sort_order": rule.sort_order,
-        "last_evaluated_at": (
+        max_results=rule.max_results,
+        auto_create_dub=rule.auto_create_dub,
+        sort_order=rule.sort_order,
+        last_evaluated_at=(
             rule.last_evaluated_at.isoformat()
             if rule.last_evaluated_at else None
         ),
-    }
+    )

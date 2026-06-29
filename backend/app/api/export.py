@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.task import Task
 from app.models.video import Video
+from app.models.enums import TaskStatus
 
 router = APIRouter()
 
@@ -66,7 +67,7 @@ async def _query_tasks(
     rows: list[dict] = []
     for task, video in result.all():
         completed_at = None
-        if task.status == "completed":
+        if task.status == TaskStatus.COMPLETED:
             completed_at = task.updated_at.isoformat() if task.updated_at else None
         rows.append({
             "task_id": task.id,

@@ -4,6 +4,7 @@ Voice Clone API endpoints.
 Provides voice cloning operations using SiliconFlow.
 """
 
+import logging
 import os
 import shutil
 import tempfile
@@ -12,6 +13,8 @@ from typing import Optional
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from app.services.voice_cloner.service import VoiceClonerService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -76,7 +79,8 @@ async def clone_voice(
         return VoiceCloneResponse(**result)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("声音克隆失败: %s", e)
+        raise HTTPException(status_code=500, detail="声音克隆失败，请稍后重试")
 
     finally:
         # Cleanup temp files
