@@ -225,3 +225,278 @@ class CircuitBreaker:
             self._failure_count = 0
             self._state = "closed"
             return result
+
+
+class YtDlpWrapper:
+    """Single entry point for all yt-dlp operations across the application.
+
+    Combines rate limiting, circuit breaking, cookie file management, and
+    extractor-args configuration. Use via the ``get_ytdlp_wrapper()``
+    global singleton after application startup.
+    """
+
+    # Default extraction options used as the base for all calls.
+    BASE_OPTS: dict[str, Any] = {
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": True,
+        "skip_download": True,
+        "ignoreerrors": True,
+        "no_color": True,
+        "sleep_interval": 1,
+        "max_sleep_interval": 3,
+        "retries": 10,
+    }
+
+    def __init__(
+        self,
+        rate_limiter: Optional[YtDlpRateLimiter] = None,
+        circuit_breaker: Optional[CircuitBreaker] = None,
+        cookies_file: Optional[str] = None,
+        extractor_args: Optional[str] = None,
+    ) -> None:
+        """Initialize the YtDlpWrapper.
+
+        Args:
+            rate_limiter: Rate limiter instance; defaults to YtDlpRateLimiter().
+            circuit_breaker: Circuit breaker instance; defaults to CircuitBreaker().
+            cookies_file: Path to the cookies file for authenticated requests.
+            extractor_args: JSON string of yt-dlp extractor arguments.
+        """
+        self._rate_limiter = rate_limiter or YtDlpRateLimiter()
+        self._circuit_breaker = circuit_breaker or CircuitBreaker()
+        self._cookies_file = cookies_file
+        self._extractor_args = extractor_args
+
+    # ── Option merging ──
+
+    def _merge_opts(self, opts: dict[str, Any]) -> dict[str, Any]:
+        """Merge wrapper-level defaults into *opts* without mutating the original.
+
+        Adds ``cookiefile`` if ``_cookies_file`` is set and the file exists.
+        Merges ``extractor_args`` (parsed from JSON) if configured.
+
+        Args:
+            opts: The per-call option dictionary.
+
+        Returns:
+            A new dict with defaults merged in.
+        """
+        merged = {**self.BASE_OPTS, **opts}
+
+        # Attach cookie file if configured and present
+        if self._cookies_file and os.path.exists(self._cookies_file):
+            merged["cookiefile"] = self._cookies_file
+        elif self._cookies_file:
+            logger.warning("yt-dlp cookie file not found: %s", self._cookies_file)
+
+        # Attach extractor-args from JSON config
+        if self._extractor_args:
+            try:
+                parsed = json.loads(self._extractor_args)
+                if isinstance(parsed, dict):
+                    # Merge with any existing extractor_args in opts
+                    existing = merged.get("extractor_args", {})
+                    if isinstance(existing, dict):
+                        merged["extractor_args"] = {**existing, **parsed}
+                    else:
+                        merged["extractor_args"] = parsed
+                else:
+                    logger.warning("extractor_args is not a dict JSON: %s", type(parsed).__name__)
+            except json.JSONDecodeError as e:
+                logger.warning("Failed to parse extractor_args JSON: %s", e)
+
+        return merged
+
+    # ── Core extraction ──
+
+    @staticmethod
+    def _run_extract(opts: dict[str, Any], url: str, download: bool = False) -> Any:
+        """Synchronous yt-dlp extraction.
+
+        Lazy-imports ``yt_dlp.YoutubeDL`` to avoid top-level import cost.
+
+        Args:
+            opts: yt-dlp options dict.
+            url: The YouTube URL or search query.
+            download: Whether to download the video.
+
+        Returns:
+            The extraction result dict from yt-dlp.
+        """
+        from yt_dlp import YoutubeDL
+
+        with YoutubeDL(opts) as ydl:
+            return ydl.extract_info(url, download=download)
+
+    async def extract_info(
+        self, opts: dict[str, Any], url: str, download: bool = False
+    ) -> Any:
+        """Asynchronous entry point for yt-dlp extraction.
+
+        Merges wrapper-level defaults, acquires the rate limiter, and
+        runs through the circuit breaker.
+
+        Args:
+            opts: Per-call yt-dlp options (will be merged with BASE_OPTS).
+            url: The YouTube URL or search query.
+            download: Whether to download the video (default False).
+
+        Returns:
+            The extraction result dict from yt-dlp.
+
+        Raises:
+            CircuitBreakerOpenError: If the circuit breaker is open.
+        """
+        merged = self._merge_opts(opts)
+        async with self._rate_limiter:
+            return await self._circuit_breaker.call(self._run_extract, merged, url, download)
+
+    def extract_info_sync(
+        self, opts: dict[str, Any], url: str, download: bool = False
+    ) -> Any:
+        """Synchronous entry point for yt-dlp extraction.
+
+        For use when the caller is already inside a thread pool (e.g. the
+        existing ``*_sync`` methods in YoutubeService). Merges wrapper-level
+        defaults and runs through the circuit breaker.
+
+        Note: The rate limiter is NOT applied in the sync path because sync
+        callers are already expected to be running with bounded concurrency
+        via their own thread pool. The circuit breaker still protects against
+        cascading failures.
+
+        Args:
+            opts: Per-call yt-dlp options (will be merged with BASE_OPTS).
+            url: The YouTube URL or search query.
+            download: Whether to download the video.
+
+        Returns:
+            The extraction result dict from yt-dlp.
+
+        Raises:
+            CircuitBreakerOpenError: If the circuit breaker is open.
+        """
+        merged = self._merge_opts(opts)
+        return self._circuit_breaker.call_sync(self._run_extract, merged, url, download)
+
+    # ── Convenience methods (async) ──
+
+    async def search(
+        self, query: str, max_results: int = 20, extract_flat: bool = True
+    ) -> list[dict[str, Any]]:
+        """Search YouTube videos by keyword.
+
+        Args:
+            query: The search query string.
+            max_results: Maximum number of results to return (default 20).
+            extract_flat: If True, return flat entries (faster, less detail).
+
+        Returns:
+            List of raw extraction entry dicts.
+        """
+        opts: dict[str, Any] = {
+            "extract_flat": "in_playlist" if extract_flat else False,
+        }
+        search_query = f"ytsearch{max_results}:{query}"
+        result = await self.extract_info(opts, search_query)
+        entries = result.get("entries") or []
+        return [e for e in entries if e]
+
+    def search_sync(
+        self, query: str, max_results: int = 20, extract_flat: bool = True
+    ) -> list[dict[str, Any]]:
+        """Synchronous version of :meth:`search`."""
+        opts: dict[str, Any] = {
+            "extract_flat": "in_playlist" if extract_flat else False,
+        }
+        search_query = f"ytsearch{max_results}:{query}"
+        result = self.extract_info_sync(opts, search_query)
+        entries = result.get("entries") or []
+        return [e for e in entries if e]
+
+    async def get_channel_videos(
+        self, channel_url: str, max_results: int = 50, extract_flat: bool = True
+    ) -> list[dict[str, Any]]:
+        """Get videos from a YouTube channel.
+
+        Args:
+            channel_url: The channel URL (e.g. ``https://www.youtube.com/@channel``).
+            max_results: Maximum number of videos to return.
+            extract_flat: If True, return flat entries (faster).
+
+        Returns:
+            List of raw extraction entry dicts.
+        """
+        opts: dict[str, Any] = {
+            "extract_flat": "in_playlist" if extract_flat else False,
+        }
+        result = await self.extract_info(opts, channel_url)
+        entries = result.get("entries") or []
+        return [e for e in entries if e][:max_results]
+
+    def get_channel_videos_sync(
+        self, channel_url: str, max_results: int = 50, extract_flat: bool = True
+    ) -> list[dict[str, Any]]:
+        """Synchronous version of :meth:`get_channel_videos`."""
+        opts: dict[str, Any] = {
+            "extract_flat": "in_playlist" if extract_flat else False,
+        }
+        result = self.extract_info_sync(opts, channel_url)
+        entries = result.get("entries") or []
+        return [e for e in entries if e][:max_results]
+
+    async def get_video_info(self, url: str) -> Optional[dict[str, Any]]:
+        """Get full metadata for a single video.
+
+        Args:
+            url: The YouTube video URL.
+
+        Returns:
+            Full extraction result dict, or None on failure.
+        """
+        opts: dict[str, Any] = {
+            "extract_flat": False,
+        }
+        try:
+            return await self.extract_info(opts, url)
+        except Exception as e:
+            logger.error("yt-dlp get_video_info failed: %s", e)
+            return None
+
+    def get_video_info_sync(self, url: str) -> Optional[dict[str, Any]]:
+        """Synchronous version of :meth:`get_video_info`."""
+        opts: dict[str, Any] = {
+            "extract_flat": False,
+        }
+        try:
+            return self.extract_info_sync(opts, url)
+        except Exception as e:
+            logger.error("yt-dlp get_video_info_sync failed: %s", e)
+            return None
+
+
+# ── Global singleton accessors ──
+
+_wrapper_instance: Optional[YtDlpWrapper] = None
+
+
+def get_ytdlp_wrapper() -> YtDlpWrapper:
+    """Return the global YtDlpWrapper singleton.
+
+    Creates a default instance on first call if not already set.
+    """
+    global _wrapper_instance
+    if _wrapper_instance is None:
+        _wrapper_instance = YtDlpWrapper()
+    return _wrapper_instance
+
+
+def set_ytdlp_wrapper(wrapper: Optional[YtDlpWrapper]) -> None:
+    """Set the global YtDlpWrapper singleton.
+
+    Used during application startup and in tests for injection.
+    Pass ``None`` to reset.
+    """
+    global _wrapper_instance
+    _wrapper_instance = wrapper
