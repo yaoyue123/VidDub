@@ -17,10 +17,9 @@ import {
   Plus, VideoPlay, Refresh, Check, Close, Link as LinkIcon,
 } from '@element-plus/icons-vue'
 import {
-  statsApi, dubApi, platformApi, configApi,
+  statsApi, dubApi, platformApi, configApi, scoringApi,
   type DashboardData, type PlatformStateItem,
 } from '@/api'
-import api from '@/api'
 import DubCreateDialog from '@/components/DubCreateDialog.vue'
 import PlatformLoginDrawer from '@/components/PlatformLoginDrawer.vue'
 
@@ -52,7 +51,7 @@ function stepIndex(step: string | undefined): number {
 
 async function fetchTopPicks() {
   try {
-    const res = await api.get('/scoring/history', { params: { limit: 6 } })
+    const res = await scoringApi.history({ limit: 6 })
     topPicks.value = (res.data.items || []).sort(
       (a: any, b: any) => b.composite_score - a.composite_score,
     )

@@ -1,28 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '@/api'
-
-export interface Video {
-  id: number
-  youtube_url: string
-  youtube_id: string
-  title: string
-  channel: string
-  duration: number | null
-  view_count: number | null
-  like_count: number | null
-  thumbnail_url: string | null
-  status: string
-  filepath: string | null
-  dubbed_filepath: string | null
-  created_at: string
-  updated_at: string
-}
-
-interface VideoListResponse {
-  total: number
-  items: Video[]
-}
+import { videoApi } from '@/api'
+import type { Video } from '@/api'
 
 export const useVideoStore = defineStore('video', () => {
   const videos = ref<Video[]>([])
@@ -41,7 +20,7 @@ export const useVideoStore = defineStore('video', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await api.get<VideoListResponse>('/videos', { params })
+      const res = await videoApi.list(params)
       videos.value = res.data.items
       total.value = res.data.total
       if (params?.page) currentPage.value = params.page
@@ -56,7 +35,7 @@ export const useVideoStore = defineStore('video', () => {
 
   async function deleteVideo(id: number) {
     try {
-      await api.delete(`/videos/${id}`)
+      await videoApi.remove(id)
       videos.value = videos.value.filter((v) => v.id !== id)
       total.value--
     } catch (e) {
@@ -68,7 +47,7 @@ export const useVideoStore = defineStore('video', () => {
 
   async function updateVideoStatus(id: number, status: string) {
     try {
-      await api.patch(`/videos/${id}/status`, { status })
+      await videoApi.updateStatus(id, status)
       const video = videos.value.find((v) => v.id === id)
       if (video) video.status = status
     } catch (e) {

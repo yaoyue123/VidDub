@@ -1,13 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '@/api'
-
-interface ConfigItem {
-  id: number
-  key: string
-  value: string
-  description: string | null
-}
+import { configApi } from '@/api'
+import type { ConfigItem } from '@/api'
 
 export const useConfigStore = defineStore('config', () => {
   const configs = ref<Record<string, string>>({})
@@ -16,7 +10,7 @@ export const useConfigStore = defineStore('config', () => {
   async function fetchConfig() {
     loading.value = true
     try {
-      const res = await api.get<ConfigItem[]>('/config')
+      const res = await configApi.list()
       const map: Record<string, string> = {}
       res.data.forEach((item: ConfigItem) => {
         map[item.key] = item.value
@@ -32,7 +26,7 @@ export const useConfigStore = defineStore('config', () => {
   async function updateConfig(updates: Record<string, string>) {
     try {
       const items = Object.entries(updates).map(([key, value]) => ({ key, value }))
-      await api.put('/config', { configs: items })
+      await configApi.updateMany({ configs: items })
       Object.assign(configs.value, updates)
     } catch (e) {
       console.error('Failed to update config:', e)

@@ -327,6 +327,7 @@ export interface TitleSavedState {
   video_id: number
   ai_title_candidates: string[]
   ai_tags_candidates: string[]
+  summary_zh?: string
   title_chosen: string | null
   tags_chosen: string[]
 }
@@ -554,5 +555,150 @@ export const discoveryApi = {
       query: channelUrl,
       max_results: maxResults,
     })
+  },
+  /** GET /api/discovery/channels — 已追踪（discovery）频道列表 */
+  channels() {
+    return api.get<{ items: { id: number; label: string; source_value: string; last_scanned_at: string | null }[] }>('/discovery/channels')
+  },
+}
+
+// ── TaskApi: task CRUD ──
+export interface Task {
+  id: number
+  video_id: number
+  type: string
+  status: string
+  progress: number
+  message: string | null
+  error_msg: string | null
+  video_title: string | null
+  video_thumbnail_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskListResponse {
+  total: number
+  items: Task[]
+}
+
+export const taskApi = {
+  /** GET /api/tasks — list tasks with optional filters */
+  list(params?: {
+    page?: number
+    page_size?: number
+    status?: string
+    type?: string
+  }) {
+    return api.get<TaskListResponse>('/tasks', { params })
+  },
+  /** POST /api/tasks/{id}/retry */
+  retry(id: number) {
+    return api.post(`/tasks/${id}/retry`)
+  },
+  /** POST /api/tasks/{id}/cancel */
+  cancel(id: number) {
+    return api.post(`/tasks/${id}/cancel`)
+  },
+}
+
+// ── VideoApi: video CRUD ──
+export interface Video {
+  id: number
+  youtube_url: string
+  youtube_id: string
+  title: string
+  channel: string
+  duration: number | null
+  view_count: number | null
+  like_count: number | null
+  thumbnail_url: string | null
+  status: string
+  filepath: string | null
+  dubbed_filepath: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface VideoListResponse {
+  total: number
+  items: Video[]
+}
+
+export const videoApi = {
+  /** GET /api/videos — list videos */
+  list(params?: {
+    page?: number
+    page_size?: number
+    status?: string
+    search?: string
+  }) {
+    return api.get<VideoListResponse>('/videos', { params })
+  },
+  /** DELETE /api/videos/{id} */
+  remove(id: number) {
+    return api.delete(`/videos/${id}`)
+  },
+  /** PATCH /api/videos/{id}/status */
+  updateStatus(id: number, status: string) {
+    return api.patch(`/videos/${id}/status`, { status })
+  },
+}
+
+// ── ScoringApi: scoring/discover ──
+export interface ScoredVideo {
+  youtube_id: string
+  title: string
+  channel_name: string
+  thumbnail_url: string
+  composite_score: number
+  virality_score: number
+  translation_score: number
+  quality_score: number
+  market_score: number
+  cost_score: number
+  category: string | null
+  view_count: number
+  like_count: number
+  duration_sec: number
+  rationale: string
+  source: string
+}
+
+export interface ScoringHistoryResponse {
+  items: ScoredVideo[]
+  total: number
+  source?: string
+}
+
+export const scoringApi = {
+  /** GET /api/scoring/discover — discover & score videos */
+  discover(params?: { limit?: number }) {
+    return api.get<ScoringHistoryResponse>('/scoring/discover', { params })
+  },
+  /** GET /api/scoring/history — scored video history */
+  history(params?: { limit?: number }) {
+    return api.get<ScoringHistoryResponse>('/scoring/history', { params })
+  },
+}
+
+// ── RulesApi: scoring rules ──
+export interface RuleItem {
+  id: number
+  name: string
+  enabled: boolean
+  is_template: boolean
+  weights: Record<string, number>
+  conditions: any[]
+}
+
+export const rulesApi = {
+  /** GET /api/rules — list scoring rules */
+  list() {
+    return api.get<{ items: RuleItem[] }>('/rules')
+  },
+  /** POST /api/rules/{id}/evaluate — evaluate a rule */
+  evaluate(id: number, params?: { limit?: number }) {
+    return api.post<{ matches: any[] }>(`/rules/${id}/evaluate`, null, { params })
   },
 }

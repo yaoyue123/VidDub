@@ -11,8 +11,10 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
-import { configApi, type ConfigItem } from '@/api'
-import api from '@/api'
+import {
+  configApi, scoringApi, discoveryApi, dubApi, rulesApi,
+  type ConfigItem,
+} from '@/api'
 
 interface ScoredVideo {
   youtube_id: string
@@ -90,7 +92,7 @@ async function fetchVideos() {
   loading.value = true
   try {
     // Auto-discover: first call seeds sources + fetches trending + scores all
-    const res = await api.get('/scoring/discover', { params: { limit: 40 } })
+    const res = await scoringApi.discover({ limit: 40 })
     videos.value = (res.data.items || []).sort(
       (a: any, b: any) => b.composite_score - a.composite_score,
     )
@@ -106,7 +108,7 @@ const videoSource = ref<string>('cache')
 
 async function fetchRules() {
   try {
-    const res = await api.get('/rules')
+    const res = await rulesApi.list()
     rules.value = (res.data.items || []).filter((r: RuleItem) => r.enabled)
     if (rules.value.length > 0 && !activeRuleId.value) {
       activeRuleId.value = rules.value[0].id
@@ -118,7 +120,7 @@ async function fetchRules() {
 
 async function fetchChannels() {
   try {
-    const res = await api.get('/discovery/channels')
+    const res = await discoveryApi.channels()
     channels.value = res.data.items || []
   } catch {
     // Discovery not configured yet
@@ -129,9 +131,7 @@ async function evaluateRule() {
   if (!activeRuleId.value) return
   loading.value = true
   try {
-    const res = await api.post(`/rules/${activeRuleId.value}/evaluate`, null, {
-      params: { limit: 50 },
-    })
+    const res = await rulesApi.evaluate(activeRuleId.value, { limit: 50 })
     videos.value = res.data.matches || []
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.detail || '规则评估失败')
@@ -144,7 +144,7 @@ async function dubVideo(video: ScoredVideo) {
   dubbing.value = video.youtube_id
   try {
     const youtubeUrl = `https://www.youtube.com/watch?v=${video.youtube_id}`
-    const res = await api.post('/dub', { youtube_url: youtubeUrl })
+    const res = await dubApi.create({ youtube_url: youtubeUrl })
     ElMessage.success(`已创建配音任务: ${video.title.slice(0, 40)}`)
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.detail || '创建任务失败')

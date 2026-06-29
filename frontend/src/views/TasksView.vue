@@ -18,8 +18,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useTaskStore, TASK_STEP_LABELS } from '@/stores/taskStore'
 import { useWsStore } from '@/stores/wsStore'
-import { dubApi, publishApi, batchApi, exportApi, taskDetailApi } from '@/api'
-import api from '@/api'
+import { dubApi, publishApi, batchApi, exportApi, taskDetailApi, videoApi } from '@/api'
 import AiTitleSelector from '@/components/AiTitleSelector.vue'
 import DubCreateDialog from '@/components/DubCreateDialog.vue'
 import { defineAsyncComponent } from 'vue'
@@ -68,9 +67,7 @@ function stepIndex(step: string | undefined): number {
 
 async function loadVideoTitles() {
   try {
-    const res = await api.get<{ items: { id: number; title: string }[]; total: number }>('/videos', {
-      params: { page: 1, page_size: 200 },
-    })
+    const res = await videoApi.list({ page: 1, page_size: 200 })
     const map: Record<number, string> = {}
     res.data.items.forEach((v) => { map[v.id] = v.title })
     videoTitles.value = map
