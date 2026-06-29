@@ -573,8 +573,7 @@ class TaskScheduler:
         with open(translated_path, "r", encoding="utf-8") as f:
             translations = json.load(f)
 
-        from app.services.siliconflow.client import get_async_client
-        from app.services.siliconflow.tts import synthesize_speech
+        from app.services.tts_new.service import TTSService
         from app.services.dubbing.alignment import align_segment
         from app.services.dubbing.ffmpeg import ffprobe_duration
 
@@ -658,39 +657,39 @@ class TaskScheduler:
             len(segments), len(paragraphs),
         )
 
-        async with get_async_client(timeout=120.0) as client:
-            aligned_files = []
-            sem = asyncio.Semaphore(3)
+        aligned_files = []
+        sem = asyncio.Semaphore(3)
 
-            async def _one_paragraph(p: dict, merged_zh: str):
-                async with sem:
-                    p_id = p["id"]
-                    tts_path = os.path.join(aligned_dir, f"paragraph_{p_id:03d}.{tts_format}")
-                    aligned_path = os.path.join(aligned_dir, f"paragraph_aligned_{p_id:03d}.wav")
+        async def _one_paragraph(p: dict, merged_zh: str):
+            async with sem:
+                p_id = p["id"]
+                tts_path = os.path.join(aligned_dir, f"paragraph_{p_id:03d}.{tts_format}")
+                aligned_path = os.path.join(aligned_dir, f"paragraph_aligned_{p_id:03d}.wav")
 
-                    # Paragraph with all empty translations → generate silence
-                    if not merged_zh or not merged_zh.strip():
-                        logger.warning(
-                            "Paragraph %d has all empty translations, using silence", p_id,
-                        )
-                        if not os.path.exists(aligned_path):
-                            dur = max(float(p["end"]) - float(p["start"]), 0.1)
-                            from app.services.dubbing.ffmpeg import run_ffmpeg_async
-                            await run_ffmpeg_async([
-                                "ffmpeg", "-y",
-                                "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-                                "-t", f"{dur:.3f}",
-                                aligned_path,
-                            ])
-                        return {"aligned_path": aligned_path, "segment": p}
+                # Paragraph with all empty translations → generate silence
+                if not merged_zh or not merged_zh.strip():
+                    logger.warning(
+                        "Paragraph %d has all empty translations, using silence", p_id,
+                    )
+                    if not os.path.exists(aligned_path):
+                        dur = max(float(p["end"]) - float(p["start"]), 0.1)
+                        from app.services.dubbing.ffmpeg import run_ffmpeg_async
+                        await run_ffmpeg_async([
+                            "ffmpeg", "-y",
+                            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+                            "-t", f"{dur:.3f}",
+                            aligned_path,
+                        ])
+                    return {"aligned_path": aligned_path, "segment": p}
 
-                    # Idempotency: skip TTS/align if output already exists
-                    if not os.path.exists(tts_path):
-                        await synthesize_speech(
-                            client, merged_zh, tts_path,
-                            model=tts_model, voice=tts_voice,
-                            response_format=tts_format, speed=tts_speed, gain=tts_gain,
-                        )
+                # Idempotency: skip TTS/align if output already exists
+                if not os.path.exists(tts_path):
+                    tts_service = TTSService()
+                    await tts_service.synthesize(
+                        text=merged_zh, output_path=tts_path,
+                        model=tts_model, voice=tts_voice,
+                        response_format=tts_format, speed=tts_speed, gain=tts_gain,
+                    )
                     if not os.path.exists(aligned_path):
                         await align_segment(
                             tts_path, float(p["start"]), float(p["end"]), aligned_path,
@@ -698,29 +697,29 @@ class TaskScheduler:
                         )
                     return {"aligned_path": aligned_path, "segment": p}
 
-            # Build merged Chinese text per paragraph from per-segment translations
-            tasks = []
-            seg_idx = 0
-            for p in paragraphs:
-                n_segs = len(p["segments"])
-                merged_zh = " ".join(
-                    translations[seg_idx + i]
-                    for i in range(n_segs)
-                    if seg_idx + i < len(translations) and translations[seg_idx + i].strip()
-                )
-                tasks.append(asyncio.create_task(_one_paragraph(p, merged_zh)))
-                seg_idx += n_segs
+        # Build merged Chinese text per paragraph from per-segment translations
+        tasks = []
+        seg_idx = 0
+        for p in paragraphs:
+            n_segs = len(p["segments"])
+            merged_zh = " ".join(
+                translations[seg_idx + i]
+                for i in range(n_segs)
+                if seg_idx + i < len(translations) and translations[seg_idx + i].strip()
+            )
+            tasks.append(asyncio.create_task(_one_paragraph(p, merged_zh)))
+            seg_idx += n_segs
 
-            # CR-05: 用 asyncio.gather 替代 "create N tasks + 顺序 await"。
-            try:
-                results = await asyncio.gather(*tasks)
-            finally:
-                for t in tasks:
-                    if not t.done():
-                        t.cancel()
-                if tasks:
-                    await asyncio.gather(*tasks, return_exceptions=True)
-            aligned_files.extend(results)
+        # CR-05: 用 asyncio.gather 替代 "create N tasks + 顺序 await"。
+        try:
+            results = await asyncio.gather(*tasks)
+        finally:
+            for t in tasks:
+                if not t.done():
+                    t.cancel()
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+        aligned_files.extend(results)
 
         # Stitch — paragraphs carry start/end so stitcher places them correctly
         from app.services.dubbing.stitcher import build_dubbing_track

@@ -21,7 +21,7 @@ import httpx
 
 from app.services.siliconflow.client import get_async_client
 from app.services.siliconflow.translate import translate_segments as sf_translate
-from app.services.siliconflow.tts import synthesize_speech
+from app.services.tts_new.service import TTSService
 from app.services.dubbing.ffmpeg import extract_audio, extract_audio_mono_16k, ffprobe_duration, run_ffmpeg_async
 from app.services.dubbing.alignment import align_segment, AlignResult
 from app.services.dubbing.stitcher import build_dubbing_track
@@ -161,8 +161,9 @@ async def run_dubbing_pipeline(
                     return {"aligned_path": aligned_path, "segment": p}
 
                 if not os.path.exists(tts_path):
-                    await synthesize_speech(
-                        http_client, merged_zh, tts_path,
+                    tts_service = TTSService()
+                    await tts_service.synthesize(
+                        text=merged_zh, output_path=tts_path,
                         model=tts_model, voice=tts_voice,
                         response_format=tts_format,
                         speed=tts_speed, gain=tts_gain,

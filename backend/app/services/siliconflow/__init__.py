@@ -15,7 +15,6 @@ from app.services.siliconflow.client import (
     sf_post_bytes,
 )
 from app.services.siliconflow.translate import translate_segments, translate_text
-from app.services.siliconflow.tts import synthesize_speech, AVAILABLE_VOICES
 
 __all__ = [
     "get_api_key",
@@ -24,6 +23,4 @@ __all__ = [
     "sf_post_bytes",
     "translate_segments",
     "translate_text",
-    "synthesize_speech",
-    "AVAILABLE_VOICES",
 ]

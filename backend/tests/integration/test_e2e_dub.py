@@ -265,13 +265,14 @@ async def test_pipeline_resume_from_translate(tmp_path, monkeypatch, sample_segm
         return sample_translations
     monkeypatch.setattr("app.services.dubbing.pipeline.sf_translate", fake_translate)
 
-    # Mock synthesize_speech 写出 fake 文件
-    async def fake_tts(client, text, out_path, **kwargs):
-        os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-        with open(out_path, "wb") as f:
+    # Mock TTSService to write fake files instead of calling SiliconFlow
+    mock_tts = AsyncMock()
+    async def fake_synthesize(text, output_path, **kwargs):
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        with open(output_path, "wb") as f:
             f.write(b"FAKE_MP3")
-        return out_path
-    monkeypatch.setattr("app.services.dubbing.pipeline.synthesize_speech", fake_tts)
+    mock_tts.synthesize = fake_synthesize
+    monkeypatch.setattr("app.services.dubbing.pipeline.TTSService", lambda: mock_tts)
 
     http_client.aclose = AsyncMock()
 
