@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: you2bili-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/backend/data
+      - ./backend/downloads:/app/backend/downloads
+      - ./backend/.env:/app/backend/.env:ro
+      - ./social-auto-upload:/app/social-auto-upload
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
+      - DOWNLOADS_DIR=./downloads
+    restart: unless-stopped
+    # xvfb for headed Playwright on headless servers (if needed)
+    # Uncomment the following lines for server deployment:
+    # entrypoint: ["xvfb-run", "-a", "--server-args=-screen 0 1920x1080x24"]
+    # command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  # Optional: nginx to serve frontend static files and proxy API
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: you2bili-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./frontend/dist:/usr/share/nginx/html:ro
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  #   depends_on:
+  #     - backend
+  #   restart: unless-stopped
