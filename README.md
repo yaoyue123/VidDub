@@ -1,217 +1,201 @@
-# VidDub — YouTube 视频中文配音 + 自动发布工具
+# You2Bili — YouTube 视频中文配音 + 多平台自动发布
 
-> 自动把 YouTube 英文视频转成中文配音视频，并一键发布到西瓜视频 / 哔哩哔哩。
-> v2.0 端到端管线：URL → 下载 → Whisper STT → SiliconFlow 翻译 → CosyVoice2 TTS → ffmpeg 合成 → AI 标题 → 自动发布。
-
----
-
-## 功能列表
-
-按 Phase 顺序：
-
-| Phase | 主要功能 |
-|-------|----------|
-| 1 | 项目骨架（FastAPI + Vue 3 + Element Plus + 数据库模型 + WebSocket） |
-| 2 | YouTube 搜索 / 频道扫描 / yt-dlp 下载 / 任务队列 |
-| 3 | 字幕模型 + 字幕编辑界面 |
-| 4 | **核心翻译配音管线**：URL → 中文配音 mp4（CLI + REST API + 6 步管线） |
-| 5 | Web UI 改造：任务列表、配音预览、5-tab 配置页、字幕编辑、Dashboard |
-| 6 | 平台自动登录：Playwright 扫码西瓜/哔哩哔哩 + 登录态持久化 |
-| 7 | 平台自动发布：标题/标签/封面自动填充 + 进度监控 + 发布历史 |
-| 8 | AI 智能标题与标签：SiliconFlow Chat JSON mode 生成 5 候选标题 + 8 标签 |
-| 9 | 定时任务 + 批量管理：APScheduler 频道扫描 + 批量操作 + CSV/JSON 导出 |
-| 10 | 部署脚本（setup/start）+ 完整文档 + 集成 smoke test |
+> 自动把 YouTube 英文视频转成中文配音视频，并一键发布到 Bilibili / Douyin / Kuaishou / Tencent Video / Xiaohongshu。
+> **v5.0** 端到端管线：YouTube URL 下载 -> Whisper STT -> SiliconFlow 翻译 -> CosyVoice2 TTS -> ffmpeg 合成 -> 字幕 -> 多平台自动发布。
 
 ---
 
-## 系统要求
+## Features
 
-| 项 | 要求 |
-|----|------|
-| 操作系统 | Windows 10/11、Ubuntu 20.04+、macOS 12+ |
-| Python | **3.10+**（推荐 3.11/3.12） |
-| Node.js | **18+**（推荐 20 LTS） |
-| ffmpeg | 任意现代版本，必须在 PATH 中 |
-| yt-dlp | 由 pip 自动安装，也可独立装到 PATH |
-| 网络 | 必须能访问 YouTube + SiliconFlow API（`https://api.siliconflow.cn`） |
-| GPU | 可选（Whisper CPU 即可运行；GPU 加速需 CUDA） |
-| 磁盘 | ≥ 5 GB（含 Whisper 模型 + Playwright Chromium + node_modules） |
+| Step | Technology | Description |
+|------|-----------|-------------|
+| 1 | yt-dlp | Download YouTube video (audio + video) |
+| 2 | Whisper (local) | Speech-to-text, generate source subtitles with timestamps |
+| 3 | SiliconFlow Chat (Qwen2.5) | Translate English subtitles to Chinese |
+| 4 | CosyVoice2 TTS | Synthesize Chinese speech per segment |
+| 5 | ffmpeg | Speed-align, mix, and replace audio track |
+| 6 | AI Title Generator | SiliconFlow JSON mode: 5 title candidates + 8 tags |
+| 7 | social-auto-upload | Auto-publish to 5 Chinese video platforms |
 
 ---
 
-## 快速开始（3 步）
+## System Requirements
 
-### 第 1 步：环境初始化
+| Item | Requirement |
+|------|-------------|
+| OS | Windows 10/11, Ubuntu 20.04+, macOS 12+ |
+| Python | **3.10+** (3.11/3.12 recommended) |
+| Node.js | **18+** (20 LTS recommended) |
+| ffmpeg | Any modern version, must be in PATH |
+| yt-dlp | Installed automatically by pip |
+| Network | Must reach YouTube + SiliconFlow API (`https://api.siliconflow.cn`) |
+| GPU | Optional (Whisper runs on CPU; CUDA for acceleration) |
+| Disk | >= 5 GB (Whisper model + Playwright Chromium + node_modules) |
 
-**Windows（PowerShell）：**
+---
+
+## Quick Start (3 Steps)
+
+### Step 1: Environment Setup
+
+**Windows (PowerShell):**
 ```powershell
 PS> .\setup.ps1
 ```
 
-**Linux / macOS：**
+**Linux / macOS:**
 ```bash
 $ chmod +x setup.sh start.sh
 $ ./setup.sh
 ```
 
-脚本会自动：
-- 检查 Python / Node / ffmpeg / yt-dlp 依赖
-- 创建 `backend/venv/`
-- 安装后端 Python 依赖 + Playwright Chromium + Whisper tiny 模型
-- 安装前端 npm 依赖
-- 运行数据库迁移（Alembic）
-- 从 `.env.example` 复制创建 `backend/.env`
+The script automatically:
+- Checks Python / Node / ffmpeg / yt-dlp dependencies
+- Creates `backend/venv/`
+- Installs Python dependencies + Playwright Chromium + Whisper tiny model
+- Installs frontend npm dependencies
+- Runs database migration (Alembic)
+- Copies `.env.example` to `backend/.env`
 
-### 第 2 步：配置 API Key
+### Step 2: Configure API Key
 
-编辑 `backend/.env`：
+Edit `backend/.env`:
 
 ```dotenv
 SILICONFLOW_API_KEY=sk_your_real_key_here
 ```
 
-申请地址：https://cloud.siliconflow.cn/account/ak
+Apply at: https://cloud.siliconflow.cn/account/ak
 
-完整配置项说明见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
+Full configuration reference in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
-### 第 3 步：启动服务
+### Step 3: Start the Service
 
-**Windows：**
+**Windows:**
 ```powershell
 PS> .\start.ps1
 ```
 
-**Linux / macOS：**
+**Linux / macOS:**
 ```bash
 $ ./start.sh
 ```
 
-启动后访问：
-- **前端 Web UI**：http://localhost:5173
-- **后端 API Swagger 文档**：http://localhost:8000/docs
-- **后端 API ReDoc**：http://localhost:8000/redoc
+After startup, visit:
+- **Frontend Web UI:** http://localhost:5173
+- **Backend API Swagger:** http://localhost:8000/docs
+- **Backend API ReDoc:** http://localhost:8000/redoc
 
 ---
 
-## 目录结构
+## Directory Structure
 
 ```
-viddub/
+you2bili/
 ├── backend/
-│   ├── alembic/              # 数据库迁移
-│   │   └── versions/         # 各 Phase 迁移脚本
+│   ├── alembic/              # Database migrations
+│   │   └── versions/         # Migration scripts per phase
 │   ├── app/
-│   │   ├── api/              # FastAPI 路由 (18 个模块)
-│   │   ├── core/             # 配置、数据库、WebSocket
-│   │   ├── models/           # SQLAlchemy ORM 模型
-│   │   ├── services/         # 业务逻辑
-│   │   │   ├── siliconflow/  # SiliconFlow API 封装 (client/translate/tts)
-│   │   │   ├── dubbing/      # ffmpeg 编排层 (pipeline/alignment/...)
-│   │   │   ├── platform/     # 平台登录 (bilibili/ixigua)
-│   │   │   ├── publish/      # 平台发布 (base/bilibili/ixigua/manager)
-│   │   │   ├── title_generator.py     # AI 标题
-│   │   │   ├── channel_scanner.py     # 定时扫描
-│   │   │   ├── scheduler.py           # 任务调度核心
-│   │   │   ├── whisper_service.py     # 本地 Whisper
-│   │   │   └── youtube.py             # yt-dlp 封装
-│   │   ├── cli.py            # 命令行入口 (dub/status/resume)
-│   │   ├── main.py           # FastAPI app
-│   │   └── uploader.py       # Bilibili 上传 SDK (旧)
+│   │   ├── api/              # FastAPI routes (20 modules)
+│   │   ├── core/             # Config, database, WebSocket
+│   │   ├── models/           # SQLAlchemy ORM models
+│   │   ├── services/         # Business logic
+│   │   │   ├── siliconflow/  # SiliconFlow API wrapper (client/translate/tts)
+│   │   │   ├── tts_new/      # New TTS architecture (provider pattern)
+│   │   │   ├── dubbing/      # ffmpeg orchestration (pipeline/alignment/...)
+│   │   │   ├── platform/     # Platform login (5 platforms)
+│   │   │   ├── publish/      # Platform publish (5 platforms via social-auto-upload)
+│   │   │   ├── title_generator.py     # AI title generation
+│   │   │   ├── channel_scanner.py     # Scheduled scanning
+│   │   │   ├── scheduler.py           # Task scheduling core
+│   │   │   ├── whisper_service.py     # Local Whisper STT
+│   │   │   └── youtube.py             # yt-dlp wrapper
+│   │   ├── cli.py            # CLI entry points (dub/status/resume)
+│   │   └── main.py           # FastAPI app
 │   ├── data/                 # SQLite + storage_state (gitignored)
-│   ├── downloads/            # 视频成品 (gitignored)
-│   ├── tests/                # pytest 单元 + 集成测试 (222+1)
+│   ├── downloads/            # Video output (gitignored)
+│   ├── tests/                # pytest unit + integration tests
 │   ├── requirements.txt
 │   ├── pytest.ini
 │   └── .env / .env.example
 ├── frontend/
 │   ├── src/
-│   │   ├── api/              # axios + TS 类型定义
-│   │   ├── views/            # 页面组件 (Tasks/Dashboard/Settings/Platform/Publish/Channels/Subtitle)
-│   │   ├── components/       # 通用组件 (AiTitleSelector/AudioPreview/DubCreateDialog)
-│   │   ├── stores/           # Pinia (taskStore/wsStore)
-│   │   ├── layouts/          # MainLayout
-│   │   └── router/           # vue-router
+│   │   ├── api/              # axios + TypeScript types
+│   │   ├── views/            # Page components
+│   │   ├── components/       # Shared components
+│   │   ├── stores/           # Pinia stores
+│   │   ├── layouts/          # Layout components
+│   │   └── router/           # vue-router config
 │   ├── package.json
 │   └── vite.config.ts
-├── docs/                     # 文档 (本目录)
-├── setup.ps1 / setup.sh      # 一键环境初始化
-├── start.ps1 / start.sh      # 一键启动
-├── README.md                 # 本文件
-├── CHANGELOG.md              # 版本变更日志
-└── .planning/                # 项目规划文档 (PROJECT/ROADMAP/STATE/REQUIREMENTS + 各 Phase SUMMARY)
+├── social-auto-upload/       # Vendored publishing library (5 platforms)
+├── docs/                     # Documentation
+├── docker-compose.yml        # Docker deployment
+├── Dockerfile                # Docker image build
+├── setup.ps1 / setup.sh      # One-click environment setup
+├── start.ps1 / start.sh      # One-click startup
+├── README.md                 # This file
+├── LICENSE                   # MIT License
+├── CONTRIBUTING.md           # Contribution guide
+└── CHANGELOG.md              # Version changelog
 ```
 
 ---
 
-## 配置说明
+## Tech Stack
 
-- **必填**：`SILICONFLOW_API_KEY`（在 `backend/.env`）
-- **应用配置**：所有运行时可调参数存在 `app_config` 表（首次启动 seed 默认值），可在 Web UI `/settings` 页面修改
-- **完整列表**：[docs/CONFIGURATION.md](docs/CONFIGURATION.md)
-
----
-
-## 常见问题
-
-请参考 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)。
-
-涵盖：API Key 错误、SiliconFlow 限流、Whisper 模型下载、ffmpeg 缺失、Playwright 启动失败、Windows 路径问题、SQLite 锁、平台风控等。
-
----
-
-## 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| 后端框架 | Python 3.10+ / FastAPI 0.115 / uvicorn |
+| Layer | Technology |
+|-------|-----------|
+| Backend Framework | Python 3.10+ / FastAPI 0.115 / uvicorn |
 | ORM | SQLAlchemy 2.0 async + aiosqlite |
-| 数据库 | SQLite（WAL 模式） |
-| 迁移 | Alembic 1.13 |
-| 任务调度 | APScheduler 3.10（定时扫描）+ 自研 TaskScheduler（配音 chain） |
-| 视频下载 | yt-dlp |
-| 语音识别 (STT) | 本地 Whisper (tiny/base/small/medium) |
-| 翻译 | SiliconFlow Chat API (Qwen2.5-7B-Instruct) |
-| 语音合成 (TTS) | SiliconFlow API (FunAudioLLM/CosyVoice2-0.5B) |
-| 浏览器自动化 | Playwright (平台登录/发布) + qrcode (哔哩哔哩 HTTP QR) |
-| 视频/音频处理 | ffmpeg (extract/atempo/amix/compose) |
-| 前端框架 | Vue 3.5 / Vite 5 / TypeScript 5 / Pinia 2 |
-| UI 库 | Element Plus 2.9 + @element-plus/icons-vue |
-| 图表 | ECharts 5 / vue-echarts 7 |
-| HTTP | axios 1.7 (前端) + httpx 0.28 (后端) |
-| 测试 | pytest 8 + pytest-asyncio + pytest-mock |
+| Database | SQLite (WAL mode) |
+| Migrations | Alembic 1.13 |
+| Task Scheduling | APScheduler 3.10 + custom TaskScheduler |
+| Video Download | yt-dlp |
+| Speech-to-Text | Local Whisper (tiny/base/small/medium) |
+| Translation | SiliconFlow Chat (Qwen2.5/DeepSeek-V4-Flash) |
+| Text-to-Speech | CosyVoice2-0.5B via SiliconFlow API |
+| Voice Cloning | CosyVoice2 via tts_new provider pattern |
+| Browser Automation | Playwright (platform login) |
+| Publish Backend | social-auto-upload (5 platforms) |
+| Video/Audio | ffmpeg (extract/atempo/amix/compose) |
+| Frontend | Vue 3.5 / Vite 5 / TypeScript 5 / Pinia 2 |
+| UI Library | Element Plus 2.9 + @element-plus/icons-vue |
+| Charts | ECharts 5 / vue-echarts 7 |
+| HTTP | axios 1.7 (frontend) + httpx 0.28 (backend) |
+| Testing | pytest 8 + pytest-asyncio + pytest-mock |
 
 ---
 
-## 开发者文档
+## Developer Documentation
 
-| 主题 | 文件 |
-|------|------|
-| 架构与数据流 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| API 端点速览 | [docs/API.md](docs/API.md) |
-| 配置项完整说明 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) |
-| 常见问题排查 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
-| 生产部署指南 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
-| 版本变更日志 | [CHANGELOG.md](CHANGELOG.md) |
-| 项目规划 | `.planning/PROJECT.md` / `.planning/ROADMAP.md` |
-| 各 Phase 交付记录 | `.planning/phases/*/0*-SUMMARY.md` |
+| Topic | File |
+|-------|------|
+| Architecture & Data Flow | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| API Endpoint Reference | [docs/API.md](docs/API.md) |
+| Configuration Reference | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) |
+| Troubleshooting | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| Production Deployment | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
+| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| social-auto-upload Setup | [docs/SOCIAL_AUTO_UPLOAD.md](docs/SOCIAL_AUTO_UPLOAD.md) |
 
-### 开发模式
+### Development Mode
 
 ```bash
-# 后端热重载
+# Backend hot-reload
 cd backend
 venv\Scripts\uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-# 或 Linux: venv/bin/uvicorn ...
 
-# 前端热重载
+# Frontend hot-reload
 cd frontend
 npm run dev
 
-# 跑测试
+# Run tests
 cd backend
 venv\Scripts\python -m pytest tests/ -v
 
-# 前端构建
+# Frontend build
 cd frontend
 npm run build
 ```
@@ -220,10 +204,10 @@ npm run build
 
 ## License
 
-MIT License. 见 [LICENSE](LICENSE)（如未单独创建，则默认 MIT）。
+MIT License. See [LICENSE](LICENSE).
 
-本项目仅供个人学习使用。使用者需自行承担因使用本工具产生的法律责任。请遵守 YouTube / 西瓜视频 / 哔哩哔哩 的服务条款，尊重视频原作者的版权。
+This project is for personal learning and research purposes only. Users are responsible for complying with the terms of service of YouTube, Bilibili, Douyin, Kuaishou, Tencent Video, and Xiaohongshu. Respect original video copyright.
 
 ---
 
-*文档版本：v2.0 (Phase 10) · 最后更新：2026-06-22*
+*Document version: v5.0 (Phase 6) · Last updated: 2026-06-29*

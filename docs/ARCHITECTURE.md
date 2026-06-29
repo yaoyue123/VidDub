@@ -1,6 +1,6 @@
 # 架构文档
 
-> VidDub v2.0 — YouTube 视频中文配音 + 自动发布系统的整体架构、数据流、模块依赖、状态机。
+> You2Bili v5.0 — YouTube 视频中文配音 + 多平台自动发布系统的整体架构、数据流、模块依赖、状态机。
 
 ---
 
@@ -19,7 +19,7 @@ flowchart LR
     end
 
     subgraph Backend["Backend (FastAPI + uvicorn)"]
-        Router[FastAPI Router<br/>18 个 API 模块]
+        Router[FastAPI Router<br/>20 个 API 模块]
         WS[WebSocket Manager]
 
         subgraph Services["Services 业务层"]
@@ -28,12 +28,13 @@ flowchart LR
             YT[YouTube Service<br/>yt-dlp]
             Whisper[Whisper Service<br/>本地 STT]
             SF[SiliconFlow Client<br/>httpx + tenacity]
-            SFTranslate[Translate Service<br/>Qwen2.5-7B]
+            SFTranslate[Translate Service<br/>Qwen2.5/DeepSeek-V4-Flash]
             SFTTS[TTS Service<br/>CosyVoice2-0.5B]
+            TTSNew[New TTS<br/>Provider Pattern]
             FF[ffmpeg 编排层<br/>extract/atempo/stitch/compose]
             AI[Title Generator<br/>JSON mode]
             PlatMgr[Platform Login<br/>Manager]
-            PubMgr[Publish Manager]
+            PubMgr[Publish Manager<br/>social-auto-upload]
             Browser2[Playwright<br/>Chromium]
         end
 
@@ -52,7 +53,10 @@ flowchart LR
         YT2[YouTube<br/>视频源]
         SFApi[SiliconFlow API<br/>translate/tts/title]
         Bili[哔哩哔哩]
-        Xigua[西瓜视频]
+        Douyin[抖音]
+        KS[快手]
+        TC[腾讯视频]
+        XHS[小红书]
         WH[~/.cache/whisper/<br/>模型缓存]
     end
 
@@ -70,12 +74,13 @@ flowchart LR
     Sched --> SF
     SF --> SFTranslate & SFTTS
     SF --> SFApi
+    Sched --> TTSNew
     Sched --> FF
     FF -->|subprocess| FFbin[ffmpeg binary]
     Sched --> AI --> SF
     Sched --> PubMgr --> Browser2
-    PubMgr --> Bili & Xigua
-    PlatMgr --> Browser2 --> Bili & Xigua
+    PubMgr --> Bili & Douyin & KS & TC & XHS
+    PlatMgr --> Browser2 --> Bili & Douyin & KS & TC & XHS
     Scanner --> YT
 
     Sched & Router & Scanner -.写.-> Videos & Tasks & Subtitles & Channels & ScanLogs & PubRecords
@@ -95,7 +100,7 @@ sequenceDiagram
     participant WH as Whisper (本地)
     participant SF as SiliconFlow
     participant FF as ffmpeg
-    participant PL as Playwright
+    participant PL as Playwright / SAU
     participant DB as SQLite
 
     U->>W: 粘贴 YouTube URL
@@ -142,8 +147,8 @@ sequenceDiagram
     SCH->>DB: ai_title_candidates 等
 
     Note over SCH: === 步骤 7: 自动发布 (可选) ===
-    SCH->>PL: Playwright 打开 creator.bilibili.com
-    PL->>PL: 上传 final.mp4 + 填表
+    SCH->>PL: social-auto-upload 上传
+    PL->>PL: 上传 final.mp4 + 元数据
     PL-->>SCH: platform_url
     SCH->>DB: publish_record + video.status=published
 
@@ -169,6 +174,13 @@ graph TD
         SubApi[subtitles.py]
         ExpApi[export.py]
         DiscApi[discovery.py]
+        ScoringApi[scoring.py]
+        RulesApi[rules.py]
+        AnalyticsApi[analytics.py]
+        TtsApi[tts.py]
+        VcApi[voice_clone.py]
+        TransApi[transcription.py]
+        VideosApi[videos.py]
     end
 
     subgraph Service_Layer
@@ -177,6 +189,7 @@ graph TD
         WhisperSrv[whisper_service.py]
         DubPipe[dubbing/pipeline.py]
         SFFacade[siliconflow/<br/>client+translate+tts]
+        TTSNew[tts_new/<br/>provider+service]
         TitleGen[title_generator.py]
         Scanner[channel_scanner.py]
         LoginMgr[platform/manager.py]
@@ -198,11 +211,15 @@ graph TD
     ChanApi --> Scanner
     TaskApi --> Scheduler
     CfgApi --> Config
+    TtsApi --> TTSNew
+    VcApi --> TTSNew
+    TransApi --> WhisperSrv
 
     Scheduler --> YouTube
     Scheduler --> WhisperSrv
     Scheduler --> DubPipe
     Scheduler --> SFFacade
+    Scheduler --> TTSNew
     Scheduler --> TitleGen
     Scheduler --> PubMgr
     Scheduler --> WS
@@ -211,10 +228,11 @@ graph TD
     DubPipe --> FFbin2[ffmpeg binary]
     WhisperSrv --> WHCache[(whisper cache)]
     SFFacade --> SFHttp[SiliconFlow HTTP]
-    PubMgr --> Playwright2[Playwright]
+    TTSNew --> SFHttp
+    PubMgr --> SAU[social-auto-upload]
     PubMgr --> PubTT
     PubTT --> SFFacade
-    LoginMgr --> Playwright2
+    LoginMgr --> Playwright2[Playwright]
     Scanner --> YouTube
 
     Scheduler -.写.-> DB
@@ -249,22 +267,15 @@ stateDiagram-v2
     composing --> composed: ffmpeg 替换音轨 + 写 SRT
     composing --> failed: ffmpeg 命令失败 / 磁盘满
 
-    composed --> published: 自动发布开启且成功
-    composed --> [*]: 自动发布关闭<br/>(composed 即终态)
+    composed --> publishing: 自动发布开启
+    publishing --> published: social-auto-upload 成功
+    publishing --> failed: 发布失败
 
+    composed --> [*]: 自动发布关闭
     published --> [*]
 
     failed --> pending: POST /api/dub/{id}/resume<br/>或 CLI resume
     failed --> [*]: 用户删除
-
-    note right of pending
-        初始状态
-    end note
-
-    note right of composed
-        成品 mp4 + SRT 已生成
-        可手动发布或自动发布
-    end note
 ```
 
 ---
@@ -278,9 +289,12 @@ stateDiagram-v2
 | D-09 | atempo + pad/trim 时间对齐，调速 0.7-1.5x | 兼顾自然度和时长精度 |
 | D-13/D-14 | 状态机去除 separating/mixed | 对应 D-05 决策 |
 | D-17 (pivot) | STT 改用本地 Whisper | SiliconFlow SenseVoiceSmall 不返回 segment 时间戳 |
-| Phase 4 Rule 1 | 翻译批量失败回退到逐段单独请求 | Qwen2.5-7B 常忽略 `[ID:N]` 格式 |
-| Phase 6 | 哔哩哔哩走 HTTP QR API，西瓜走 Playwright | 哔哩官方 API 稳定；西瓜无公开 QR API |
-| Phase 7 | Playwright headed 模式 | 模拟真实浏览器防风控；headless 易被识别 |
+| Phase 4 Rule 1 | 翻译批量失败回退到逐段单独请求 | DeepSeek/Qwen 常忽略 `[ID:N]` 格式 |
+| Phase 6 (v2) | 哔哩哔哩走 HTTP QR API，西瓜走 Playwright | 哔哩官方 API 稳定；西瓜已移除 |
+| v5.0 P1 | 5 平台发布统一走 social-auto-upload | 避免各平台自研 Playwright 维护成本 |
+| v5.0 P1 | 移除 ixigua 平台 | 西瓜视频生态萎缩，API 不稳定 |
+| v5.0 P3 | TTS 采用 Provider 模式 (tts_new/) | 支持多 TTS 后端 (SiliconFlow/Edge/Coqui) 灵活切换 |
+| v5.0 P3 | cookie_bridge 自动同步 storage_state | Phase 6 登录态与 social-auto-upload conf.py 无缝对接 |
 | Phase 8 | SiliconFlow Chat JSON mode | 一次调用拿标题+标签+摘要，比纯文本解析更稳 |
 | Phase 9 | APScheduler 内存 jobstore | FastAPI 重启从 DB 重建；不依赖外部持久化 |
 
@@ -307,15 +321,19 @@ stateDiagram-v2
 | Whisper STT | `app/services/whisper_service.py` | `WhisperService.transcribe` |
 | SiliconFlow 客户端 | `app/services/siliconflow/client.py` | `SiliconFlowClient.chat / tts / translate_batch` |
 | 翻译 | `app/services/siliconflow/translate.py` | `translate_segments`（批量+逐段回退） |
-| TTS | `app/services/siliconflow/tts.py` | `synthesize_segment` |
+| 旧 TTS | `app/services/siliconflow/tts.py` | `synthesize_segment` |
+| 新 TTS (Provider) | `app/services/tts_new/{base,service,siliconflow_provider}.py` | `BaseTTSProvider`/`TTSService`/`SiliconFlowProvider` |
 | ffmpeg 编排 | `app/services/dubbing/{pipeline,ffmpeg,alignment,stitcher,composer,paths}.py` | 6 步流水线 |
 | AI 标题 | `app/services/title_generator.py` | `generate_title_candidates` (JSON mode + 文本回退) |
-| 平台登录 | `app/services/platform/{base,manager,bilibili,ixigua}.py` | `LoginManager` 单例 |
-| 平台发布 | `app/services/publish/{base,manager,bilibili,ixigua,title_translate}.py` | `PublishManager` |
+| 平台登录 | `app/services/platform/{base,manager,bilibili,douyin,kuaishou,tencent,xiaohongshu}.py` | `LoginManager` 单例，5 平台实现 |
+| 平台发布 | `app/services/publish/{base,manager,douyin,kuaishou,tencent,xiaohongshu,sau_bilibili,cookie_bridge,title_translate}.py` | `PublishManager` + social-auto-upload |
 | 频道扫描 | `app/services/channel_scanner.py` | `ChannelScanner` + APScheduler |
 | 配置 | `app/services/config_seeder.py` + `app/core/config.py` | `DEFAULT_CONFIGS` dict + Pydantic Settings |
 | WebSocket | `app/core/websocket.py` | `ConnectionManager.broadcast` |
+| 评分引擎 | `app/services/scoring/` | 视频评分算法 |
+| 规则引擎 | `app/services/rules/` | 自动处理规则 |
+| 发现引擎 | `app/services/discovery/` | 内容发现 |
 
 ---
 
-*本文档对应 Phase 10 (v2.0.10) · 最后更新：2026-06-22*
+*本文档对应 v5.0 (Phase 6) · 最后更新：2026-06-29*

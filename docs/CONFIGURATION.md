@@ -1,6 +1,6 @@
 # 配置项完整说明
 
-> VidDub 所有可配置项的清单。`.env` 用于敏感数据（API Key），`app_config` 表用于运行时可调参数。
+> You2Bili 所有可配置项的清单。`.env` 用于敏感数据（API Key），`app_config` 表用于运行时可调参数。
 
 ---
 
@@ -49,45 +49,7 @@ DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 
 所有项以字符串存储，由业务代码按需类型转换。首次启动 `config_seeder.py` 自动 seed 默认值。
 
-### 2.1 SiliconFlow / 翻译 / TTS
-
-| Key | 默认 | 类型 | 说明 |
-|-----|------|------|------|
-| `translation_api_key` | `""` | string | SiliconFlow API Key（与 `.env` 重复，二选一即可；优先用 `.env`） |
-| `translation_api_base_url` | `https://api.siliconflow.cn/v1` | URL | 翻译 API base URL |
-| `translation_model` | `Qwen/Qwen2.5-7B-Instruct` | string | 翻译模型名 |
-| `translation_context_window` | `"2"` | int (作为 str) | 翻译滑窗上下文段数（建议 2-4） |
-| `tts_model` | `FunAudioLLM/CosyVoice2-0.5B` | string | TTS 模型名 |
-| `tts_voice` | `FunAudioLLM/CosyVoice2-0.5B:alex` | string | 完整音色 ID（含模型前缀） |
-| `tts_voice_simple` | `"alex"` | string | 简短音色名（自动拼模型前缀，如 `alex`） |
-| `tts_speed` | `"1.0"` | float | 语速 0.25 - 4.0 |
-| `tts_gain` | `"0"` | int (dB) | 音量增益 -10 ~ +10 |
-| `tts_format` | `"mp3"` | enum | 输出格式：`mp3\|wav\|opus\|pcm` |
-| `tts_sample_rate` | `"32000"` | int (Hz) | 采样率 |
-| `dubbing_voice` | `zh-CN-XiaoxiaoNeural` | string | （旧 edge-tts 字段，v2.0 用 `tts_voice_simple`） |
-| `dubbing_rate` | `+0%` | string | （旧 edge-tts 字段） |
-
-### 2.2 Whisper / STT
-
-| Key | 默认 | 类型 | 说明 |
-|-----|------|------|------|
-| `whisper_model` | `"tiny"` | enum | 本地 Whisper 模型：`tiny\|base\|small\|medium` |
-| `whisper_language` | `"en"` | ISO code | Whisper 源语言（auto = 自动检测，但英文视频建议固定 `en`） |
-| `stt_model` | `"whisper-local"` | string | STT 后端标识（保留兼容，实际固定本地 Whisper） |
-| `transcription_backend` | `"whisper"` | enum | `whisper\|siliconflow`（Phase 4 后固定 `whisper`） |
-| `transcription_model` | `FunAudioLLM/SenseVoiceSmall` | string | SiliconFlow STT 模型（D-17 pivot 后未使用） |
-| `target_language` | `"zh"` | ISO code | 翻译目标语言 |
-
-### 2.3 音频对齐 / 时间控制（Phase 4）
-
-| Key | 默认 | 类型 | 说明 |
-|-----|------|------|------|
-| `atempo_min` | `"0.7"` | float | atempo 调速下限 — 中文 TTS 比原文长且 `duration/original < 0.7` 时改为 pad 静音（不强行加速） |
-| `atempo_max` | `"1.5"` | float | atempo 调速上限 — 中文 TTS 比原文短且 `duration/original > 1.5` 时改为 trim 截断（不强行降速） |
-
-> **范围说明**：建议保持 0.7-1.5x。低于 0.5x 听感明显异常；高于 2.0x ffmpeg atempo 需链式两段。
-
-### 2.4 视频下载 / 通用
+### 2.1 下载 / 通用
 
 | Key | 默认 | 类型 | 说明 |
 |-----|------|------|------|
@@ -96,20 +58,57 @@ DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 | `max_concurrent_downloads` | `"3"` | int | 最大并发下载数 |
 | `max_results_per_search` | `"20"` | int | 每次搜索最大返回数 |
 | `yt_dlp_cookies` | `""` | path | yt-dlp Cookie 文件路径（可选，YouTube 风控严格时使用） |
+| `target_language` | `"zh"` | ISO code | 翻译目标语言 |
 
-### 2.5 自动发布（Phase 7）
+### 2.2 STT / Whisper
 
 | Key | 默认 | 类型 | 说明 |
 |-----|------|------|------|
-| `auto_publish_enabled` | `"true"` | bool (str) | 配音完成后是否自动发布。`true\|false` |
-| `default_upload_platform` | `"xigua"` | enum | 默认上传平台（旧字段）：`xigua\|bilibili` |
-| `bilibili_default_category` | `"122"` | int | 哔哩哔哩默认分区 tid（`122=野生技术协会`，`95=数码`，`207=科技>科普`） |
-| `ixigua_default_copyright` | `"repost"` | enum | 西瓜视频版权类型：`original=原创\|repost=转载` |
+| `transcription_backend` | `"whisper"` | enum | `whisper\|siliconflow`（v5.0 默认 `whisper`） |
+| `transcription_model` | `FunAudioLLM/SenseVoiceSmall` | string | SiliconFlow STT 模型（本地 Whisper 时未使用） |
+
+### 2.3 翻译
+
+| Key | 默认 | 类型 | 说明 |
+|-----|------|------|------|
+| `translation_model` | `deepseek-ai/DeepSeek-V4-Flash` | string | 翻译模型名 |
+| `translation_context_window` | `"2"` | int (作为 str) | 翻译滑窗上下文段数（建议 2-4） |
+
+### 2.4 TTS
+
+| Key | 默认 | 类型 | 说明 |
+|-----|------|------|------|
+| `tts_model` | `FunAudioLLM/CosyVoice2-0.5B` | string | TTS 模型名 |
+| `tts_voice` | `FunAudioLLM/CosyVoice2-0.5B:alex` | string | 完整音色 ID（含模型前缀） |
+| `tts_voice_simple` | `"anna"` | string | 简短音色名（自动拼 model:voice 前缀） |
+| `tts_speed` | `"1.0"` | float | 语速 0.25 - 4.0 |
+| `tts_gain` | `"0"` | int (dB) | 音量增益 -10 ~ +10 |
+| `tts_format` | `"mp3"` | enum | 输出格式：`mp3\|wav\|opus\|pcm` |
+| `tts_sample_rate` | `"32000"` | int (Hz) | 采样率 |
+
+### 2.5 音频对齐 / 时间控制
+
+| Key | 默认 | 类型 | 说明 |
+|-----|------|------|------|
+| `atempo_min` | `"0.7"` | float | atempo 调速下限 — 中文 TTS 比原文长且 `duration/original < 0.7` 时改为 pad 静音 |
+| `atempo_max` | `"1.5"` | float | atempo 调速上限 — 中文 TTS 比原文短且 `duration/original > 1.5` 时改为 trim 截断 |
+
+> **范围说明**：建议保持 0.7-1.5x。低于 0.5x 听感明显异常；高于 2.0x ffmpeg atempo 需链式两段。
+
+### 2.6 发布 / 平台
+
+| Key | 默认 | 类型 | 说明 |
+|-----|------|------|------|
+| `auto_publish_enabled` | `"true"` | bool (str) | 配音完成后是否自动发布 |
+| `default_upload_platform` | `"bilibili"` | enum | 默认上传平台：`bilibili\|douyin\|kuaishou\|tencent\|xiaohongshu` |
+| `bilibili_default_category` | `"122"` | int | 哔哩哔哩默认分区 tid（`122=野生技术协会`） |
 | `publish_default_tags` | `搬运,英语学习,翻译` | CSV string | 发布默认标签（最多 10 个） |
 | `publish_retry_max` | `"3"` | int | 发布失败最大重试次数 |
 | `publish_upload_timeout_sec` | `"600"` | int (sec) | 视频上传 + 平台处理最长等待秒数（默认 10 分钟） |
+| `upload_default_tags` | `技术,YouTube,搬运` | string | （旧字段）默认上传标签 |
+| `upload_default_tid` | `"122"` | int | （旧字段）Bilibili 默认分区 ID |
 
-### 2.6 AI 标题与标签（Phase 8）
+### 2.7 AI 标题与标签
 
 | Key | 默认 | 类型 | 说明 |
 |-----|------|------|------|
@@ -117,32 +116,27 @@ DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 | `title_generator_candidate_count` | `"5"` | int | 候选标题数量（默认 5） |
 | `title_generator_tag_count` | `"8"` | int | 候选标签数量（默认 8，Bilibili 上限 10，留 2 空位给默认标签） |
 
-### 2.7 定时扫描 / 频道管理（Phase 9）
+### 2.8 定时扫描 / 频道管理
 
 | Key | 默认 | 类型 | 说明 |
 |-----|------|------|------|
 | `scan_max_concurrent` | `"3"` | int | 频道扫描最大并发数 |
 | `scan_default_interval_hours` | `"6"` | enum | 默认扫描间隔小时：`1\|3\|6\|12\|24` |
 
-### 2.8 平台登录 Cookie（旧字段，已被 `storage_state.json` 替代）
-
-| Key | 默认 | 说明 |
-|-----|------|------|
-| `bili_sessdata` | `""` | （旧）Bilibili SESSDATA cookie |
-| `bili_bili_jct` | `""` | （旧）Bilibili bili_jct CSRF cookie |
-| `bili_dedeuserid` | `""` | （旧）Bilibili DedeUserID cookie |
-| `xigua_cookies_json` | `""` | （旧）西瓜 cookie JSON |
-| `upload_default_tags` | `技术,YouTube,搬运` | （旧）默认上传标签 |
-| `upload_default_tid` | `"122"` | （旧）Bilibili 默认 tid |
-
-> **提示**：Phase 6+ 使用 Playwright `storage_state.json`（存在 `backend/data/login/`），不再需要手动维护这些 cookie 字段。
-
 ### 2.9 已废弃字段（保留向后兼容）
 
 | Key | 默认 | 状态 |
 |-----|------|------|
+| `stt_model` | `whisper-local` | v5.0 弃用（由 `transcription_backend` 替代） |
 | `ollama_base_url` | `http://localhost:11434` | v2.0 弃用（改用 SiliconFlow） |
 | `ollama_model` | `qwen2.5:7b` | v2.0 弃用 |
+| `dubbing_voice` | `zh-CN-XiaoxiaoNeural` | v5.0 弃用（旧 edge-tts 字段） |
+| `dubbing_rate` | `+0%` | v5.0 弃用（旧 edge-tts 字段） |
+| `whisper_model` | `tiny` | v5.0 弃用（由 Settings/.env 的 `WHISPER_MODEL` 替代） |
+| `whisper_language` | `en` | v5.0 弃用（由 Settings/.env 的 `WHISPER_LANGUAGE` 替代） |
+| `bili_sessdata` / `bili_bili_jct` / `bili_dedeuserid` | `""` | v5.0 弃用（由 `storage_state.json` + cookie_bridge 替代） |
+
+> **提示**：v5.0 使用 Playwright `storage_state.json`（存在 `backend/data/login/`）和 `social-auto-upload/conf.py`，不再需要手动维护 cookie 字段。
 
 ---
 
@@ -150,7 +144,7 @@ DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 
 ### 方式 1：Web UI（推荐）
 
-启动后访问 http://localhost:5173/settings，5 个 tab：
+启动后访问 http://localhost:5173/settings，各 tab：
 - **SiliconFlow**：API Key + base URL + 模型选择 + 连通性测试
 - **STT (Whisper)**：模型大小 + 源语言
 - **TTS**：音色 + 语速 + 音量 + 格式
@@ -180,7 +174,7 @@ sqlite3 backend/data/viddub.db
 > UPDATE app_config SET value='base' WHERE key='whisper_model';
 ```
 
-修改后需重启 uvicorn 让某些缓存失效（Pydantic Settings 类只读 `.env`，DB 配置每次请求实时读）。
+修改后需重启 uvicorn 让某些缓存失效。
 
 ---
 
@@ -216,4 +210,4 @@ WHISPER_MODEL=small      # 或 medium
 
 ---
 
-*本文档对应 Phase 10 (v2.0.10) · 完整默认值定义见 `backend/app/services/config_seeder.py` 的 `DEFAULT_CONFIGS` dict*
+*本文档对应 v5.0 (Phase 6) · 完整默认值定义见 `backend/app/services/config_seeder.py` 的 `DEFAULT_CONFIGS` dict（当前 33 项）*
