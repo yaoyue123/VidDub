@@ -74,3 +74,57 @@ def init_db(connection) -> None:
     Runs idempotently via IF NOT EXISTS clauses.
     """
     _ensure_indexes(connection)
+    _ensure_fts5(connection)
+
+
+# ── FTS5 virtual table for keyword search (D-INFRA-02) ──
+
+_FTS5_CREATE_SQL = """
+CREATE VIRTUAL TABLE IF NOT EXISTS videos_fts USING fts5(
+    title, description, channel,
+    content='videos',
+    content_rowid='id'
+)
+"""
+
+_FTS5_TRIGGERS_SQL = [
+    # AFTER INSERT: sync new video into FTS index
+    """
+    CREATE TRIGGER IF NOT EXISTS tr_videos_fts_ai AFTER INSERT ON videos BEGIN
+        INSERT INTO videos_fts(rowid, title, description, channel)
+        VALUES (new.id, new.title, new.description, new.channel);
+    END
+    """,
+    # AFTER DELETE: remove deleted video from FTS index
+    """
+    CREATE TRIGGER IF NOT EXISTS tr_videos_fts_ad AFTER DELETE ON videos BEGIN
+        INSERT INTO videos_fts(videos_fts, rowid, title, description, channel)
+        VALUES('delete', old.id, old.title, old.description, old.channel);
+    END
+    """,
+    # AFTER UPDATE: remove old entry, insert new entry
+    """
+    CREATE TRIGGER IF NOT EXISTS tr_videos_fts_au AFTER UPDATE ON videos BEGIN
+        INSERT INTO videos_fts(videos_fts, rowid, title, description, channel)
+        VALUES('delete', old.id, old.title, old.description, old.channel);
+        INSERT INTO videos_fts(rowid, title, description, channel)
+        VALUES (new.id, new.title, new.description, new.channel);
+    END
+    """,
+]
+
+
+def _ensure_fts5(connection) -> None:
+    """Create FTS5 virtual table, content-sync triggers, and populate initial data."""
+    # Create virtual table
+    connection.execute(text(_FTS5_CREATE_SQL))
+
+    # Create content-sync triggers
+    for sql in _FTS5_TRIGGERS_SQL:
+        connection.execute(text(sql))
+
+    # Initial population: copy existing videos into FTS index
+    connection.execute(text(
+        "INSERT OR IGNORE INTO videos_fts(rowid, title, description, channel) "
+        "SELECT id, title, description, channel FROM videos"
+    ))
