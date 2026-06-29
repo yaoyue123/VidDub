@@ -6,10 +6,13 @@ from pathlib import Path
 import sys
 from typing import AsyncIterator
 
-# Windows: Python 3.13+ 的 ProactorEventLoop 不再支持 create_subprocess_exec，
-# 必须用 SelectorEventLoop（否则 patchright/Playwright 无法启动 Chromium）
+# Windows: patchright/Playwright 使用 asyncio.create_subprocess_exec 启动 Chromium，
+# 必须用 ProactorEventLoop。先设 policy，再显式创建 loop，防止 uvicorn 先创建 default loop。
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    policy = asyncio.WindowsProactorEventLoopPolicy()
+    asyncio.set_event_loop_policy(policy)
+    loop = policy.new_event_loop()
+    asyncio.set_event_loop(loop)
 
 # Debug log：在 startup 时打印 loop 类型，帮助确认 Proactor 是否生效
 def _log_loop_type():
