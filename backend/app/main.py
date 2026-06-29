@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         extractor_args=extractor_args,
     )
     set_ytdlp_wrapper(ytdlp_wrapper)
-    logger.info("YtDlpWrapper initialized (cookies=%s, extractor_args=%s)",
+    logging.getLogger("app.main").info("YtDlpWrapper initialized (cookies=%s, extractor_args=%s)",
                  cookies_file, "set" if extractor_args else "none")
 
     # 5. Start scheduler
