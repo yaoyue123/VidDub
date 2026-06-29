@@ -95,29 +95,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| TRACK-01 | — | Pending |
-| TRACK-02 | — | Pending |
-| TRACK-03 | — | Pending |
-| TRACK-04 | — | Pending |
-| TRACK-05 | — | Pending |
-| SCAN-01 | — | Pending |
-| SCAN-02 | — | Pending |
-| SCAN-03 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| UI-04 | — | Pending |
-| CLEANUP-01 | — | Pending |
-| CLEANUP-02 | — | Pending |
-| BUG-01 | — | Pending |
-| BUG-02 | — | Pending |
+| INFRA-01 | Phase 7 | Pending |
+| INFRA-02 | Phase 7 | Pending |
+| CLEANUP-01 | Phase 7 | Pending |
+| CLEANUP-02 | Phase 7 | Pending |
+| TRACK-01 | Phase 8 | Pending |
+| TRACK-02 | Phase 8 | Pending |
+| TRACK-05 | Phase 8 | Pending |
+| SCAN-01 | Phase 8 | Pending |
+| SCAN-02 | Phase 8 | Pending |
+| TRACK-03 | Phase 9 | Pending |
+| TRACK-04 | Phase 9 | Pending |
+| SCAN-03 | Phase 9 | Pending |
+| BUG-01 | Phase 9 | Pending |
+| UI-01 | Phase 10 | Pending |
+| UI-02 | Phase 10 | Pending |
+| UI-03 | Phase 10 | Pending |
+| UI-04 | Phase 10 | Pending |
+| BUG-02 | Phase 11 | Pending |
 
 **Coverage:**
 - v5.1 requirements: 18 total
-- Unmapped: 18 (waiting for roadmap)
+- Mapped: 18 (all assigned to phases)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-29*
-*Last updated: 2026-06-29 — v5.1 milestone defined*
+*Last updated: 2026-06-29 — v5.1 traceability updated with Phase 7-11 mappings*
