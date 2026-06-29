@@ -302,30 +302,30 @@ def _resolve_transcript_text(video: Any, whisper_transcript: Optional[list[dict]
     base = get_download_dir()
     for fname in ("translated.json", "transcript.json"):
         path = os.path.join(base, str(vid), fname)
-            if os.path.exists(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                    if isinstance(data, list):
-                        texts = []
-                        for seg in data:
-                            if isinstance(seg, dict):
-                                t = seg.get("text") or ""
-                            elif isinstance(seg, str):
-                                t = seg
-                            else:
-                                t = ""
-                            if t:
-                                texts.append(t)
-                        if texts:
-                            return "\n".join(texts)
-                    elif isinstance(data, dict):
-                        # 可能是 {segments: [...]} 或 {text: ...}
-                        if isinstance(data.get("segments"), list):
-                            return _resolve_transcript_text(video, data["segments"])
-                        if data.get("text"):
-                            return str(data["text"])
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug("Failed to read transcript %s: %s", path, e)
-                    continue
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    texts = []
+                    for seg in data:
+                        if isinstance(seg, dict):
+                            t = seg.get("text") or ""
+                        elif isinstance(seg, str):
+                            t = seg
+                        else:
+                            t = ""
+                        if t:
+                            texts.append(t)
+                    if texts:
+                        return "\n".join(texts)
+                elif isinstance(data, dict):
+                    # 可能是 {segments: [...]} 或 {text: ...}
+                    if isinstance(data.get("segments"), list):
+                        return _resolve_transcript_text(video, data["segments"])
+                    if data.get("text"):
+                        return str(data["text"])
+            except (json.JSONDecodeError, OSError) as e:
+                logger.debug("Failed to read transcript %s: %s", path, e)
+                continue
     return ""
