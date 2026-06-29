@@ -91,7 +91,13 @@ Plans:
 3. Users can trigger an immediate scan for any tracked source via API, bypassing the scheduled interval
 4. YouTube video thumbnails (from `i.ytimg.com`) load correctly in the frontend via a FastAPI streaming proxy endpoint that adds CORS headers
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+```
+Plans:
+- [ ] 09-01-PLAN.md — Extend source CRUD with filter fields + save-search-as-source (TRACK-03, TRACK-04)
+- [ ] 09-02-PLAN.md — Wire manual scan to DiscoveryScanner + thumbnail proxy endpoint (SCAN-03, BUG-01)
+```
 
 ### Phase 10: DiscoverView Frontend
 
@@ -141,7 +147,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Infrastructure & Cleanup | 0/4 | Planned | - |
 | 8. Tracking Scanner & Core Discovery | 0/2 | Planned | - |
-| 9. Tracking API & Filtering | 0/0 | Not started | - |
+| 9. Tracking API & Filtering | 0/2 | Planned | - |
 | 10. DiscoverView Frontend | 0/3 | Plans created | - |
 | 11. Bug Fixes & Polish | 0/0 | Not started | - |
 
@@ -186,4 +192,4 @@ Plans:
 
 ---
 
-*Last updated: 2026-06-29 — Phase 10 plans created (3 plans), ROADMAP updated*
+*Last updated: 2026-06-29 — Phase 9-10 plans created (5 plans), ROADMAP updated*
