@@ -33,3 +33,4 @@ backend/*.png
 .DS_Store
 Thumbs.db
 social-auto-upload/
+social-auto-upload/conf.py

@@ -25,8 +25,6 @@ from app.models.config import Config
 from app.models.subtitle import Subtitle
 from app.models.enums import VideoStatus, TaskType, TaskStatus
 from app.services.youtube import YoutubeService
-from app.uploader import BilibiliUploader, BiliCredential
-
 logger = logging.getLogger(__name__)
 
 

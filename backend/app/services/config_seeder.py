@@ -106,31 +106,10 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "value": "1.5",
         "description": "atempo 调速上限（>则 trim 截断）",
     },
-    # ── Legacy/Ollama (preserved for compatibility) ──
-    "ollama_base_url": {
-        "value": "http://localhost:11434",
-        "description": "Ollama API 地址 (已弃用)",
-    },
-    "ollama_model": {
-        "value": "qwen2.5:7b",
-        "description": "Ollama 翻译模型名 (已弃用)",
-    },
-    "dubbing_voice": {
-        "value": "zh-CN-XiaoxiaoNeural",
-        "description": "配音语音 (已弃用 edge-tts)",
-    },
-    "dubbing_rate": {
-        "value": "+0%",
-        "description": "配音语速调整 (已弃用)",
-    },
-    "stt_model": {
-        "value": "whisper-local",
-        "description": "STT 后端标识 (已弃用)",
-    },
     # ── Upload / Platform ──
     "default_upload_platform": {
-        "value": "xigua",
-        "description": "默认上传平台 (xigua/bilibili)",
+        "value": "bilibili",
+        "description": "默认上传平台 (bilibili/douyin等)",
     },
     "upload_default_tags": {
         "value": "技术,YouTube,搬运",

@@ -86,3 +86,13 @@ cp social-auto-upload/conf.example.py social-auto-upload/conf.py
 
 The you2bili vendored copy may lag behind upstream. When updating, check the changelog for
 breaking changes to the publishing API.
+
+### Duplicate Uploader: `xhs_uploader/` vs `xiaohongshu_uploader/`
+
+The vendored `social-auto-upload/uploader/xhs_uploader/` directory is a partial duplicate
+of `social-auto-upload/uploader/xiaohongshu_uploader/`. The `xhs_uploader/main.py` module
+still provides `sign_local()` and `sign()` functions that are used internally by
+`social-auto-upload/myUtils/auth.py` and `social-auto-upload/examples/upload_video_to_xhs.py`.
+
+The `xhs_uploader/` directory cannot be deleted until those internal references are migrated
+to use `xiaohongshu_uploader` instead. This is tracked as a future cleanup task.
