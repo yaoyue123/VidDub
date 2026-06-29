@@ -9,6 +9,8 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -312,6 +314,14 @@ class SaveSearchAsSourceRequest(BaseModel):
     scan_interval_hours: int = Field(24, ge=1, le=720)
 
 
+class ScanNowResponse(BaseModel):
+    """Scan response for manual trigger, matching channels.py ScanNowResponse pattern."""
+    source_id: int
+    found_count: int
+    added_count: int
+    error_msg: Optional[str] = None
+
+
 @router.get("/sources")
 async def list_discovery_sources(db: AsyncSession = Depends(get_db)):
     """List all discovery sources with filter fields."""
@@ -413,27 +423,38 @@ async def delete_discovery_source(
     return {"ok": True}
 
 
-@router.post("/sources/{source_id}/scan")
+@router.post("/sources/{source_id}/scan", response_model=ScanNowResponse)
 async def scan_discovery_source(
     source_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger a manual scan of a discovery source using DiscoveryScanner."""
+    """Trigger a manual scan of a discovery source using DiscoveryScanner.
+
+    Returns ScanNowResponse with found_count, added_count, and optional error_msg.
+    Returns 404 if source not found, 503 if scanner unavailable.
+    """
     from app.models.discovery import DiscoverySource
     source = await db.get(DiscoverySource, source_id)
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    scanner = get_discovery_scanner()
-    result = await scanner.scan_once(source_id)
+    try:
+        scanner = get_discovery_scanner()
+    except Exception:
+        raise HTTPException(status_code=503, detail="DiscoveryScanner not available")
 
-    return {
-        "source_id": source_id,
-        "found_count": result.found_count,
-        "added_count": result.added_count,
-        "status": result.status,
-        "error_msg": result.error_msg,
-    }
+    try:
+        result = await scanner.scan_once(source_id)
+    except Exception as e:
+        logger.error("Scan failed for source %d: %s", source_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+
+    return ScanNowResponse(
+        source_id=source_id,
+        found_count=result.found_count,
+        added_count=result.added_count,
+        error_msg=result.error_msg,
+    )
 
 
 @router.get("/sources/{source_id}/scan-logs")
@@ -458,6 +479,41 @@ async def list_discovery_scan_logs(
     )
     items = (await db.execute(query)).scalars().all()
     return {"items": items, "total": len(items)}
+
+
+@router.get("/thumbnail/{video_id}")
+async def proxy_thumbnail(video_id: str):
+    """Proxy YouTube video thumbnail with CORS headers.
+
+    Fetches from i.ytimg.com and streams to client, adding
+    Cache-Control and CORS headers that YouTube's CDN omits.
+    """
+    url = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(url)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError:
+            status_code = resp.status_code if resp.status_code else 502
+            raise HTTPException(
+                status_code=status_code,
+                detail=f"Thumbnail fetch failed for {video_id}",
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Failed to connect to thumbnail server: {e}",
+            )
+
+    return StreamingResponse(
+        resp.aiter_bytes(),
+        media_type=resp.headers.get("content-type", "image/jpeg"),
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
 
 
 @router.get("/results")
