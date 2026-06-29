@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v5.1
 milestone_name: Discover 页面重构与 Bug 修复
 status: executing
-last_updated: "2026-06-29T14:30:00.000Z"
-last_activity: 2026-06-29 — Plan 07-04 completed (Remove v4.0 scoring frontend code)
+last_updated: "2026-06-29T13:14:35.137Z"
+last_activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single source of truth)
 progress:
   total_phases: 11
-  completed_phases: 1
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 5
-  percent: 42
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -31,10 +31,10 @@ Updated: 2026-06-29
 
 ## Current Position
 
-Phase: 7 (Infrastructure & Cleanup) — Completed
-Plan: 04 (Remove v4.0 scoring frontend code) — Completed
-Status: Completed
-Last activity: 2026-06-29 — Plan 07-04 completed (Remove v4.0 scoring frontend code)
+Phase: 11 (Bug Fixes & Polish)
+Plan: 01 (Fix duplicate download directory — get_download_dir() helper) — Completed
+Status: In Progress
+Last activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single source of truth)
 
 ## v5.1 Roadmap Summary
 
@@ -53,7 +53,7 @@ Last activity: 2026-06-29 — Plan 07-04 completed (Remove v4.0 scoring frontend
 ## Performance Metrics
 
 - Phases completed: 0 / 5
-- Plans completed: 4 (07-01, 07-02, 07-03, 07-04)
+- Plans completed: 8 (07-01, 07-02, 07-03, 07-04, 08-01, 08-02, 11-01)
 - Tests passing baseline: pending (will be established in Phase 7)
 - Open blockers: 0
 
@@ -83,12 +83,26 @@ Last activity: 2026-06-29 — Plan 07-04 completed (Remove v4.0 scoring frontend
 - D-07-02-02: **Rate limiter skipped in sync path** — extract_info_sync skips rate limiter because sync callers already run with bounded concurrency via their own thread pool; circuit breaker still protects
 - D-07-02-03: **CircuitBreaker.call accepts both sync and async callables** — Uses iscoroutinefunction() to dispatch, with fallback to asyncio.to_thread
 
+### Phase 8 Plan 01 Decisions
+
+- D-08-01-01: **DiscoveryScanLog uses single-field scanned_at timestamp** — mirrors existing ScanLog pattern rather than inheriting TimestampMixin, avoiding unnecessary created_at/updated_at columns on log entries
+- D-08-01-02: **All new columns nullable** — fully additive schema changes with zero migration risk; no ALTER TABLE failures on existing databases
+- D-08-01-03: **TYPE_CHECKING import guard** — bidirectional relationship between DiscoverySource and DiscoveryScanLog uses TYPE_CHECKING to avoid circular import errors at runtime
+
+### Phase 8 Plan 02 Decisions
+
+- D-08-02-01: **Single coordinator loop (not per-source jobs)** — One APScheduler job with IntervalTrigger that ticks every 15 minutes and scans due sources, preventing thundering herd (per D-v5.1-01)
+- D-08-02-02: **Dedup checks both Video.youtube_id and DiscoveryResult.youtube_id** — Prevents re-discovering videos already downloaded OR already in the discovery results pipeline
+
 ### Active Todos
 
 - [x] Phase 7, Plan 01: SQLite WAL mode + indexes + FTS5 (INFRA-02) — Done
 - [x] Phase 7, Plan 02: YtDlpWrapper with rate limiter (INFRA-01) — Done
 - [x] Phase 7, Plan 03: Remove v4.0 scoring backend code (CLEANUP-01)
 - [x] Phase 7, Plan 04: Remove v4.0 scoring frontend code (CLEANUP-02)
+- [x] Phase 8, Plan 01: Discovery model extensions (TRACK-01, TRACK-02, SCAN-02) — Done
+- [x] Phase 8, Plan 02: DiscoveryScanner coordinator loop + dedup + scan logs + lifecycle wiring (SCAN-01, TRACK-05) — Done
+- [x] Phase 11, Plan 01: Fix duplicate download directory — get_download_dir() single source of truth (BUG-02) — Done
 
 ### Blockers
 
@@ -98,13 +112,12 @@ Last activity: 2026-06-29 — Plan 07-04 completed (Remove v4.0 scoring frontend
 
 ## Session Continuity
 
-**Last activity:** 2026-06-29 — Plan 07-04 completed (Phase 7 complete)
+**Last activity:** 2026-06-29 — Plan 11-01 completed (get_download_dir() single source of truth)
 
 **Next steps:**
 
-1. Phase 8: DiscoveryScanner + keyword search + channel tracking
-2. Phase 9: Tracking API & Filtering
-3. Phase 10: DiscoverView Frontend
+1. Phase 11, Plan 02: Additional bug fixes (TBD)
+2. All Phase 11 plans complete → Finish v5.1 milestone
 
 ---
-*Last updated: 2026-06-29 — Phase 7 Plan 04 completed (Remove v4.0 scoring frontend code). Phase 7 complete.*
+*Last updated: 2026-06-29 — Phase 11 Plan 01 completed (BUG-02: download directory dedup). 8/12 plans complete.*

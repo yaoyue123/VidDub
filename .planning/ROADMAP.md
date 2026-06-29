@@ -20,10 +20,10 @@
 ### Phases
 
 - [x] **Phase 7: Infrastructure & Cleanup** — yt-dlp 封装 + 全局限速器 + SQLite WAL 模式 + 索引 + 移除旧评分代码
-- [ ] **Phase 8: Tracking Scanner & Core Discovery** — DiscoveryScanner 协调器 + 关键词搜索 + 频道跟踪 + 自动去重 + 扫描历史
+- [x] **Phase 8: Tracking Scanner & Core Discovery** — DiscoveryScanner 协调器 + 关键词搜索 + 频道跟踪 + 自动去重 + 扫描历史 (2/2 plans done)
 - [ ] **Phase 9: Tracking API & Filtering** — 跟踪源筛选条件 API + 保存搜索为跟踪源 + 手动触发扫描 + 缩略图代理
 - [ ] **Phase 10: DiscoverView Frontend** — 多标签页 Discover 页面 + 视频卡片网格 + 一键搬运 + 跟踪源管理 UI
-- [ ] **Phase 11: Bug Fixes & Polish** — 下载目录去重
+- [x] **Phase 11: Bug Fixes & Polish** — 下载目录去重 (1/1 plans done)
 
 ---
 
@@ -75,8 +75,8 @@ Plans:
 
 ```
 Plans:
-- [ ] 08-01-PLAN.md — Extend DiscoverySource/DiscoveryResult models + DiscoveryScanLog (TRACK-01, TRACK-02, SCAN-02)
-- [ ] 08-02-PLAN.md — DiscoveryScanner coordinator loop + dedup + scan logs + lifecycle wiring (SCAN-01, TRACK-05, SCAN-02)
+- [x] 08-01-PLAN.md — Extend DiscoverySource/DiscoveryResult models + DiscoveryScanLog (TRACK-01, TRACK-02, SCAN-02)
+- [x] 08-02-PLAN.md — DiscoveryScanner coordinator loop + dedup + scan logs + lifecycle wiring (SCAN-01, TRACK-05, SCAN-02)
 ```
 
 ### Phase 9: Tracking API & Filtering
@@ -143,7 +143,7 @@ Plans:
 
 ```
 Plans:
-- [ ] 11-01-PLAN.md — Single get_download_dir() helper to eliminate duplicate directory paths (BUG-02)
+- [x] 11-01-PLAN.md — Single get_download_dir() helper to eliminate duplicate directory paths (BUG-02)
 ```
 
 ---
@@ -153,10 +153,10 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 7. Infrastructure & Cleanup | 4/4 | Complete | 2026-06-29 |
-| 8. Tracking Scanner & Core Discovery | 0/2 | Planned | - |
+| 8. Tracking Scanner & Core Discovery | 2/2 | Complete | 2026-06-29 |
 | 9. Tracking API & Filtering | 0/2 | Plans created | - |
 | 10. DiscoverView Frontend | 0/3 | Plans created | - |
-| 11. Bug Fixes & Polish | 0/1 | Plans created | - |
+| 11. Bug Fixes & Polish | 1/1 | Complete | 2026-06-29 |
 
 ---
 
@@ -199,4 +199,4 @@ Plans:
 
 ---
 
-*Last updated: 2026-06-29 — Phase 11 plan created (1 plan), ROADMAP updated*
+*Last updated: 2026-06-29 — Plan 11-01 completed (Phase 11 complete: 1/1 plans). 8/12 plans across v5.1.*
