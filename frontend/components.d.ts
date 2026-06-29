@@ -53,6 +53,7 @@ declare module 'vue' {
     PlatformLoginDrawer: typeof import('./src/components/PlatformLoginDrawer.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    VideoCard: typeof import('./src/components/VideoCard.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
