@@ -21,7 +21,7 @@
 
 - [x] **Phase 7: Infrastructure & Cleanup** — yt-dlp 封装 + 全局限速器 + SQLite WAL 模式 + 索引 + 移除旧评分代码
 - [x] **Phase 8: Tracking Scanner & Core Discovery** — DiscoveryScanner 协调器 + 关键词搜索 + 频道跟踪 + 自动去重 + 扫描历史 (2/2 plans done)
-- [ ] **Phase 9: Tracking API & Filtering** — 跟踪源筛选条件 API + 保存搜索为跟踪源 + 手动触发扫描 + 缩略图代理
+- [x] **Phase 9: Tracking API & Filtering** — 跟踪源筛选条件 API + 保存搜索为跟踪源 + 手动触发扫描 + 缩略图代理 (2/2 plans done)
 - [ ] **Phase 10: DiscoverView Frontend** — 多标签页 Discover 页面 + 视频卡片网格 + 一键搬运 + 跟踪源管理 UI
 - [x] **Phase 11: Bug Fixes & Polish** — 下载目录去重 (1/1 plans done)
 
@@ -93,12 +93,13 @@ Plans:
 3. Users can trigger an immediate scan for any tracked source via API, bypassing the scheduled interval
 4. YouTube video thumbnails (from `i.ytimg.com`) load correctly in the frontend via a FastAPI streaming proxy endpoint that adds CORS headers
 
+**Status:** Complete (2/2 plans done)
 **Plans**: 2 plans
 
 ```
 Plans:
-- [ ] 09-01-PLAN.md — Extend source CRUD with filter fields + save-search-as-source (TRACK-03, TRACK-04)
-- [ ] 09-02-PLAN.md — Wire manual scan to DiscoveryScanner + thumbnail proxy endpoint (SCAN-03, BUG-01)
+- [x] 09-01-PLAN.md — Extend source CRUD with filter fields + save-search-as-source (TRACK-03, TRACK-04)
+- [x] 09-02-PLAN.md — Wire manual scan to DiscoveryScanner + thumbnail proxy endpoint (SCAN-03, BUG-01)
 ```
 
 ### Phase 10: DiscoverView Frontend
@@ -154,7 +155,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Infrastructure & Cleanup | 4/4 | Complete | 2026-06-29 |
 | 8. Tracking Scanner & Core Discovery | 2/2 | Complete | 2026-06-29 |
-| 9. Tracking API & Filtering | 0/2 | Plans created | - |
+| 9. Tracking API & Filtering | 2/2 | Complete | 2026-06-29 |
 | 10. DiscoverView Frontend | 0/3 | Plans created | - |
 | 11. Bug Fixes & Polish | 1/1 | Complete | 2026-06-29 |
 
@@ -199,4 +200,4 @@ Plans:
 
 ---
 
-*Last updated: 2026-06-29 — Plan 11-01 completed (Phase 11 complete: 1/1 plans). 8/12 plans across v5.1.*
+*Last updated: 2026-06-29 — Phase 9 Plan 02 completed (Phase 9 complete: 2/2 plans). 10/12 plans across v5.1.*

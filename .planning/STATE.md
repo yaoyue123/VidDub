@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v5.1
 milestone_name: Discover 页面重构与 Bug 修复
 status: executing
-last_updated: "2026-06-29T13:14:35.137Z"
-last_activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single source of truth)
+last_updated: "2026-06-29T13:22:15.000Z"
+last_activity: 2026-06-29 — Plan 09-02 completed (wire manual scan to DiscoveryScanner + thumbnail proxy)
 progress:
   total_phases: 11
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
-  completed_plans: 8
-  percent: 67
+  completed_plans: 10
+  percent: 83
 ---
 
 # Project State
@@ -31,10 +31,10 @@ Updated: 2026-06-29
 
 ## Current Position
 
-Phase: 11 (Bug Fixes & Polish)
-Plan: 01 (Fix duplicate download directory — get_download_dir() helper) — Completed
+Phase: 9 (Tracking API & Filtering)
+Plan: 02 (Wire manual scan to DiscoveryScanner + thumbnail proxy) — Completed
 Status: In Progress
-Last activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single source of truth)
+Last activity: 2026-06-29 — Plan 09-02 completed (wire manual scan to DiscoveryScanner + thumbnail proxy)
 
 ## v5.1 Roadmap Summary
 
@@ -53,7 +53,7 @@ Last activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single so
 ## Performance Metrics
 
 - Phases completed: 0 / 5
-- Plans completed: 8 (07-01, 07-02, 07-03, 07-04, 08-01, 08-02, 11-01)
+- Plans completed: 10 (07-01, 07-02, 07-03, 07-04, 08-01, 08-02, 09-01, 09-02, 11-01)
 - Tests passing baseline: pending (will be established in Phase 7)
 - Open blockers: 0
 
@@ -94,6 +94,20 @@ Last activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single so
 - D-08-02-01: **Single coordinator loop (not per-source jobs)** — One APScheduler job with IntervalTrigger that ticks every 15 minutes and scans due sources, preventing thundering herd (per D-v5.1-01)
 - D-08-02-02: **Dedup checks both Video.youtube_id and DiscoveryResult.youtube_id** — Prevents re-discovering videos already downloaded OR already in the discovery results pipeline
 
+### Phase 9 Plan 01 Decisions
+
+- D-09-01-01: **Filter fields are nullable and independent** — No server-side validation of contradictory values like min > max. Per D-v5.1-02 (personal tool scope), keep validation minimal.
+- D-09-01-02: **Follow channels.py response pattern** — Use model_validate + model_config from_attributes for DiscoverySourceResponse, ensuring proper ORM serialization.
+- D-09-01-03: **SaveSearchAsSourceRequest maps field names at API boundary** — Frontend-friendly field names (min_views) mapped to internal column names (filter_min_views).
+- D-09-01-04: **from-search always creates keyword-type sources** — Channel/creator sources have their own save mechanism via /api/channels.
+
+### Phase 9 Plan 02 Decisions
+
+- D-09-02-01: **ScanNowResponse omits status field** — Matches channels.py ScanNowResponse pattern. Uses error_msg to communicate scan failures, avoiding duplicate status indicators.
+- D-09-02-02: **httpx.AsyncClient with 10s timeout for thumbnail proxy** — Prevents hanging on slow CDN responses. Matches async FastAPI pattern.
+- D-09-02-03: **No server-side thumbnail caching** — CDN caching via Cache-Control: max-age=86400 is sufficient. Avoids disk usage and complexity.
+- D-09-02-04: **try/except on get_discovery_scanner() for 503** — Handles case where scanner singleton is not initialized at startup.
+
 ### Active Todos
 
 - [x] Phase 7, Plan 01: SQLite WAL mode + indexes + FTS5 (INFRA-02) — Done
@@ -103,6 +117,8 @@ Last activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single so
 - [x] Phase 8, Plan 01: Discovery model extensions (TRACK-01, TRACK-02, SCAN-02) — Done
 - [x] Phase 8, Plan 02: DiscoveryScanner coordinator loop + dedup + scan logs + lifecycle wiring (SCAN-01, TRACK-05) — Done
 - [x] Phase 11, Plan 01: Fix duplicate download directory — get_download_dir() single source of truth (BUG-02) — Done
+- [x] Phase 9, Plan 01: Extend source CRUD with filter fields + save-search-as-source (TRACK-03, TRACK-04) — Done
+- [x] Phase 9, Plan 02: Wire manual scan to DiscoveryScanner + thumbnail proxy (SCAN-03, BUG-01) — Done
 
 ### Blockers
 
@@ -112,12 +128,11 @@ Last activity: 2026-06-29 — Plan 11-01 completed (get_download_dir() single so
 
 ## Session Continuity
 
-**Last activity:** 2026-06-29 — Plan 11-01 completed (get_download_dir() single source of truth)
+**Last activity:** 2026-06-29 — Plan 09-02 completed (wire manual scan to DiscoveryScanner + thumbnail proxy)
 
 **Next steps:**
 
-1. Phase 11, Plan 02: Additional bug fixes (TBD)
-2. All Phase 11 plans complete → Finish v5.1 milestone
+1. Phase 10: DiscoverView Frontend (3 plans)
 
 ---
-*Last updated: 2026-06-29 — Phase 11 Plan 01 completed (BUG-02: download directory dedup). 8/12 plans complete.*
+*Last updated: 2026-06-29 — Phase 9 Plan 02 completed (SCAN-03, BUG-01: manual scan trigger + thumbnail proxy). 10/12 plans complete. Phase 9 complete (2/2).*

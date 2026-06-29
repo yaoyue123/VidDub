@@ -11,17 +11,17 @@
 
 ### TRACK — 内容跟踪
 
-- [ ] **TRACK-01**: 用户可以通过关键词搜索 YouTube 视频并查看即时结果
-- [ ] **TRACK-02**: 用户可以跟踪 YouTube 博主/频道，查看其最新视频列表
-- [ ] **TRACK-03**: 用户可以为每个跟踪源设置筛选条件（最低/最高播放量、时长范围、发布时间窗口）
-- [ ] **TRACK-04**: 用户可以将搜索结果保存为跟踪源，支持后续自动扫描
-- [ ] **TRACK-05**: 系统自动去重——已下载和已发现的视频不会重复出现
+- [x] **TRACK-01**: 用户可以通过关键词搜索 YouTube 视频并查看即时结果
+- [x] **TRACK-02**: 用户可以跟踪 YouTube 博主/频道，查看其最新视频列表
+- [x] **TRACK-03**: 用户可以为每个跟踪源设置筛选条件（最低/最高播放量、时长范围、发布时间窗口）
+- [x] **TRACK-04**: 用户可以将搜索结果保存为跟踪源，支持后续自动扫描
+- [x] **TRACK-05**: 系统自动去重——已下载和已发现的视频不会重复出现
 
 ### SCAN — 自动扫描与调度
 
-- [ ] **SCAN-01**: 系统通过统一协调器自动扫描所有已保存的跟踪源，按配置的时间间隔执行
-- [ ] **SCAN-02**: 每个跟踪源记录扫描历史（上次扫描时间、发现数量、状态），用户可查看
-- [ ] **SCAN-03**: 用户可手动触发即时搜索/扫描，无需等待定时任务
+- [x] **SCAN-01**: 系统通过统一协调器自动扫描所有已保存的跟踪源，按配置的时间间隔执行
+- [x] **SCAN-02**: 每个跟踪源记录扫描历史（上次扫描时间、发现数量、状态），用户可查看
+- [x] **SCAN-03**: 用户可手动触发即时搜索/扫描，无需等待定时任务
 
 ### UI — Discover 页面重构
 
@@ -37,7 +37,7 @@
 
 ### BUG — Bug 修复
 
-- [ ] **BUG-01**: YouTube 视频封面正常显示——后端缩略图代理（i.ytimg.com 通过 FastAPI 流式转发 + CORS 头）
+- [x] **BUG-01**: YouTube 视频封面正常显示——后端缩略图代理（i.ytimg.com 通过 FastAPI 流式转发 + CORS 头）
 - [ ] **BUG-02**: 下载目录去重——消除重复的 downloads 目录，统一为单一下载路径源
 
 ### INFRA — 基础设施
@@ -99,15 +99,15 @@
 | INFRA-02 | Phase 7 | Done |
 | CLEANUP-01 | Phase 7 | Pending |
 | CLEANUP-02 | Phase 7 | Complete | 07-04-PLAN.md |
-| TRACK-01 | Phase 8 | Pending |
-| TRACK-02 | Phase 8 | Pending |
-| TRACK-05 | Phase 8 | Pending |
-| SCAN-01 | Phase 8 | Pending |
-| SCAN-02 | Phase 8 | Pending |
-| TRACK-03 | Phase 9 | Pending |
-| TRACK-04 | Phase 9 | Pending |
-| SCAN-03 | Phase 9 | Pending |
-| BUG-01 | Phase 9 | Pending |
+| TRACK-01 | Phase 8 | Done | 08-01-PLAN.md |
+| TRACK-02 | Phase 8 | Done | 08-01-PLAN.md |
+| TRACK-05 | Phase 8 | Done | 08-02-PLAN.md |
+| SCAN-01 | Phase 8 | Done | 08-02-PLAN.md |
+| SCAN-02 | Phase 8 | Done | 08-01-PLAN.md, 08-02-PLAN.md |
+| TRACK-03 | Phase 9 | Done | 09-01-PLAN.md |
+| TRACK-04 | Phase 9 | Done | 09-01-PLAN.md |
+| SCAN-03 | Phase 9 | Done | 09-02-PLAN.md |
+| BUG-01 | Phase 9 | Done | 09-02-PLAN.md |
 | UI-01 | Phase 10 | Pending |
 | UI-02 | Phase 10 | Pending |
 | UI-03 | Phase 10 | Pending |
@@ -121,4 +121,4 @@
 
 ---
 *Requirements defined: 2026-06-29*
-*Last updated: 2026-06-29 — v5.1 traceability updated with Phase 7-11 mappings*
+*Last updated: 2026-06-29 — Phase 9 Plan 02 complete (SCAN-03, BUG-01 done). Phase 9 done (4/4 requirements, 2/2 plans). 14/18 requirements done.*

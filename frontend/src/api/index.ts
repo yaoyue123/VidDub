@@ -541,6 +541,56 @@ export interface DiscoveryResponse {
   total: number
 }
 
+export interface DiscoverySourceItem {
+  id: number
+  type: string
+  source_value: string
+  label: string
+  enabled: boolean
+  last_scanned_at: string | null
+  scan_interval_hours: number
+  max_results_per_scan: number
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface DiscoverySourceCreateBody {
+  type: string
+  source_value: string
+  label: string
+  scan_interval_hours?: number
+  max_results_per_scan?: number
+}
+
+export interface DiscoverySourceUpdateBody {
+  label?: string | null
+  enabled?: boolean | null
+  scan_interval_hours?: number | null
+  max_results_per_scan?: number | null
+}
+
+export interface DiscoveryResultItem {
+  id: number
+  source_id: number
+  youtube_id: string
+  title: string
+  channel_name: string
+  status: string
+  composite_score: number | null
+  discovered_at: string
+  video_id: number | null
+  duration_sec: number | null
+  view_count: number | null
+  like_count: number | null
+  thumbnail_url: string | null
+  published_at: string | null
+}
+
+export interface DiscoveryListResponse<T> {
+  items: T[]
+  total: number
+}
+
 export const discoveryApi = {
   /** POST /api/discovery/search — YouTube 关键词搜索 */
   search(query: string, maxResults = 12) {
@@ -559,6 +609,39 @@ export const discoveryApi = {
   /** GET /api/discovery/channels — 已追踪（discovery）频道列表 */
   channels() {
     return api.get<{ items: { id: number; label: string; source_value: string; last_scanned_at: string | null }[] }>('/discovery/channels')
+  },
+
+  /** GET /api/discovery/sources — list all discovery sources */
+  listSources() {
+    return api.get<DiscoveryListResponse<DiscoverySourceItem>>('/discovery/sources')
+  },
+  /** GET /api/discovery/sources/{id} — get single source */
+  getSource(id: number) {
+    return api.get<DiscoverySourceItem>(`/discovery/sources/${id}`)
+  },
+  /** POST /api/discovery/sources — create a new source */
+  createSource(body: DiscoverySourceCreateBody) {
+    return api.post<DiscoverySourceItem>('/discovery/sources', body)
+  },
+  /** PUT /api/discovery/sources/{id} — update source */
+  updateSource(id: number, body: DiscoverySourceUpdateBody) {
+    return api.put<DiscoverySourceItem>(`/discovery/sources/${id}`, body)
+  },
+  /** DELETE /api/discovery/sources/{id} — delete source */
+  deleteSource(id: number) {
+    return api.delete<{ ok: boolean }>(`/discovery/sources/${id}`)
+  },
+  /** POST /api/discovery/sources/{id}/scan — trigger scan */
+  triggerScan(id: number) {
+    return api.post<{ source_id: number; results_count: number; results: any[] }>(`/discovery/sources/${id}/scan`)
+  },
+  /** GET /api/discovery/results — list discovery results with optional filters */
+  listResults(params?: { source_id?: number; status?: string; limit?: number; offset?: number }) {
+    return api.get<DiscoveryListResponse<DiscoveryResultItem>>('/discovery/results', { params })
+  },
+  /** PUT /api/discovery/results/{id}/ignore — mark result as ignored */
+  ignoreResult(id: number) {
+    return api.put<{ ok: boolean }>(`/discovery/results/${id}/ignore`)
   },
 }
 
