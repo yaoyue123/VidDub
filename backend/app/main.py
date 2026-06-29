@@ -6,19 +6,10 @@ from pathlib import Path
 import sys
 from typing import AsyncIterator
 
-# Windows 必须用 ProactorEventLoop，否则 asyncio.create_subprocess_exec 抛 NotImplementedError
-# uvicorn reload 模式 spawn 子进程时，policy 也需要在每个子进程内重新设置
+# Windows: Python 3.13+ 的 ProactorEventLoop 不再支持 create_subprocess_exec，
+# 必须用 SelectorEventLoop（否则 patchright/Playwright 无法启动 Chromium）
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    # 额外保险：如果当前已经存在 loop 但不是 Proactor，替换之
-    try:
-        loop = asyncio.get_event_loop()
-        if not isinstance(loop, asyncio.ProactorEventLoop):
-            loop.close()
-            new_loop = asyncio.ProactorEventLoop()
-            asyncio.set_event_loop(new_loop)
-    except RuntimeError:
-        pass
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Debug log：在 startup 时打印 loop 类型，帮助确认 Proactor 是否生效
 def _log_loop_type():
