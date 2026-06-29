@@ -72,8 +72,8 @@ Full configuration reference in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 ### Step 3: Start the Service
 
 **Windows:**
-```powershell
-PS> .\start.ps1
+```cmd
+> start.bat
 ```
 
 **Linux / macOS:**
@@ -133,7 +133,7 @@ you2bili/
 ├── docker-compose.yml        # Docker deployment
 ├── Dockerfile                # Docker image build
 ├── setup.ps1 / setup.sh      # One-click environment setup
-├── start.ps1 / start.sh      # One-click startup
+├── start.bat / start.sh      # One-click startup
 ├── README.md                 # This file
 ├── LICENSE                   # MIT License
 ├── CONTRIBUTING.md           # Contribution guide
