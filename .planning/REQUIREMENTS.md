@@ -42,7 +42,7 @@
 
 ### INFRA — 基础设施
 
-- [ ] **INFRA-01**: 创建统一的 yt-dlp 封装层（YtDlpWrapper），带全局限速器防止 YouTube 429/403 限流，集中管理 cookie 和 extractor-args
+- [x] **INFRA-01**: 创建统一的 yt-dlp 封装层（YtDlpWrapper），带全局限速器防止 YouTube 429/403 限流，集中管理 cookie 和 extractor-args
 - [ ] **INFRA-02**: SQLite 数据库优化——启用 WAL 模式、设置 busy_timeout、添加跟踪查询所需的索引
 
 ---
@@ -95,8 +95,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 7 | Pending |
-| INFRA-02 | Phase 7 | Pending |
+| INFRA-01 | Phase 7 | Done |
+| INFRA-02 | Phase 7 | Done |
 | CLEANUP-01 | Phase 7 | Pending |
 | CLEANUP-02 | Phase 7 | Pending |
 | TRACK-01 | Phase 8 | Pending |

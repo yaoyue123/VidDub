@@ -15,10 +15,6 @@ from app.api.publish import router as publish_router
 from app.api.title import router as title_router
 from app.api.channels import router as channels_router
 from app.api.export import router as export_router
-from app.api.scoring import router as scoring_router  # Phase 13
-from app.api.rules import router as rules_router  # Phase 15
-from app.api.analytics import router as analytics_router  # Phase 17
-
 api_router = APIRouter()
 api_router.include_router(videos_router, prefix="/api/videos", tags=["videos"])
 api_router.include_router(tasks_router, prefix="/api/tasks", tags=["tasks"])
@@ -35,6 +31,3 @@ api_router.include_router(publish_router, prefix="/api/publish", tags=["publish"
 api_router.include_router(title_router, prefix="/api/title", tags=["title"])
 api_router.include_router(channels_router, prefix="/api/channels", tags=["channels"])
 api_router.include_router(export_router, prefix="/api/export", tags=["export"])
-api_router.include_router(scoring_router, prefix="/api/scoring", tags=["scoring"])
-api_router.include_router(rules_router, prefix="/api/rules", tags=["rules"])
-api_router.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])

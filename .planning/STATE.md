@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v5.1
 milestone_name: Discover 页面重构与 Bug 修复
-status: planning
-last_updated: "2026-06-29T12:00:00.000Z"
-last_activity: 2026-06-29
+status: executing
+last_updated: "2026-06-29T13:12:00.000Z"
+last_activity: 2026-06-29 — Plan 07-02 completed (YtDlpWrapper + rate limiter)
 progress:
-  total_phases: 5
+  total_phases: 11
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 12
+  completed_plans: 3
+  percent: 25
 ---
 
 # Project State
@@ -31,10 +31,10 @@ Updated: 2026-06-29
 
 ## Current Position
 
-Phase: 7 (Infrastructure & Cleanup) — Not started
-Plan: None
-Status: Roadmap defined
-Last activity: 2026-06-29 — v5.1 ROADMAP created (Phases 7-11)
+Phase: 7 (Infrastructure & Cleanup) — In Progress
+Plan: 02 (YtDlpWrapper with rate limiter) — Completed
+Status: In Progress
+Last activity: 2026-06-29 — Plan 07-02 completed (YtDlpWrapper + rate limiter + circuit breaker)
 
 ## v5.1 Roadmap Summary
 
@@ -53,7 +53,7 @@ Last activity: 2026-06-29 — v5.1 ROADMAP created (Phases 7-11)
 ## Performance Metrics
 
 - Phases completed: 0 / 5
-- Plans completed: 0
+- Plans completed: 2 (07-01, 07-02)
 - Tests passing baseline: pending (will be established in Phase 7)
 - Open blockers: 0
 
@@ -70,9 +70,25 @@ Last activity: 2026-06-29 — v5.1 ROADMAP created (Phases 7-11)
 - D-v5.1-05: **Bug fixes last** — Independent of feature work, implemented in Phase 11
 - D-v5.1-06: **Thumbnail proxy via FastAPI streaming** — Backend proxying i.ytimg.com through streaming endpoint with CORS headers
 
+### Phase 7 Plan 01 Decisions
+
+- D-INFRA-02-01: **Use engine.sync_engine connect event for PRAGMAs** — register event listener on sync engine (not async) to set WAL/busy_timeout/cache at every connection setup
+- D-INFRA-02-02: **Use CREATE INDEX IF NOT EXISTS** — all 8 indexes use IF NOT EXISTS syntax for idempotent re-runs
+- D-INFRA-02-03: **Use FTS5 with content-sync triggers** — automatic FTS index sync via AFTER INSERT/DELETE/UPDATE triggers, plus INSERT OR IGNORE for idempotent initial population
+- D-INFRA-02-04: **Wire init_db into main.py lifespan** — call `_ensure_indexes()` and `_ensure_fts5()` via `conn.run_sync(init_db)` after `Base.metadata.create_all`
+
+### Phase 7 Plan 02 Decisions
+
+- D-07-02-01: **download_sync kept unchanged** — Downloads need progress hooks and format strings; wrapping through rate limiter deferred to future phase
+- D-07-02-02: **Rate limiter skipped in sync path** — extract_info_sync skips rate limiter because sync callers already run with bounded concurrency via their own thread pool; circuit breaker still protects
+- D-07-02-03: **CircuitBreaker.call accepts both sync and async callables** — Uses iscoroutinefunction() to dispatch, with fallback to asyncio.to_thread
+
 ### Active Todos
 
-- [ ] Phase 7: Infrastructure & Cleanup
+- [x] Phase 7, Plan 01: SQLite WAL mode + indexes + FTS5 (INFRA-02) — Done
+- [x] Phase 7, Plan 02: YtDlpWrapper with rate limiter (INFRA-01) — Done
+- [ ] Phase 7, Plan 03: Remove v4.0 scoring backend code (CLEANUP-01)
+- [ ] Phase 7, Plan 04: Remove v4.0 scoring frontend code (CLEANUP-02)
 
 ### Blockers
 
@@ -82,11 +98,13 @@ Last activity: 2026-06-29 — v5.1 ROADMAP created (Phases 7-11)
 
 ## Session Continuity
 
-**Last activity:** 2026-06-29 — v5.1 ROADMAP created
+**Last activity:** 2026-06-29 — Plan 07-02 completed
 
 **Next steps:**
 
-1. Begin Phase 7: Infrastructure & Cleanup (`/gsd-plan-phase 7`)
+1. Continue Phase 7: Execute Plan 07-03 (Remove v4.0 scoring backend code)
+2. Plan 07-04: Remove v4.0 scoring frontend code
+3. Phase 8: DiscoveryScanner + keyword search + channel tracking
 
 ---
-*Last updated: 2026-06-29 — v5.1 ROADMAP created*
+*Last updated: 2026-06-29 — Phase 7 Plan 02 completed (YtDlpWrapper)*

@@ -37,6 +37,8 @@
 
 **Requirements:** INFRA-01, INFRA-02, CLEANUP-01, CLEANUP-02
 
+**Progress:** 2/4 plans complete
+
 **Success Criteria** (what must be TRUE):
 1. All yt-dlp calls go through a centralized `YtDlpWrapper` with shared sliding-window rate limiter, cookie management, and extractor-args configuration
 2. SQLite database uses WAL mode with `busy_timeout` at connection setup and has indexes created for all tracking query patterns
@@ -48,8 +50,8 @@
 
 ```
 Plans:
-- [ ] 07-01-PLAN.md — SQLite WAL mode + busy_timeout + indexes + FTS5 (INFRA-02)
-- [ ] 07-02-PLAN.md — YtDlpWrapper with rate limiter + circuit breaker + wiring (INFRA-01)
+- [x] 07-01-PLAN.md — SQLite WAL mode + busy_timeout + indexes + FTS5 (INFRA-02)
+- [x] 07-02-PLAN.md — YtDlpWrapper with rate limiter + circuit breaker + wiring (INFRA-01)
 - [ ] 07-03-PLAN.md — Remove v4.0 scoring backend code (CLEANUP-01)
 - [ ] 07-04-PLAN.md — Remove v4.0 scoring frontend code (CLEANUP-02)
 ```
@@ -150,7 +152,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Infrastructure & Cleanup | 0/4 | Planned | - |
+| 7. Infrastructure & Cleanup | 2/4 | In Progress | 2026-06-29 |
 | 8. Tracking Scanner & Core Discovery | 0/2 | Planned | - |
 | 9. Tracking API & Filtering | 0/2 | Plans created | - |
 | 10. DiscoverView Frontend | 0/3 | Plans created | - |
