@@ -6,10 +6,7 @@ from app.models.subtitle import Subtitle
 from app.models.publish_record import PublishRecord, PublishStatus, PublishPlatform
 from app.models.channel import Channel  # Phase 9
 from app.models.scan_log import ScanLog  # Phase 9
-from app.models.video_score import VideoScore  # Phase 13
 from app.models.discovery import DiscoverySource, DiscoveryResult  # Phase 14
-from app.models.content_rule import ContentRule  # Phase 15
-from app.models.performance_log import PerformanceLog  # Phase 17
 
 __all__ = [
     "Base",
@@ -23,9 +20,6 @@ __all__ = [
     "PublishPlatform",
     "Channel",
     "ScanLog",
-    "VideoScore",
     "DiscoverySource",
     "DiscoveryResult",
-    "ContentRule",
-    "PerformanceLog",
 ]

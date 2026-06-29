@@ -347,27 +347,14 @@ async def scan_discovery_source(
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    from app.services.scoring.discovery_pipeline import run_discovery
-    try:
-        results = await run_discovery(source_id)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Discovery scan failed: {e}",
-        )
-
+    # Scanner not yet implemented for non-channel source types.
+    # DiscoveryScanner will be built in Phase 8 (v5.1 tracking feature).
+    # Return stub until Phase 8 implements DiscoveryScanner
     return {
         "source_id": source_id,
-        "results_count": len(results),
-        "results": [
-            {
-                "id": r.id,
-                "youtube_id": r.youtube_id,
-                "title": r.title,
-                "composite_score": r.composite_score,
-            }
-            for r in results[:20]
-        ],
+        "results_count": 0,
+        "results": [],
+        "note": "自动扫描尚未实现。Phase 8 将添加 DiscoveryScanner。",
     }
 
 
