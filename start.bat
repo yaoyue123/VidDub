@@ -71,7 +71,7 @@ if not exist "%PLAYWRIGHT_DIR%" (
 :: ----- 6. DB migration -----
 echo [*] running DB migration...
 cd backend
-uv run alembic upgrade head
+uv run python -m alembic upgrade head
 cd ..
 echo [OK] DB migration done
 

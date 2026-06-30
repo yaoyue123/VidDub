@@ -72,7 +72,7 @@ fi
 # ── 6. 数据库迁移 ──
 log "执行数据库迁移..."
 cd "$BACKEND"
-uv run alembic upgrade head
+uv run python -m alembic upgrade head
 cd "$PROJECT_ROOT"
 ok "数据库迁移完成"
 
