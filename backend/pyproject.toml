@@ -56,6 +56,9 @@ markers = [
     "slow: marks tests as slow",
 ]
 
-[build-system]
-requires = ["setuptools>=64"]
-build-backend = "setuptools.build_meta"
+# No [build-system]: this is an application, not a library.
+# uv will install dependencies without attempting to build the package.
+# If you need to build, add:
+# [build-system]
+# requires = ["setuptools>=64"]
+# build-backend = "setuptools.build_meta"
