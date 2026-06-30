@@ -246,7 +246,7 @@ cp social-auto-upload/conf.example.py social-auto-upload/conf.py
 
 **原因**：Python / ffmpeg / Playwright 在含中文路径下偶发解析问题。
 
-**修复**：把项目放到**全英文**路径，例如 `C:\dev\you2bili\`。
+**修复**：把项目放到**全英文**路径，例如 `C:\dev\viddub\`。
 
 ### 6.2 PowerShell 执行策略阻止脚本运行
 

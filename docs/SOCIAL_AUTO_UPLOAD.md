@@ -5,9 +5,9 @@
 [`social-auto-upload`](https://github.com/dreammis/social-auto-upload) is a Python library
 that provides automated uploading to Chinese video platforms (Douyin, Kuaishou, Tencent Video,
 Xiaohongshu, and Bilibili via the biliup Rust binary). It is the publishing backend for all
-platforms in you2bili.
+platforms in viddub.
 
-The library is currently **vendored** as a nested git repository inside the you2bili repository
+The library is currently **vendored** as a nested git repository inside the viddub repository
 at `social-auto-upload/`. It is not a git submodule — it has its own `.git` directory and
 remote.
 
@@ -84,7 +84,7 @@ cp social-auto-upload/conf.example.py social-auto-upload/conf.py
 - **License:** MIT
 - **Status:** Actively maintained
 
-The you2bili vendored copy may lag behind upstream. When updating, check the changelog for
+The viddub vendored copy may lag behind upstream. When updating, check the changelog for
 breaking changes to the publishing API.
 
 ### Duplicate Uploader: `xhs_uploader/` vs `xiaohongshu_uploader/`

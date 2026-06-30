@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: you2bili-backend
+    container_name: viddub-backend
     ports:
       - "8000:8000"
     volumes:
@@ -25,7 +25,7 @@ services:
   # Optional: nginx to serve frontend static files and proxy API
   # nginx:
   #   image: nginx:alpine
-  #   container_name: you2bili-nginx
+  #   container_name: viddub-nginx
   #   ports:
   #     - "80:80"
   #     - "443:443"

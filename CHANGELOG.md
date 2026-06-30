@@ -8,7 +8,7 @@
 
 ## [v5.0.0] — 2026-06-29 — Phase 1-6: 开源化深度改造
 
-> v5.0 是一次重大重构：从个人 VidDub 工具转型为开源 You2Bili 项目。核心变化包括 5 平台支持（去掉了 ixigua）、social-auto-upload 集成、TTS 架构升级、文档全面 rewrite。
+> v5.0 是一次重大重构：从个人 VidDub 工具转型为开源 VidDub 项目。核心变化包括 5 平台支持（去掉了 ixigua）、social-auto-upload 集成、TTS 架构升级、文档全面 rewrite。
 
 ### Phase 1: 5 平台发布集成 (2026-06-25)
 

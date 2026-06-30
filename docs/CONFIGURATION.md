@@ -1,6 +1,6 @@
 # 配置项完整说明
 
-> You2Bili 所有可配置项的清单。`.env` 用于敏感数据（API Key），`app_config` 表用于运行时可调参数。
+> VidDub 所有可配置项的清单。`.env` 用于敏感数据（API Key），`app_config` 表用于运行时可调参数。
 
 ---
 

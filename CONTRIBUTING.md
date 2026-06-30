@@ -1,4 +1,4 @@
-# Contributing to You2Bili
+# Contributing to VidDub
 
 Thank you for considering contributing! This document outlines the development workflow, code style, and testing requirements.
 
@@ -17,8 +17,8 @@ Thank you for considering contributing! This document outlines the development w
 
 ```bash
 # Clone the repository
-git clone <your-fork-url> you2bili
-cd you2bili
+git clone <your-fork-url> viddub
+cd viddub
 
 # Backend setup (venv + dependencies + Playwright Chromium)
 cd backend
@@ -111,6 +111,7 @@ The production build must succeed without errors.
 - [ ] Black and Ruff pass on changed Python files
 - [ ] ESLint and Prettier pass on changed frontend files
 - [ ] Documentation updated if API or behavior changed
+- [ ] No new security concerns introduced (see [SECURITY.md](SECURITY.md))
 
 ---
 
@@ -146,8 +147,17 @@ The production build must succeed without errors.
 
 ---
 
+## Community Guidelines
+
+All contributors must adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please be respectful, inclusive, and constructive.
+
+## Reporting Security Vulnerabilities
+
+If you discover a security vulnerability, **please do NOT open a public issue**. Instead, follow the process in [SECURITY.md](SECURITY.md) to report it privately.
+
 ## Getting Help
 
 - Open a GitHub Issue for bugs or feature requests
 - Check `docs/TROUBLESHOOTING.md` for common issues
 - Review `docs/ARCHITECTURE.md` for system design understanding
+- See [SECURITY.md](SECURITY.md) for reporting security issues
