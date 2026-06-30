@@ -104,38 +104,25 @@ Whether you're a content creator looking to expand to the Chinese market, or a d
 
 ## 🚀 Quick Start
 
-### Step 1: Environment Setup
-
-**Recommended — via uv (automatic Python version + venv management):**
+### Step 1: One-Click Start
 
 ```powershell
 # Windows
-PS> .\setup.ps1
+PS> .\start.bat
 
 # Linux / macOS
-$ chmod +x setup.sh start.sh
-$ ./setup.sh
+$ chmod +x start.sh
+$ ./start.sh
 ```
 
-**Traditional — pip + venv (no uv dependency):**
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\pip install -r requirements.txt
-venv\Scripts\python -m playwright install chromium
-cp .env.example .env
-venv\Scripts\python -m alembic upgrade head
-cd ../frontend
-npm install
-```
-
-The setup script automatically:
+The start script automatically:
 - Installs **uv** (blazing-fast Rust-based Python package manager) if not found
 - Runs `uv sync` to create `.venv` and install all Python dependencies
-- Installs Playwright Chromium + Whisper tiny model
+- Installs Playwright Chromium
 - Installs frontend npm dependencies
 - Runs database migration (Alembic)
 - Copies `.env.example` to `backend/.env`
+- Starts backend + frontend services
 
 ### Step 2: Configure API Key
 
@@ -148,18 +135,6 @@ SILICONFLOW_API_KEY=sk_your_real_key_here
 Apply for a key at: https://cloud.siliconflow.cn/account/ak
 
 > Full configuration reference in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
-
-### Step 3: Start the Service
-
-**Windows:**
-```cmd
-> start.bat
-```
-
-**Linux / macOS:**
-```bash
-$ ./start.sh
-```
 
 After startup, visit:
 - **Frontend Web UI:** http://localhost:5173

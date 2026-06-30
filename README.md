@@ -98,38 +98,25 @@
 
 ## 🚀 快速开始
 
-### 第一步：环境初始化
-
-**推荐方式 — uv（自动管理 Python 版本和虚拟环境）：**
+### 第一步：一键启动
 
 ```powershell
 # Windows
-PS> .\setup.ps1
+PS> .\start.bat
 
 # Linux / macOS
-$ chmod +x setup.sh start.sh
-$ ./setup.sh
+$ chmod +x start.sh
+$ ./start.sh
 ```
 
-**传统方式 — pip + venv（不依赖 uv）：**
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\pip install -r requirements.txt
-venv\Scripts\python -m playwright install chromium
-cp .env.example .env
-venv\Scripts\python -m alembic upgrade head
-cd ../frontend
-npm install
-```
-
-初始化脚本自动完成以下操作：
+启动脚本自动完成以下操作：
 - ✅ 检查 / 自动安装 **uv**（Rust 编写的极速 Python 包管理器）
 - ✅ `uv sync` 创建 `.venv` + 安装所有 Python 依赖
-- ✅ 安装 Playwright Chromium + Whisper tiny 模型
+- ✅ 安装 Playwright Chromium
 - ✅ 安装前端 npm 依赖
 - ✅ 执行数据库迁移（Alembic）
 - ✅ 复制 `.env.example` 到 `backend/.env`
+- ✅ 启动后端 + 前端服务
 
 ### 第二步：配置 API 密钥
 
@@ -142,18 +129,6 @@ SILICONFLOW_API_KEY=sk_your_real_key_here
 申请密钥：https://cloud.siliconflow.cn/account/ak
 
 > 完整配置参考见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
-
-### 第三步：启动服务
-
-**Windows：**
-```cmd
-> start.bat
-```
-
-**Linux / macOS：**
-```bash
-$ ./start.sh
-```
 
 启动后访问：
 - ✨ **前端 Web UI：** http://localhost:5173
