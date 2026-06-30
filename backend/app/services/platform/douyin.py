@@ -89,17 +89,47 @@ class DouyinLogin(PlatformLoginBase):
         return {"status": LoginStatus.WAITING, "message": "等待扫码"}
 
     async def check_login_status(self) -> bool:
+        """检查 Douyin 登录态，不启动 Playwright。
+
+        直接读取 storage_state JSON 文件，验证 cookie 是否仍有效。
+        避免调用 douyin_setup() 弹出浏览器窗口。
+        """
+        import json
+        import time
+
         if not os.path.exists(self.storage_state_path):
             return False
         try:
-            from uploader.douyin_uploader.main import douyin_setup
-            result = await douyin_setup(
-                self.storage_state_path, handle=False,
-                return_detail=True, headless=True,
-            )
-            return bool(result.get("success"))
+            with open(self.storage_state_path, "r") as f:
+                state = json.load(f)
+            cookies = state.get("cookies", [])
+            if not cookies:
+                logger.warning("douyin storage_state has no cookies")
+                return False
+            # 检查是否有未过期的 session cookie
+            now = time.time()
+            valid_cookies = [
+                c for c in cookies
+                if c.get("expires", -1) == -1 or c.get("expires", 0) > now
+            ]
+            if not valid_cookies:
+                logger.warning("douyin storage_state cookies all expired")
+                return False
+            # 至少有一条 session 级别的 cookie（如 sessionid、passport 等）
+            session_cookies = [
+                c for c in valid_cookies
+                if any(k in (c.get("name", "") or "").lower()
+                       for k in ("session", "passport", "sid", "token", "auth"))
+            ]
+            if not session_cookies:
+                logger.warning(
+                    "douyin storage_state has %d valid cookies but no session cookie",
+                    len(valid_cookies),
+                )
+                return False
+            return True
         except Exception as e:
-            logger.warning("douyin check_login_status: %s", e)
+            logger.warning("douyin check_login_status (no-browser): %s", e)
             return False
 
     async def logout(self) -> None:

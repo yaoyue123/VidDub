@@ -4,8 +4,8 @@
 
 **YouTube 视频中文配音 + 多平台自动发布**
 
-[![GitHub Stars](https://img.shields.io/github/stars/yourusername/viddub?style=flat-square&logo=github)](https://github.com/yourusername/viddub/stargazers)
-[![License](https://img.shields.io/github/license/yourusername/viddub?style=flat-square)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/yaoyue123/VidDub?style=flat-square&logo=github)](https://github.com/yaoyue123/VidDub/stargazers)
+[![License](https://img.shields.io/github/license/yaoyue123/VidDub?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Vue.js](https://img.shields.io/badge/Vue-3.5-4FC08D?style=flat-square&logo=vue.js)](https://vuejs.org/)
@@ -367,7 +367,7 @@ npm run build
 
 ## ⭐ Star 历史
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/viddub&type=Timeline)](https://star-history.com/#yourusername/viddub&Timeline)
+[![Star History Chart](https://api.star-history.com/svg?repos=yaoyue123/VidDub&type=Timeline)](https://star-history.com/#yaoyue123/VidDub&Timeline)
 
 ---
 

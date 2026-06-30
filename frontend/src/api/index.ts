@@ -143,6 +143,7 @@ export interface DashboardRecentTask {
   current_step: string
   progress_pct: number
   error_msg: string | null
+  thumbnail_url: string | null
   created_at: string
   final_url: string | null
 }
