@@ -241,53 +241,75 @@ async def get_subtitle(
         logger.warning("work dir not found for video %s at %s", video_id, work_dir)
         return ""
 
-    # Try translated.json (bilingual segments)
+    # Load transcript for English text with timestamps
     import json
-    tjson_path = os.path.join(work_dir, "translated.json")
     transcript_path = os.path.join(work_dir, "transcript.json")
-
-    # Load transcript for timestamps + original text
-    transcript: list[dict] = []
+    transcript_segments: list[dict] = []
     if os.path.exists(transcript_path):
         try:
             t = json.load(open(transcript_path, "r", encoding="utf-8"))
             if isinstance(t, list):
-                transcript = t
+                transcript_segments = t
         except Exception:
             logger.warning("failed to parse transcript.json for video %s", video_id, exc_info=True)
 
-    if os.path.exists(tjson_path):
-        try:
-            data = json.load(open(tjson_path, "r", encoding="utf-8"))
-            if isinstance(data, list) and len(data) > 0:
-                lines: list[str] = []
-                for i in range(len(data)):
-                    seg_raw = data[i]
-                    idx = i + 1
-                    # Get timing from transcript (by index) or from seg object
-                    ts = transcript[i] if i < len(transcript) else {}
-                    start = ts.get("start", 0) if isinstance(ts, dict) else 0
-                    end = ts.get("end", 0) if isinstance(ts, dict) else 0
-                    # Get original text from transcript
-                    text_en = (ts.get("text", "") or "").strip() if isinstance(ts, dict) else ""
-                    # Get Chinese text (seg could be string or object)
-                    if isinstance(seg_raw, dict):
-                        text_zh = (seg_raw.get("text_zh", seg_raw.get("text", "")) or "").strip()
-                    elif isinstance(seg_raw, str):
-                        text_zh = seg_raw.strip()
-                    else:
-                        text_zh = str(seg_raw).strip() if seg_raw else ""
-                    if not text_zh and not text_en:
-                        continue
-                    text = f"{text_en}\n{text_zh}" if text_zh and text_en else (text_zh or text_en)
-                    lines.append(str(idx))
-                    lines.append(f"{_sec2srt(start)} --> {_sec2srt(end)}")
-                    lines.append(text)
-                    lines.append("")
-                if lines:
-                    return "\n".join(lines)
-        except Exception:
-            logger.warning("failed to parse translated.json for video %s", video_id, exc_info=True)
+    # Find English text for a given time range by matching overlapping transcript segments
+    def _find_en(start: float, end: float) -> str:
+        parts: list[str] = []
+        for ts in transcript_segments:
+            ts_start = float(ts.get("start", 0))
+            ts_end = float(ts.get("end", 0))
+            # Overlap if segment starts before our end AND ends after our start
+            if ts_start < end and ts_end > start:
+                text = (ts.get("text", "") or "").strip()
+                if text:
+                    parts.append(text)
+        return " ".join(parts) if parts else ""
+
+    # Try loading the actual SRT file first (Chinese text with correct timing)
+    srt_content = ""
+    try:
+        for f in os.listdir(work_dir):
+            if f.endswith(".srt"):
+                srt_path = os.path.join(work_dir, f)
+                with open(srt_path, "r", encoding="utf-8") as fh:
+                    srt_content = fh.read().strip()
+                if srt_content:
+                    break
+    except OSError:
+        pass
+
+    if srt_content:
+        # Parse SRT, then merge with English from transcript
+        lines: list[str] = []
+        for block in srt_content.split("\n\n"):
+            block = block.strip()
+            if not block:
+                continue
+            blines = block.split("\n")
+            if len(blines) < 2:
+                continue
+            idx = 0
+            if blines[0].strip().isdigit():
+                idx = 1
+            # Parse time: "00:00:00,000 --> 00:00:03,500"
+            tm_match = blines[idx].strip() if idx < len(blines) else ""
+            import re as _re
+            tm = _re.match(r"([\d:,]+)\s*-->\s*([\d:,]+)", tm_match)
+            if not tm:
+                continue
+            start = _srt2sec(tm.group(1))
+            end = _srt2sec(tm.group(2))
+            text_zh = "\n".join(blines[idx + 1:]).strip() if idx + 1 < len(blines) else ""
+            text_en = _find_en(start, end)
+            idx_num = len(lines) // 4 + 1
+            text = f"{text_en}\n{text_zh}" if text_en and text_zh else (text_zh or text_en)
+            lines.append(str(idx_num))
+            lines.append(f"{_sec2srt(start)} --> {_sec2srt(end)}")
+            lines.append(text)
+            lines.append("")
+        if lines:
+            return "\n".join(lines)
 
     # Fallback: find any .srt file in the work dir
     try:
@@ -317,6 +339,16 @@ def _sec2srt(s: float) -> str:
     m = int((s % 3600) // 60)
     sec = int(s % 60)
     return f"{h:02d}:{m:02d}:{sec:02d},{ms:03d}"
+
+
+def _srt2sec(t: str) -> float:
+    """Convert SRT time string (HH:MM:SS,mmm) to seconds."""
+    import re as _re
+    m = _re.match(r"(\d+):(\d+):(\d+)[,.](\d+)", t.strip())
+    if not m:
+        return 0.0
+    h, mi, s, ms = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+    return float(h * 3600 + mi * 60 + s + ms / 1000.0)
 
 
 @router.post("/{video_id}/resume")
