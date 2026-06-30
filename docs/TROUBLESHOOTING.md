@@ -71,7 +71,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 # Windows PowerShell
 $env:HF_ENDPOINT="https://hf-mirror.com"
 # 再跑 setup.sh / setup.ps1 的预下载步骤
-backend/venv/bin/python -c "import whisper; whisper.load_model('tiny')"
+uv run python -c "import whisper; whisper.load_model('tiny')"
 ```
 
 **修复方案 B — 手动下载放到缓存目录**：
@@ -161,8 +161,8 @@ brew install ffmpeg
 
 **修复**：
 ```bash
-backend/venv/Scripts/python -m playwright install chromium
-# Linux: backend/venv/bin/python -m playwright install chromium
+uv run python -m playwright install chromium
+# Linux: uv run python -m playwright install chromium
 ```
 
 ### 4.2 Linux 服务器启动 Playwright 失败 — 缺依赖库
@@ -193,7 +193,7 @@ xvfb-run -a ./start.sh
 
 **修复**：
 ```bash
-backend/venv/Scripts/pip install qrcode>=7.4
+uv add qrcode>=7.4
 ```
 
 setup 脚本已包含，手动装 requirements 时漏装会出现。
@@ -259,13 +259,13 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 powershell -ExecutionPolicy Bypass -File .\setup.ps1
 ```
 
-### 6.3 venv 创建失败 — `python -m venv venv` 报错
+### 6.3 虚拟环境创建失败
 
 **原因**：Python 安装时没勾选 "Add Python to PATH"，或 `venv` 模块缺失。
 
-**修复**：
-- 重装 Python 3.10+，勾选 "Add Python to PATH"
-- 自定义安装勾选 "tcl/tk and IDLE" 和 "py launcher"
+**修复**（两种方式任选）：
+- **uv 方式（推荐）**：`cd backend && uv sync` — uv 自动管理虚拟环境
+- **传统方式**：重装 Python 3.10+，勾选 "Add Python to PATH"，自定义安装勾选 "tcl/tk and IDLE" 和 "py launcher"
 
 ### 6.4 行尾符问题（git checkout 后 .sh 脚本无法运行）
 
@@ -302,12 +302,12 @@ git config core.autocrlf false
 **修复**：
 ```bash
 cd backend
-venv/Scripts/python -m alembic current
-venv/Scripts/python -m alembic history
+uv run python -m alembic current
+uv run python -m alembic history
 # 备份后回退
 cp data/viddub.db data/viddub.db.bak
-venv/Scripts/python -m alembic downgrade -1
-venv/Scripts/python -m alembic upgrade head
+uv run python -m alembic downgrade -1
+uv run python -m alembic upgrade head
 ```
 
 ### 7.3 数据库重置（清空重来）
@@ -316,7 +316,7 @@ venv/Scripts/python -m alembic upgrade head
 ```bash
 cd backend
 rm data/viddub.db data/*.db-wal data/*.db-shm 2>/dev/null
-venv/Scripts/python -m alembic upgrade head
+uv run python -m alembic upgrade head
 ```
 
 ---
@@ -365,20 +365,20 @@ find backend/downloads/ -name "*.wav" -mtime +1 -delete
 
 ```bash
 cd backend
-venv/Scripts/uvicorn app.main:app --reload --log-level debug
+uv run uvicorn app.main:app --reload --log-level debug
 ```
 
 ### 9.2 单步执行管线
 
 ```bash
 cd backend
-venv/Scripts/python -m app.cli dub "https://www.youtube.com/watch?v=XXXX"
+uv run python -m app.cli dub "https://www.youtube.com/watch?v=XXXX"
 ```
 
 ### 9.3 单独测试某段
 
 ```bash
-backend/venv/Scripts/python
+uv run python
 >>> from app.services.siliconflow.client import SiliconFlowClient
 >>> c = SiliconFlowClient()
 ```

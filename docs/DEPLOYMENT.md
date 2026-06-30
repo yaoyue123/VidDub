@@ -188,7 +188,7 @@ EnvironmentFile=/opt/viddub/backend/.env
 
 # xvfb-run 让 Playwright headed 在无显示器环境下工作
 ExecStart=/usr/bin/xvfb-run -a --server-args="-screen 0 1920x1080x24" \
-    /opt/viddub/backend/venv/bin/uvicorn app.main:app \
+    /opt/viddub/backend/.venv/bin/uvicorn app.main:app \
     --host 127.0.0.1 --port 8000 \
     --workers 1 \
     --no-access-log
@@ -233,7 +233,7 @@ sudo systemctl status viddub
 **管理员 PowerShell**：
 
 ```powershell
-nssm install VidDubBackend "C:\viddub\backend\venv\Scripts\uvicorn.exe" `
+nssm install VidDubBackend "C:\viddub\backend\.venv\Scripts\uvicorn.exe" `
     "app.main:app --host 127.0.0.1 --port 8000 --workers 1"
 
 nssm set VidDubBackend AppDirectory "C:\viddub\backend"
@@ -369,7 +369,7 @@ git pull origin main
 
 # 跑迁移
 cd backend
-venv/bin/python -m alembic upgrade head
+uv run python -m alembic upgrade head
 
 # 重建前端
 cd ../frontend
