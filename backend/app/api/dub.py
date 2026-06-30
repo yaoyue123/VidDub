@@ -118,11 +118,13 @@ async def create_dub(
         title = info.get("title") or "Untitled"
         channel = info.get("channel") or "Unknown"
         duration = info.get("duration")
+        thumbnail_url = info.get("thumbnail_url")
     else:
         youtube_id = url  # 兜底
         title = "Untitled"
         channel = "Unknown"
         duration = None
+        thumbnail_url = None
 
     # 创建 Video
     video = Video(
@@ -131,6 +133,7 @@ async def create_dub(
         title=title,
         channel=channel,
         duration=duration,
+        thumbnail_url=thumbnail_url,
         status=VideoStatus.PENDING,
     )
     db.add(video)
