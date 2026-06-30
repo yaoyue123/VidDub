@@ -71,25 +71,9 @@ async function loadData() {
       // subtitle not available yet — empty is fine
     }
 
-    let translatedJson: any[] = []
-    try {
-      const r = await axios.get(`/static/downloads/${videoId.value}/translated.json`)
-      translatedJson = Array.isArray(r.data) ? r.data : []
-    } catch {}
-
-    if (translatedJson.length > 0) {
-      segments.value = translatedJson.map((s: any, i: number) => ({
-        id: Number(s.id ?? i),
-        start: Number(s.start ?? 0),
-        end: Number(s.end ?? 0),
-        text: String(s.text || ''),
-        text_zh: String(s.text_zh || ''),
-      }))
-    } else {
-      segments.value = parseSrt(srtText).map((s, i) => ({
-        id: i, start: s.start, end: s.end, text: '', text_zh: s.text,
-      }))
-    }
+    segments.value = parseSrt(srtText).map((s, i) => ({
+      id: i, start: s.start, end: s.end, text: s.text_en || '', text_zh: s.text_zh || s.text || '',
+    }))
   } catch (e: any) {
     error.value = e?.response?.data?.detail || e?.message || '加载失败'
   } finally {
@@ -98,20 +82,24 @@ async function loadData() {
 }
 
 function parseSrt(text: string) {
-  const out: { start: number; end: number; text: string }[] = []
+  const out: { start: number; end: number; text: string; text_en?: string; text_zh?: string }[] = []
   const blocks = text.trim().split(/\r?\n\r?\n/)
   for (const b of blocks) {
-    const lines = b.split(/\r?\n/).filter((l) => l.trim() !== '')
-    if (lines.length < 2) continue
+    const linesList = b.split(/\r?\n/).filter((l) => l.trim() !== '')
+    if (linesList.length < 2) continue
     let i = 0
-    if (/^\d+$/.test(lines[0].trim())) i = 1
-    const tm = lines[i]?.match(/([\d:,]+)\s*-->\s*([\d:,]+)/)
+    if (/^\d+$/.test(linesList[0].trim())) i = 1
+    const tm = linesList[i]?.match(/([\d:,]+)\s*-->\s*([\d:,]+)/)
     if (!tm) continue
     const start = parseSrtTime(tm[1])
     const end = parseSrtTime(tm[2])
     i++
-    const t = lines.slice(i).join(' ')
-    out.push({ start, end, text: t })
+    const t = linesList.slice(i).join(' ')
+    // Bilingual SRT: first line is original, second line is translation
+    const parts = t.split('\n').filter(Boolean)
+    const text_en = parts.length > 1 ? parts[0].trim() : ''
+    const text_zh = parts.length > 1 ? parts.slice(1).join('\n').trim() : t.trim()
+    out.push({ start, end, text: text_zh || text_en, text_en, text_zh })
   }
   return out
 }

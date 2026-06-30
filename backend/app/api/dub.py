@@ -241,24 +241,46 @@ async def get_subtitle(
         logger.warning("work dir not found for video %s at %s", video_id, work_dir)
         return ""
 
-    # Try translated.json first (has bilingual segments)
+    # Try translated.json (bilingual segments)
+    import json
     tjson_path = os.path.join(work_dir, "translated.json")
+    transcript_path = os.path.join(work_dir, "transcript.json")
+
+    # Load transcript for timestamps + original text
+    transcript: list[dict] = []
+    if os.path.exists(transcript_path):
+        try:
+            t = json.load(open(transcript_path, "r", encoding="utf-8"))
+            if isinstance(t, list):
+                transcript = t
+        except Exception:
+            logger.warning("failed to parse transcript.json for video %s", video_id, exc_info=True)
+
     if os.path.exists(tjson_path):
         try:
-            import json
             data = json.load(open(tjson_path, "r", encoding="utf-8"))
             if isinstance(data, list) and len(data) > 0:
-                # Build SRT from translated data
                 lines: list[str] = []
-                for i, seg in enumerate(data, start=1):
-                    start = seg.get("start", 0)
-                    end = seg.get("end", 0)
-                    text_zh = (seg.get("text_zh", seg.get("text", "")) or "").strip()
-                    text_en = (seg.get("text", "") or "").strip()
-                    text = f"{text_en}\n{text_zh}" if text_zh and text_en else (text_zh or text_en)
-                    if not text:
+                for i in range(len(data)):
+                    seg_raw = data[i]
+                    idx = i + 1
+                    # Get timing from transcript (by index) or from seg object
+                    ts = transcript[i] if i < len(transcript) else {}
+                    start = ts.get("start", 0) if isinstance(ts, dict) else 0
+                    end = ts.get("end", 0) if isinstance(ts, dict) else 0
+                    # Get original text from transcript
+                    text_en = (ts.get("text", "") or "").strip() if isinstance(ts, dict) else ""
+                    # Get Chinese text (seg could be string or object)
+                    if isinstance(seg_raw, dict):
+                        text_zh = (seg_raw.get("text_zh", seg_raw.get("text", "")) or "").strip()
+                    elif isinstance(seg_raw, str):
+                        text_zh = seg_raw.strip()
+                    else:
+                        text_zh = str(seg_raw).strip() if seg_raw else ""
+                    if not text_zh and not text_en:
                         continue
-                    lines.append(str(i))
+                    text = f"{text_en}\n{text_zh}" if text_zh and text_en else (text_zh or text_en)
+                    lines.append(str(idx))
                     lines.append(f"{_sec2srt(start)} --> {_sec2srt(end)}")
                     lines.append(text)
                     lines.append("")
