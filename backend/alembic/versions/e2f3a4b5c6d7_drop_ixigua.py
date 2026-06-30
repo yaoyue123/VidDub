@@ -16,8 +16,11 @@ depends_on = None
 def upgrade() -> None:
     # Delete all ixigua publish records
     op.execute("DELETE FROM publish_records WHERE platform = 'ixigua'")
-    # Remove ixigua-specific config entry
-    op.execute("DELETE FROM app_config WHERE key = 'ixigua_default_copyright'")
+    # Remove ixigua-specific config entry (table may not exist in fresh DB)
+    try:
+        op.execute("DELETE FROM app_config WHERE key = 'ixigua_default_copyright'")
+    except Exception:
+        pass
 
 
 def downgrade() -> None:
