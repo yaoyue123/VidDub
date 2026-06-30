@@ -60,11 +60,16 @@ async function loadData() {
     const vRes = await axios.get(`/api/videos/${videoId.value}`)
     video.value = vRes.data
 
-    const srtRes = await axios.get<string>(
-      `/api/dub/${videoId.value}/subtitle`,
-      { responseType: 'text', transformResponse: (d) => d },
-    )
-    const srtText = srtRes.data || ''
+    let srtText = ''
+    try {
+      const srtRes = await axios.get<string>(
+        `/api/dub/${videoId.value}/subtitle`,
+        { responseType: 'text', transformResponse: (d) => d },
+      )
+      srtText = srtRes.data || ''
+    } catch {
+      // subtitle not available yet — empty is fine
+    }
 
     let translatedJson: any[] = []
     try {

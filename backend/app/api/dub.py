@@ -240,7 +240,8 @@ async def get_subtitle(
     srt_path = os.path.join(download_dir, str(video_id), "subtitle.srt")
 
     if not os.path.exists(srt_path):
-        raise HTTPException(404, detail="subtitle.srt not found")
+        logger.warning("subtitle.srt not found for video %s at %s", video_id, srt_path)
+        return ""
 
     with open(srt_path, "r", encoding="utf-8") as f:
         return f.read()
