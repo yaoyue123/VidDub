@@ -236,15 +236,65 @@ async def get_subtitle(
     if not v:
         raise HTTPException(404, detail="Video not found")
 
-    download_dir = get_download_dir()
-    srt_path = os.path.join(download_dir, str(video_id), "subtitle.srt")
-
-    if not os.path.exists(srt_path):
-        logger.warning("subtitle.srt not found for video %s at %s", video_id, srt_path)
+    work_dir = os.path.join(get_download_dir(), str(video_id))
+    if not os.path.isdir(work_dir):
+        logger.warning("work dir not found for video %s at %s", video_id, work_dir)
         return ""
 
-    with open(srt_path, "r", encoding="utf-8") as f:
-        return f.read()
+    # Try translated.json first (has bilingual segments)
+    tjson_path = os.path.join(work_dir, "translated.json")
+    if os.path.exists(tjson_path):
+        try:
+            import json
+            data = json.load(open(tjson_path, "r", encoding="utf-8"))
+            if isinstance(data, list) and len(data) > 0:
+                # Build SRT from translated data
+                lines: list[str] = []
+                for i, seg in enumerate(data, start=1):
+                    start = seg.get("start", 0)
+                    end = seg.get("end", 0)
+                    text_zh = (seg.get("text_zh", seg.get("text", "")) or "").strip()
+                    text_en = (seg.get("text", "") or "").strip()
+                    text = f"{text_en}\n{text_zh}" if text_zh and text_en else (text_zh or text_en)
+                    if not text:
+                        continue
+                    lines.append(str(i))
+                    lines.append(f"{_sec2srt(start)} --> {_sec2srt(end)}")
+                    lines.append(text)
+                    lines.append("")
+                if lines:
+                    return "\n".join(lines)
+        except Exception:
+            logger.warning("failed to parse translated.json for video %s", video_id, exc_info=True)
+
+    # Fallback: find any .srt file in the work dir
+    try:
+        for f in os.listdir(work_dir):
+            if f.endswith(".srt"):
+                srt_path = os.path.join(work_dir, f)
+                with open(srt_path, "r", encoding="utf-8") as fh:
+                    content = fh.read().strip()
+                if content:
+                    return content
+    except OSError:
+        pass
+
+    logger.warning("no subtitle found for video %s in %s", video_id, work_dir)
+    return ""
+
+
+def _sec2srt(s: float) -> str:
+    """Convert seconds to SRT time format HH:MM:SS,mmm."""
+    if s < 0:
+        s = 0
+    ms = int(round((s - int(s)) * 1000))
+    if ms >= 1000:
+        s += 1
+        ms -= 1000
+    h = int(s // 3600)
+    m = int((s % 3600) // 60)
+    sec = int(s % 60)
+    return f"{h:02d}:{m:02d}:{sec:02d},{ms:03d}"
 
 
 @router.post("/{video_id}/resume")
