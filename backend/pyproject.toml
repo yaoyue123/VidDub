@@ -21,6 +21,7 @@ dependencies = [
     "edge-tts>=6.1",
     "playwright>=1.40",
     "qrcode>=7.4",
+    "pillow>=10.0",
     "APScheduler>=3.10",
 ]
 
