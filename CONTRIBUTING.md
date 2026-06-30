@@ -20,32 +20,31 @@ Thank you for considering contributing! This document outlines the development w
 git clone <your-fork-url> viddub
 cd viddub
 
-# Backend setup (venv + dependencies + Playwright Chromium)
+# Option A: Using uv (Recommended)
+# uv automatically manages Python version and virtual environment
 cd backend
-python -m venv venv
-
-# Windows
-venv\Scripts\pip install -r requirements.txt
-venv\Scripts\python -m playwright install chromium
-
-# Linux/macOS
-# venv/bin/pip install -r requirements.txt
-# venv/bin/python -m playwright install chromium
-
-# Copy environment config
-cp .env.example .env
-# Edit .env with your SILICONFLOW_API_KEY
-
-# Frontend setup
+uv sync --group dev
+uv run python -m playwright install chromium
 cd ../frontend
 npm install
-
-# Database migration
 cd ../backend
+cp .env.example .env
+# Edit .env with your SILICONFLOW_API_KEY
+uv run alembic upgrade head
+
+# Option B: Traditional pip + venv
+cd backend
+python -m venv venv
+venv\Scripts\pip install -r requirements.txt
+venv\Scripts\python -m playwright install chromium
+# Copy and configure .env
+copy .env.example .env
 venv\Scripts\python -m alembic upgrade head
+cd ../frontend
+npm install
 ```
 
-> **Note:** On Windows, the `setup.ps1` script automates all of the above. On Linux/macOS, `setup.sh` does the same.
+> **Note:** On Windows, the `setup.ps1` script automates the uv setup. On Linux/macOS, `setup.sh` does the same.
 
 ---
 
@@ -59,7 +58,12 @@ venv\Scripts\python -m alembic upgrade head
 - **Type hints:** Required for all public functions and methods
 
 ```bash
-# Format code
+# Format code (using uv)
+cd backend
+uv run black backend/ --line-length 100
+uv run isort backend/ --profile black
+
+# Or using pip venv
 venv\Scripts\black backend/ --line-length 100
 venv\Scripts\isort backend/ --profile black
 ```
@@ -87,6 +91,8 @@ All contributions must pass existing tests. New features should include tests.
 
 ```bash
 cd backend
+uv run python -m pytest tests/ -v
+# Or using pip venv:
 venv\Scripts\python -m pytest tests/ -v
 ```
 
@@ -118,7 +124,7 @@ The production build must succeed without errors.
 ## Branching and PR Workflow
 
 1. **Fork** the repository on GitHub
-2. **Create a feature branch** from `main`:
+2. **Create a feature branch** from `master`:
    ```bash
    git checkout -b feat/your-feature-name
    ```
@@ -128,7 +134,7 @@ The production build must succeed without errors.
    ```bash
    git push origin feat/your-feature-name
    ```
-6. **Open a Pull Request** against `main`
+6. **Open a Pull Request** against `master`
 
 ### PR Guidelines
 

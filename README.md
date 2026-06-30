@@ -100,21 +100,33 @@
 
 ### 第一步：环境初始化
 
-**Windows（PowerShell）：**
-```powershell
-PS> .\setup.ps1
-```
+**推荐方式 — uv（自动管理 Python 版本和虚拟环境）：**
 
-**Linux / macOS：**
-```bash
+```powershell
+# Windows
+PS> .\setup.ps1
+
+# Linux / macOS
 $ chmod +x setup.sh start.sh
 $ ./setup.sh
 ```
 
+**传统方式 — pip + venv（不依赖 uv）：**
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\pip install -r requirements.txt
+venv\Scripts\python -m playwright install chromium
+cp .env.example .env
+venv\Scripts\python -m alembic upgrade head
+cd ../frontend
+npm install
+```
+
 初始化脚本自动完成以下操作：
-- ✅ 检查 Python / Node / ffmpeg / yt-dlp 依赖
-- ✅ 创建 `backend/venv/` 虚拟环境
-- ✅ 安装 Python 依赖 + Playwright Chromium + Whisper tiny 模型
+- ✅ 检查 / 自动安装 **uv**（Rust 编写的极速 Python 包管理器）
+- ✅ `uv sync` 创建 `.venv` + 安装所有 Python 依赖
+- ✅ 安装 Playwright Chromium + Whisper tiny 模型
 - ✅ 安装前端 npm 依赖
 - ✅ 执行数据库迁移（Alembic）
 - ✅ 复制 `.env.example` 到 `backend/.env`
@@ -240,7 +252,8 @@ viddub/
 │   ├── data/                   # SQLite 数据库（gitignore）
 │   ├── downloads/              # 视频输出（gitignore）
 │   ├── tests/                  # pytest 测试
-│   ├── requirements.txt
+│   ├── pyproject.toml           # uv 项目配置（推荐）
+│   ├── requirements.txt         # pip 兼容（传统方式）
 │   └── .env / .env.example
 ├── frontend/                   # Vue 3 前端
 │   ├── src/
@@ -318,7 +331,11 @@ viddub/
 ## 💻 开发模式
 
 ```bash
-# 后端热重载
+# 后端热重载（uv 推荐）
+cd backend
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+# 后端热重载（pip/venv）
 cd backend
 venv\Scripts\uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
@@ -326,7 +343,11 @@ venv\Scripts\uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 cd frontend
 npm run dev
 
-# 运行测试
+# 运行测试（uv 推荐）
+cd backend
+uv run python -m pytest tests/ -v
+
+# 运行测试（pip/venv）
 cd backend
 venv\Scripts\python -m pytest tests/ -v
 

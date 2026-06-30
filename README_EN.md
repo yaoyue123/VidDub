@@ -106,21 +106,33 @@ Whether you're a content creator looking to expand to the Chinese market, or a d
 
 ### Step 1: Environment Setup
 
-**Windows (PowerShell):**
-```powershell
-PS> .\setup.ps1
-```
+**Recommended — via uv (automatic Python version + venv management):**
 
-**Linux / macOS:**
-```bash
+```powershell
+# Windows
+PS> .\setup.ps1
+
+# Linux / macOS
 $ chmod +x setup.sh start.sh
 $ ./setup.sh
 ```
 
+**Traditional — pip + venv (no uv dependency):**
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\pip install -r requirements.txt
+venv\Scripts\python -m playwright install chromium
+cp .env.example .env
+venv\Scripts\python -m alembic upgrade head
+cd ../frontend
+npm install
+```
+
 The setup script automatically:
-- Checks Python / Node / ffmpeg / yt-dlp dependencies
-- Creates `backend/venv/` virtual environment
-- Installs Python dependencies + Playwright Chromium + Whisper tiny model
+- Installs **uv** (blazing-fast Rust-based Python package manager) if not found
+- Runs `uv sync` to create `.venv` and install all Python dependencies
+- Installs Playwright Chromium + Whisper tiny model
 - Installs frontend npm dependencies
 - Runs database migration (Alembic)
 - Copies `.env.example` to `backend/.env`
@@ -240,7 +252,8 @@ viddub/
 │   ├── data/                 # SQLite database (gitignored)
 │   ├── downloads/            # Video output (gitignored)
 │   ├── tests/                # pytest test suite
-│   ├── requirements.txt
+│   ├── pyproject.toml           # uv project config (recommended)
+│   ├── requirements.txt         # pip compatibility (traditional)
 │   └── .env / .env.example
 ├── frontend/
 │   ├── src/
@@ -256,7 +269,7 @@ viddub/
 ├── docs/                     # Documentation
 ├── docker-compose.yml        # Docker Compose configuration
 ├── Dockerfile                # Multi-stage Docker build
-├── setup.ps1 / setup.sh      # One-click environment setup
+├── setup.ps1 / setup.sh      # One-click environment setup (uv)
 ├── start.bat / start.sh      # One-click startup scripts
 ├── README.md                 # Chinese README (default)
 ├── README_EN.md              # English README
@@ -310,7 +323,11 @@ viddub/
 ### Development Mode
 
 ```bash
-# Backend hot-reload
+# Backend hot-reload (uv)
+cd backend
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+# Backend hot-reload (pip/venv)
 cd backend
 venv\Scripts\uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
@@ -318,7 +335,11 @@ venv\Scripts\uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 cd frontend
 npm run dev
 
-# Run tests
+# Run tests (uv)
+cd backend
+uv run python -m pytest tests/ -v
+
+# Run tests (pip/venv)
 cd backend
 venv\Scripts\python -m pytest tests/ -v
 

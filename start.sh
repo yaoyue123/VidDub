@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# VidDub 一键启动脚本 (Linux / macOS)
+# VidDub 一键启动脚本 (Linux / macOS) — uv 版
 #
 # 用法: ./start.sh [backend_port] [frontend_port]
 #
@@ -12,16 +12,13 @@ FRONTEND="$PROJECT_ROOT/frontend"
 BACKEND_PORT="${1:-8000}"
 FRONTEND_PORT="${2:-5173}"
 
-VENV_PY="$BACKEND/venv/bin/python"
-VENV_UVICORN="$BACKEND/venv/bin/uvicorn"
-
 C_CYAN="\033[36m"; C_GREEN="\033[32m"; C_YELLOW="\033[33m"; C_RED="\033[31m"; C_RESET="\033[0m"
 
 echo "=================================="
 echo " VidDub 启动 (Linux/macOS)"
 echo "=================================="
 
-[[ -x "$VENV_PY" ]] || { echo -e "${C_RED}[FAIL] 未找到 backend/venv，请先运行 ./setup.sh${C_RESET}"; exit 1; }
+[[ -d "$BACKEND/.venv" ]] || { echo -e "${C_RED}[FAIL] 未找到 backend/.venv，请先运行 ./setup.sh${C_RESET}"; exit 1; }
 [[ -d "$FRONTEND/node_modules" ]] || { echo -e "${C_RED}[FAIL] 未找到 frontend/node_modules，请先运行 ./setup.sh${C_RESET}"; exit 1; }
 [[ -f "$BACKEND/.env" ]] || echo -e "${C_YELLOW}[!] 未找到 backend/.env — 配音功能需要 SILICONFLOW_API_KEY${C_RESET}"
 
@@ -36,7 +33,7 @@ trap cleanup EXIT INT TERM
 echo -e "\n${C_CYAN}[*] 启动后端 uvicorn (http://localhost:$BACKEND_PORT) ...${C_RESET}"
 (
     cd "$BACKEND"
-    "$VENV_UVICORN" app.main:app \
+    uv run uvicorn app.main:app \
         --host "127.0.0.1" --port "$BACKEND_PORT" --reload
 ) &
 BACKEND_PID=$!
