@@ -130,7 +130,7 @@ async function searchKeyword() {
   if (!keywordQuery.value.trim()) return
   searchLoading.value = true
   try {
-    const res = await discoveryApi.search(keywordQuery.value, 12)
+    const res = await discoveryApi.search({ query: keywordQuery.value, max_results: 12 })
     const items: DiscoveryItem[] = res.data?.items || []
     searchResults.value = items.map((v) => ({
       title: v.title || '(无标题)',
