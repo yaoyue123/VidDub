@@ -188,8 +188,7 @@ class SauBilibiliPublisher(PlatformPublisher):
             "--desc", desc,
             "--tid", str(tid),
             "--tag", ",".join(tags),
-            "--copyright", "2",  # 2 = repost
-            "--source", source_url or "https://youtube.com",
+            "--copyright", "1",  # 1 = 原创
         ]
 
         logger.info(
