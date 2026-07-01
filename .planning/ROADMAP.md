@@ -201,6 +201,14 @@ Plans:
 4. 提取的人声片段时长在 5-15s 范围内，Whisper 置信度 > 0.5
 5. 现有测试全部通过
 
+**Plans**: 2 plans
+
+```
+Plans:
+- [ ] 12-01-PLAN.md — VoiceCloner refactor: fallback audio source + persistence + config seeder
+- [ ] 12-02-PLAN.md — Transcribe integration: voice extraction during TRANSCRIBE + synthesize fallback
+```
+
 ### Phase 13: Voice Clone TTS Integration
 
 **Goal:** 提取的参考音频上传到 SiliconFlow 注册音色，TTS 管线使用克隆音色合成中文配音
@@ -239,7 +247,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 12. Voice Sample Extraction | 0/0 | Pending | — |
+| 12. Voice Sample Extraction | 0/2 | Planned | — |
 | 13. Voice Clone TTS Integration | 0/0 | Pending | — |
 | 14. Voice Selection UI | 0/0 | Pending | — |
 
