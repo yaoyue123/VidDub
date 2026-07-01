@@ -171,7 +171,12 @@ class SauBilibiliPublisher(PlatformPublisher):
         tid = fields.category_id or DEFAULT_TID
         tags = list(fields.tags) if fields.tags else list(DEFAULT_TAGS)
         title = self._safe_text(fields.title, 80)
-        desc = self._safe_text(fields.description, 2000)
+        # Bilibili API rejects newlines / special chars in description
+        import re as _re
+        raw_desc = self._safe_text(fields.description or title, 2000)
+        desc = _re.sub(r'[\r\n]+', ' ', raw_desc)  # replace newlines with space
+        desc = _re.sub(r'[^\x20-\x7E\u4e00-\u9fff\u3000-\u303f\uff00-\uffef,.;:!?，。；：！？、\s]', '', desc)
+        desc = desc[:2000].strip()
 
         args = [
             "-u", cookie_file,

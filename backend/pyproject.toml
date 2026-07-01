@@ -23,6 +23,7 @@ dependencies = [
     "qrcode>=7.4",
     "pillow>=10.0",
     "APScheduler>=3.10",
+    "patchright==1.58.2",
 ]
 
 [project.optional-dependencies]
