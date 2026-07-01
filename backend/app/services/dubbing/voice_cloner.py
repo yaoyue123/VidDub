@@ -32,6 +32,7 @@ async def clone_voice_from_vocals(
     video_id: int,
     *,
     base_dir: str | None = None,
+    audio_path: Optional[str] = None,
 ) -> Optional[dict[str, str]]:
     """Extract best speech sample and clone via SiliconFlow.
 
@@ -40,13 +41,17 @@ async def clone_voice_from_vocals(
         segments: Whisper segments with id/start/end/text/confidence.
         video_id: Video ID for naming the cloned voice.
         base_dir: Downloads base directory.
+        audio_path: Optional fallback audio source (e.g. original_audio.wav).
 
     Returns:
         {"uri": str, "name": str, "voice": str} or None if cloning fails.
     """
     base_dir = base_dir if base_dir is not None else get_download_dir()
     # Find the best segment for cloning
-    sample_info = _extract_speech_sample(vocals_path, segments, video_id, base_dir)
+    sample_info = _extract_speech_sample(
+        vocals_path, segments, video_id, base_dir,
+        audio_path=audio_path,
+    )
     if not sample_info:
         logger.warning("No suitable speech sample found for voice cloning")
         return None
@@ -61,12 +66,6 @@ async def clone_voice_from_vocals(
         voice_name = f"video_{video_id}_speaker"
         uri = await cloner.upload_voice(sample_path, voice_name, sample_text)
 
-        # Clean up sample file
-        try:
-            os.remove(sample_path)
-        except OSError:
-            pass
-
         logger.info(
             "Voice cloned for video %d: name=%s uri=%s",
             video_id, voice_name, uri,
@@ -76,11 +75,6 @@ async def clone_voice_from_vocals(
 
     except Exception as e:
         logger.warning("Voice cloning failed for video %d: %s", video_id, e)
-        # Clean up sample on failure
-        try:
-            os.remove(sample_path)
-        except OSError:
-            pass
         return None
 
 
@@ -89,6 +83,7 @@ def _extract_speech_sample(
     segments: list[dict],
     video_id: int,
     base_dir: str,
+    audio_path: Optional[str] = None,
 ) -> Optional[tuple[str, str]]:
     """Extract a short clean speech WAV for voice cloning.
 
@@ -97,9 +92,21 @@ def _extract_speech_sample(
       - High Whisper confidence (no_speech_prob low)
       - Longer preferred (more training data for cloning)
 
+    Args:
+        vocals_path: Path to vocals.wav (clean speech from demucs).
+        segments: Whisper segments with id/start/end/text/confidence.
+        video_id: Video ID for naming the cloned voice.
+        base_dir: Downloads base directory.
+        audio_path: Explicit audio source override. When provided, use
+            this instead of vocals_path as the ffmpeg extraction source.
+            Enables voice cloning from original_audio.wav when demucs
+            vocals are unavailable.
+
     Returns:
         (sample_wav_path, sample_text) or None.
     """
+    # Determine audio source: prefer audio_path override, fall back to vocals_path
+    source = audio_path if audio_path else vocals_path
     # Filter and score segments
     candidates = []
     for seg in segments:
@@ -121,7 +128,7 @@ def _extract_speech_sample(
     candidates.sort(key=lambda x: x[0], reverse=True)
     best_seg = candidates[0][1]
 
-    # Extract audio segment from vocals.wav
+    # Extract audio segment from source
     from app.services.dubbing.paths import video_work_dir
     work_dir = video_work_dir(video_id, base_dir=base_dir)
     sample_path = os.path.join(work_dir, "clone_sample.wav")
@@ -138,7 +145,7 @@ def _extract_speech_sample(
         from app.services.dubbing.ffmpeg import run_ffmpeg_async
         await run_ffmpeg_async([
             "ffmpeg", "-y",
-            "-i", vocals_path,
+            "-i", source,
             "-ss", f"{start:.3f}",
             "-t", f"{dur:.3f}",
             "-ac", "1",          # Mono for cloning
@@ -156,7 +163,7 @@ def _extract_speech_sample(
     import subprocess as _sp
     result = _sp.run([
         "ffmpeg", "-y",
-        "-i", vocals_path,
+        "-i", source,
         "-ss", f"{start:.3f}",
         "-t", f"{dur:.3f}",
         "-ac", "1",

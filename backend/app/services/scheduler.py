@@ -464,6 +464,57 @@ class TaskScheduler:
         with open(transcript_path, "w", encoding="utf-8") as f:
             json.dump(segments, f, ensure_ascii=False, indent=2)
 
+        # ── Voice cloning: extract + upload sample during transcribe ──
+        voice_clone_enabled = configs.get("voice_clone_enabled", "false").lower() in ("true", "1", "yes")
+        extract_during_transcribe = configs.get("extract_voice_sample_during_transcribe", "false").lower() in ("true", "1", "yes")
+
+        if voice_clone_enabled and extract_during_transcribe and segments:
+            try:
+                # Determine audio source: prefer vocals.wav, fall back to original_audio.wav
+                clone_source = None
+                if os.path.exists(vocals_path):
+                    clone_source = vocals_path
+                else:
+                    orig_audio = video_file(video_id, "original_audio.wav", base_dir=work_base)
+                    if os.path.exists(orig_audio):
+                        clone_source = orig_audio
+
+                if clone_source:
+                    from app.services.dubbing.voice_cloner import _extract_speech_sample
+                    sample_info = _extract_speech_sample(
+                        vocals_path, segments, video_id, work_base,
+                        audio_path=clone_source,
+                    )
+                    if sample_info:
+                        sample_path, sample_text = sample_info
+                        from app.services.voice_cloner.siliconflow_provider import (
+                            SiliconFlowVoiceCloner,
+                        )
+                        cloner = SiliconFlowVoiceCloner()
+                        voice_name = f"video_{video_id}_speaker"
+                        cloned_uri = await cloner.upload_voice(
+                            sample_path, voice_name, sample_text,
+                        )
+                        if cloned_uri:
+                            async with async_session_factory() as ss:
+                                await ss.execute(
+                                    update(Video).where(Video.id == video_id).values(
+                                        cloned_voice_uri=cloned_uri,
+                                        cloned_voice_name=voice_name,
+                                        voice_selection_method="cloned",
+                                    )
+                                )
+                                await ss.commit()
+                            logger.info(
+                                "Voice cloned during transcribe for video %d: %s",
+                                video_id, cloned_uri,
+                            )
+            except Exception as e:
+                logger.warning(
+                    "Voice clone during transcribe failed (non-blocking) for video %d: %s",
+                    video_id, e,
+                )
+
         async with async_session_factory() as session:
             await session.execute(
                 update(Task).where(Task.id == task_id)
@@ -590,8 +641,24 @@ class TaskScheduler:
         cloned_uri: Optional[str] = None
         vocals_path = video_file(video_id, "vocals.wav", base_dir=work_base)
 
-        if voice_clone_enabled and os.path.exists(vocals_path):
-            # Try voice cloning from the separated vocals
+        # Check if a cloned voice already exists (from transcribe stage, Phase 12)
+        existing_cloned_uri: Optional[str] = None
+        try:
+            async with async_session_factory() as ss:
+                v = (await ss.execute(select(Video).where(Video.id == video_id))).scalar_one_or_none()
+                if v and v.cloned_voice_uri:
+                    existing_cloned_uri = v.cloned_voice_uri
+        except Exception:
+            pass
+
+        if existing_cloned_uri:
+            # Use existing cloned voice from transcribe stage
+            tts_voice = existing_cloned_uri
+            cloned_uri = existing_cloned_uri
+            voice_selection = "cloned"
+            logger.info("Using pre-cloned voice for video %d: %s", video_id, existing_cloned_uri)
+        elif voice_clone_enabled and os.path.exists(vocals_path):
+            # Try voice cloning from the separated vocals (original behavior)
             try:
                 from app.services.dubbing.voice_cloner import clone_voice_from_vocals
                 clone_result = await clone_voice_from_vocals(

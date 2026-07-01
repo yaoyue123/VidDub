@@ -93,6 +93,15 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "value": "32000",
         "description": "采样率 Hz",
     },
+    # ── Voice cloning ──
+    "voice_clone_enabled": {
+        "value": "false",
+        "description": "开启音色克隆：自动从原视频提取说话人音色进行 TTS 克隆",
+    },
+    "extract_voice_sample_during_transcribe": {
+        "value": "false",
+        "description": "转写阶段提前提取音色样本（无需等待合成阶段）",
+    },
     # ── Dubbing pipeline ──
     "atempo_min": {
         "value": "0.7",
