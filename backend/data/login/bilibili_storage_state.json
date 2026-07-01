@@ -1,0 +1,20 @@
+{
+  "platform": "bilibili",
+  "saved_at": 1782888674.6573212,
+  "cookies": {
+    "SESSDATA": "307cfb39%2C1798440666%2C8ee6b%2A71CjAKQkQnkZlecww0HzQFKZpsz8v2l1f95yF7Y4_kNAYpf8voNCE82Cx-9XgyxjbxqmsSVkF5SWFkY1F0SFdmaVFHYTh1RmFiSVN1em5teGlnd1BwUlpjcjkzeF9CdmdXYjlVNDU1Yno0bW9VSE4zR0VxOVBrQWJ4SGtlY2ZVcGtNWEUycHkzcURBIIEC",
+    "bili_jct": "1b2eb882a283ad680613b18a84fd7b2f",
+    "DedeUserID": "35031792",
+    "DedeUserID__ckMd5": "3aee1fdea92e720f",
+    "sid": "e2pv835s"
+  },
+  "user_info": {
+    "isLogin": true,
+    "uid": 35031792,
+    "username": "妖月兮",
+    "avatar": "http://i0.hdslb.com/bfs/face/46767d98b42d75c223ad17fa47f1d5afaa18f8d2.jpg",
+    "vip_type": 1,
+    "level": 6
+  },
+  "refresh_token": "ef94a3761a7f2161d67abd2b10765c71"
+}
