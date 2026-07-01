@@ -25,10 +25,10 @@
 
 ### UI — Discover 页面重构
 
-- [ ] **UI-01**: Discover 页面重写为多标签页界面（搜索 / 关键词跟踪 / 频道跟踪）
-- [ ] **UI-02**: 搜索结果以视频卡片网格展示，包含缩略图、标题、播放量、时长、发布时间
-- [ ] **UI-03**: 视频卡片支持一键"加入搬运管线"操作（跳转到创建任务页面并预填视频信息）
-- [ ] **UI-04**: 支持跟踪源的增删改查管理（添加、编辑、删除、启用/禁用）
+- [x] **UI-01**: Discover 页面重写为多标签页界面（搜索 / 关键词跟踪 / 频道跟踪）
+- [x] **UI-02**: 搜索结果以视频卡片网格展示，包含缩略图、标题、播放量、时长、发布时间
+- [x] **UI-03**: 视频卡片支持一键"加入搬运管线"操作（跳转到创建任务页面并预填视频信息）
+- [x] **UI-04**: 支持跟踪源的增删改查管理（添加、编辑、删除、启用/禁用）
 
 ### CLEANUP — 旧代码清理
 
@@ -38,7 +38,7 @@
 ### BUG — Bug 修复
 
 - [x] **BUG-01**: YouTube 视频封面正常显示——后端缩略图代理（i.ytimg.com 通过 FastAPI 流式转发 + CORS 头）
-- [ ] **BUG-02**: 下载目录去重——消除重复的 downloads 目录，统一为单一下载路径源
+- [x] **BUG-02**: 下载目录去重——消除重复的 downloads 目录，统一为单一下载路径源
 
 ### INFRA — 基础设施
 
@@ -96,7 +96,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INFRA-01 | Phase 7 | Done |
-| INFRA-02 | Phase 7 | Done |
+| INFRA-02 | Phase 7 | Complete | 07-01-PLAN.md |
 | CLEANUP-01 | Phase 7 | Pending |
 | CLEANUP-02 | Phase 7 | Complete | 07-04-PLAN.md |
 | TRACK-01 | Phase 8 | Done | 08-01-PLAN.md |
@@ -108,11 +108,11 @@
 | TRACK-04 | Phase 9 | Done | 09-01-PLAN.md |
 | SCAN-03 | Phase 9 | Done | 09-02-PLAN.md |
 | BUG-01 | Phase 9 | Done | 09-02-PLAN.md |
-| UI-01 | Phase 10 | Pending |
-| UI-02 | Phase 10 | Pending |
-| UI-03 | Phase 10 | Pending |
-| UI-04 | Phase 10 | Pending |
-| BUG-02 | Phase 11 | Pending |
+| UI-01 | Phase 10 | Complete | 10-03-PLAN.md (DiscoverView multi-tab rewrite) |
+| UI-02 | Phase 10 | Complete | 10-02-PLAN.md, 10-03-PLAN.md |
+| UI-03 | Phase 10 | Complete | 10-02-PLAN.md, 10-03-PLAN.md |
+| UI-04 | Phase 10 | Complete | 10-03-PLAN.md (DiscoverView multi-tab rewrite) |
+| BUG-02 | Phase 11 | Complete | 11-01-PLAN.md |
 
 **Coverage:**
 - v5.1 requirements: 18 total
@@ -121,4 +121,4 @@
 
 ---
 *Requirements defined: 2026-06-29*
-*Last updated: 2026-06-29 — Phase 9 Plan 02 complete (SCAN-03, BUG-01 done). Phase 9 done (4/4 requirements, 2/2 plans). 14/18 requirements done.*
+*Last updated: 2026-06-29 — Phase 10 Plan 03 complete (UI-01, UI-04 done). Phase 10 done (4/4 requirements, 3/3 plans). All 18/18 v5.1 requirements done.*

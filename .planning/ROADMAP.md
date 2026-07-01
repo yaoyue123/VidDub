@@ -22,7 +22,7 @@
 - [x] **Phase 7: Infrastructure & Cleanup** — yt-dlp 封装 + 全局限速器 + SQLite WAL 模式 + 索引 + 移除旧评分代码
 - [x] **Phase 8: Tracking Scanner & Core Discovery** — DiscoveryScanner 协调器 + 关键词搜索 + 频道跟踪 + 自动去重 + 扫描历史 (2/2 plans done)
 - [x] **Phase 9: Tracking API & Filtering** — 跟踪源筛选条件 API + 保存搜索为跟踪源 + 手动触发扫描 + 缩略图代理 (2/2 plans done)
-- [ ] **Phase 10: DiscoverView Frontend** — 多标签页 Discover 页面 + 视频卡片网格 + 一键搬运 + 跟踪源管理 UI
+- [x] **Phase 10: DiscoverView Frontend** — 多标签页 Discover 页面 + 视频卡片网格 + 一键搬运 + 跟踪源管理 UI (3/3 plans done)
 - [x] **Phase 11: Bug Fixes & Polish** — 下载目录去重 (1/1 plans done)
 
 ---
@@ -122,9 +122,9 @@ Plans:
 
 ```
 Plans:
-- [ ] 10-01-PLAN.md — API client extension + discoveryStore Pinia store (UI-01, UI-02, UI-03, UI-04)
-- [ ] 10-02-PLAN.md — VideoCard reusable component (UI-02, UI-03)
-- [ ] 10-03-PLAN.md — DiscoverView multi-tab rewrite with Search/Keywords/Channels tabs (UI-01, UI-02, UI-03, UI-04)
+- [x] 10-01-PLAN.md — API client extension + discoveryStore Pinia store (UI-01, UI-02, UI-03, UI-04)
+- [x] 10-02-PLAN.md — VideoCard reusable component (UI-02, UI-03)
+- [x] 10-03-PLAN.md — DiscoverView multi-tab rewrite with Search/Keywords/Channels tabs (UI-01, UI-02, UI-03, UI-04)
 ```
 
 ### Phase 11: Bug Fixes & Polish
@@ -156,7 +156,7 @@ Plans:
 | 7. Infrastructure & Cleanup | 4/4 | Complete | 2026-06-29 |
 | 8. Tracking Scanner & Core Discovery | 2/2 | Complete | 2026-06-29 |
 | 9. Tracking API & Filtering | 2/2 | Complete | 2026-06-29 |
-| 10. DiscoverView Frontend | 0/3 | Plans created | - |
+| 10. DiscoverView Frontend | 3/3 | Complete | 2026-06-29 |
 | 11. Bug Fixes & Polish | 1/1 | Complete | 2026-06-29 |
 
 ---
@@ -200,4 +200,4 @@ Plans:
 
 ---
 
-*Last updated: 2026-06-29 — Phase 9 Plan 02 completed (Phase 9 complete: 2/2 plans). 10/12 plans across v5.1.*
+*Last updated: 2026-06-29 — Phase 10 Plan 03 completed (Phase 10: 3/3 plans, Complete). All 13 plans across v5.1 complete.*
