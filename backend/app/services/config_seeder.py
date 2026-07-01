@@ -56,6 +56,10 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "description": "硅基流动转写模型",
     },
     # ── Translation ──
+    "translation_backend": {
+        "value": "siliconflow",
+        "description": "翻译后端 (siliconflow/google)",
+    },
     "translation_model": {
         "value": "deepseek-ai/DeepSeek-V4-Flash",
         "description": "翻译模型名",
@@ -65,6 +69,10 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "description": "翻译滑窗上下文段数",
     },
     # ── TTS ──
+    "tts_backend": {
+        "value": "siliconflow",
+        "description": "语音合成后端 (siliconflow/edge-tts)",
+    },
     "tts_model": {
         "value": "FunAudioLLM/CosyVoice2-0.5B",
         "description": "语音合成模型",

@@ -273,21 +273,17 @@ async def retranslate_segment(
             detail=f"段 {segment_index} 原文为空，无法翻译",
         )
 
-    # 3. 调用 SiliconFlow Chat 翻译
-    # 使用 Phase 4 的 siliconflow.translate.translate_text (单段)
+    # 3. 调用翻译服务（支持 SiliconFlow / Google Translate）
     try:
-        from app.services.siliconflow.client import get_async_client
-        from app.services.siliconflow.translate import translate_text
-
+        from app.services.translator.service import TranslationService
+        translation_svc = TranslationService()
         translate_model = db_configs.get("translation_model", "deepseek-ai/DeepSeek-V4-Flash")
-        async with get_async_client(timeout=30.0) as client:
-            translated_text = await translate_text(
-                client,
-                original_text,
-                model=translate_model,
-                source_lang="English",
-                target_lang="Chinese",
-            )
+        translated_text = await translation_svc.translate_text(
+            original_text,
+            source_lang="English",
+            target_lang="Chinese",
+            model=translate_model,
+        )
         translated_text = (translated_text or "").strip().strip('"').strip("'")
         if not translated_text:
             raise RuntimeError("翻译返回空内容")

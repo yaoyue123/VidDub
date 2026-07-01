@@ -1,26 +1,61 @@
 """
 TTS Service (new).
 
-High-level text-to-speech service using SiliconFlow API.
+High-level text-to-speech service with config-based provider selection.
+Supports SiliconFlow API and Edge-TTS (free, local).
 """
 
 import logging
 from typing import AsyncIterator, Optional
 
+from app.core.database import async_session_factory
+from app.models.config import Config
 from app.services.tts_new.base import TTSProvider, TTSResult
 from app.services.tts_new.siliconflow_provider import SiliconFlowTTSProvider
 
 logger = logging.getLogger(__name__)
 
 
-class TTSService:
-    """High-level TTS service.
+async def _get_tts_backend() -> str:
+    """Read TTS backend from DB config."""
+    try:
+        async with async_session_factory() as db:
+            from sqlalchemy import select
+            result = await db.execute(
+                select(Config).where(Config.key == "tts_backend")
+            )
+            config = result.scalar_one_or_none()
+        return config.value if config else "siliconflow"
+    except Exception:
+        return "siliconflow"
 
-    Provides a unified interface for text-to-speech operations using SiliconFlow.
+
+class TTSService:
+    """High-level TTS service with config-based provider selection.
+
+    Automatically selects SiliconFlow or Edge-TTS based on configuration.
     """
 
     def __init__(self, provider: Optional[TTSProvider] = None):
-        self._provider = provider or SiliconFlowTTSProvider()
+        self._provider = provider
+        self._backend: Optional[str] = None
+
+    async def _get_provider(self) -> TTSProvider:
+        """Get or create the appropriate provider based on config."""
+        backend = await _get_tts_backend()
+
+        if self._backend != backend or self._provider is None:
+            self._backend = backend
+
+            if backend == "edge-tts":
+                from app.services.tts_new.edge_tts_provider import EdgeTTSProvider
+                self._provider = EdgeTTSProvider()
+                logger.info("Using Edge-TTS provider (free, local)")
+            else:
+                self._provider = SiliconFlowTTSProvider()
+                logger.info("Using SiliconFlow TTS provider")
+
+        return self._provider
 
     async def synthesize(
         self,
@@ -48,7 +83,8 @@ class TTSService:
         Returns:
             TTSResult with timing and metadata.
         """
-        return await self._provider.synthesize(
+        provider = await self._get_provider()
+        return await provider.synthesize(
             text=text,
             output_path=output_path,
             voice=voice,
@@ -83,7 +119,8 @@ class TTSService:
         Yields:
             Audio data chunks.
         """
-        async for chunk in self._provider.synthesize_stream(
+        provider = await self._get_provider()
+        async for chunk in provider.synthesize_stream(
             text=text,
             voice=voice,
             model=model,
@@ -100,7 +137,8 @@ class TTSService:
         Returns:
             List of voice dicts with 'id' and 'name' keys.
         """
-        return await self._provider.get_available_voices()
+        provider = await self._get_provider()
+        return await provider.get_available_voices()
 
     async def get_available_models(self) -> list[dict[str, str]]:
         """Get list of available TTS models.
@@ -108,4 +146,5 @@ class TTSService:
         Returns:
             List of model dicts with 'id' and 'name' keys.
         """
-        return await self._provider.get_available_models()
+        provider = await self._get_provider()
+        return await provider.get_available_models()

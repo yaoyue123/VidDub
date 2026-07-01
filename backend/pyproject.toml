@@ -19,6 +19,7 @@ dependencies = [
     "httpx>=0.28.1",
     "tenacity>=8.5",
     "edge-tts>=6.1",
+    "deep-translator>=1.11",
     "playwright>=1.40",
     "qrcode>=7.4",
     "pillow>=10.0",

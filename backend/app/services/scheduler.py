@@ -537,11 +537,12 @@ class TaskScheduler:
 
     async def _handle_translate(self, task_id: int, video_id: int) -> None:
         configs = await _load_configs()
+        backend = configs.get("translation_backend", "siliconflow")
 
         async with async_session_factory() as session:
             await session.execute(
                 update(Task).where(Task.id == task_id)
-                .values(status=TaskStatus.RUNNING, progress=0, message="SiliconFlow 翻译中...")
+                .values(status=TaskStatus.RUNNING, progress=0, message=f"{backend} 翻译中...")
             )
             await session.execute(
                 update(Video).where(Video.id == video_id).values(status=VideoStatus.TRANSCRIBED)
@@ -561,16 +562,18 @@ class TaskScheduler:
         with open(transcript_path, "r", encoding="utf-8") as f:
             segments = json.load(f)
 
-        from app.services.siliconflow.client import get_async_client
-        from app.services.siliconflow.translate import translate_segments
+        from app.services.translator.service import TranslationService
+        translation_svc = TranslationService()
         translation_model = configs.get("translation_model", "deepseek-ai/DeepSeek-V4-Flash")
         context_window = int(configs.get("translation_context_window", "2"))
 
-        async with get_async_client(timeout=120.0) as client:
-            translations = await translate_segments(
-                client, segments,
-                model=translation_model, context_window=context_window,
-            )
+        translations = await translation_svc.translate_segments(
+            segments,
+            source_lang="English",
+            target_lang="Chinese",
+            model=translation_model,
+            context_window=context_window,
+        )
 
         translated_path = video_file(video_id, "translated.json", base_dir=work_base)
         with open(translated_path, "w", encoding="utf-8") as f:

@@ -103,6 +103,24 @@ const fields: FieldDef[] = [
     group: 'dub',
   },
   {
+    key: 'tts_backend', label: '配音后端', type: 'select',
+    options: [
+      { label: 'SiliconFlow (CosyVoice2 高质量云API)', value: 'siliconflow' },
+      { label: 'Edge-TTS (免费/本地/低延迟)', value: 'edge-tts' },
+    ],
+    help: 'SiliconFlow 质量更高但需付费；Edge-TTS 完全免费，适合批量处理',
+    group: 'dub',
+  },
+  {
+    key: 'translation_backend', label: '翻译后端', type: 'select',
+    options: [
+      { label: 'SiliconFlow (LLM 高质量)', value: 'siliconflow' },
+      { label: 'Google Translate (免费)', value: 'google' },
+    ],
+    help: 'SiliconFlow 使用 LLM 翻译质量高；Google Translate 完全免费但质量一般',
+    group: 'dub',
+  },
+  {
     key: 'translation_context_window', label: '滑窗上下文段数', type: 'number',
     min: 0, max: 10, step: 1, placeholder: '2',
     help: '逐段翻译时携带的前 N 段作为 few-shot 示例',
