@@ -161,6 +161,90 @@ Plans:
 
 ---
 
+## v5.2 音色仿写支持 (Current, started 2026-07-01)
+
+**核心目标：** 在转写阶段自动提取原视频说话人音色，通过 SiliconFlow API 注册自定义音色并用于 TTS 合成，让中文配音保留原说话人的声音特征。
+
+**关键架构决策：**
+- Backend first, frontend last (strict dependency chain)
+- 提取逻辑复用现有 `_extract_speech_sample`，不依赖 demucs（用 original_audio.wav）
+- 音色 URI 持久化到 Video 模型，跨阶段共享
+- 克隆失败回退到预设音色，不影响现有流程
+
+**Granularity:** Standard (3 phases)
+**Coverage:** 9/9 v5.2 requirements mapped
+
+---
+
+### Phases
+
+- [ ] **Phase 12: Voice Sample Extraction** — 转写阶段自动音色提取 + 持久化 (3/3 reqs)
+- [ ] **Phase 13: Voice Clone TTS Integration** — TTS 管线音色克隆集成 + 回退 (4/4 reqs)
+- [ ] **Phase 14: Voice Selection UI** — 前端音色模式选择 UI + 配置 (3/3 reqs)
+
+---
+
+### Phase Details
+
+### Phase 12: Voice Sample Extraction
+
+**Goal:** 转写阶段（TRANSCRIBE）自动从 original_audio.wav 提取高质量人声片段并持久化保存
+
+**Depends on:** Nothing (first phase of v5.2)
+
+**Requirements:** VOICE-01, VOICE-02, VOICE-03
+
+**Success Criteria** (what must be TRUE):
+1. `dubbing/voice_cloner.py` 的 `_extract_speech_sample` 支持以 `original_audio.wav` 为输入（不依赖 `vocals.wav`）
+2. 转写阶段（`_handle_transcribe`, scheduler.py）完成后，自动调用提取逻辑
+3. 提取的 `clone_sample.wav` 持久化保存到 `{work_dir}/`，不被删除
+4. 提取的人声片段时长在 5-15s 范围内，Whisper 置信度 > 0.5
+5. 现有测试全部通过
+
+### Phase 13: Voice Clone TTS Integration
+
+**Goal:** 提取的参考音频上传到 SiliconFlow 注册音色，TTS 管线使用克隆音色合成中文配音
+
+**Depends on:** Phase 12 (需要 clone_sample.wav 存在作为输入)
+
+**Requirements:** CLONE-01, CLONE-02, CLONE-03, CLONE-04
+
+**Success Criteria** (what must be TRUE):
+1. `clone_sample.wav` 自动上传到 SiliconFlow `POST /uploads/audio/voice`，成功获取 URI
+2. URI 持久化写入 `Video.cloned_voice_uri` 字段（当前已有此字段）
+3. TTS 合成阶段 (`_handle_synthesize`) 检测到克隆 URI 时优先使用，传给 `SiliconFlowTTSProvider.synthesize(voice=URI)`
+4. 克隆失败（API 错误、URI 不存在等）时自动回退到预设音色（`tts_voice_simple`）
+5. `voice_clone_enabled` config 控制是否启用克隆流程
+
+### Phase 14: Voice Selection UI
+
+**Goal:** 任务创建界面支持「预设音色/克隆原声」模式选择，配置流到后端
+
+**Depends on:** Phase 13 (需要后端 TTS 克隆逻辑就绪)
+
+**Requirements:** UI-01, UI-02, UI-03
+
+**UI hint**: yes
+
+**Success Criteria** (what must be TRUE):
+1. DubCreateDialog Step 2 增加一个「音色模式」el-radio-group：预设音色 / 克隆原声
+2. 「预设音色」模式下保留现有音色下拉选择
+3. 「克隆原声」模式下自动开启 `voice_clone_enabled`，任务表现克隆标识
+4. 已有克隆音色的视频，后续任务自动默认使用克隆模式
+5. SettingsView 同步增加音色模式配置项，保持全局默认值一致
+
+---
+
+### Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 12. Voice Sample Extraction | 0/0 | Pending | — |
+| 13. Voice Clone TTS Integration | 0/0 | Pending | — |
+| 14. Voice Selection UI | 0/0 | Pending | — |
+
+---
+
 ## 已归档里程碑
 
 ### v5.0 开源化深度改造 — Done (2026-06-29)
