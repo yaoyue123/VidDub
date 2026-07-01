@@ -247,7 +247,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 12. Voice Sample Extraction | 0/2 | Planned | — |
+| 12. Voice Sample Extraction | 2/2 | Complete | 2026-07-01 |
 | 13. Voice Clone TTS Integration | 0/0 | Pending | — |
 | 14. Voice Selection UI | 0/0 | Pending | — |
 
