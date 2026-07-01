@@ -47,7 +47,33 @@
 
 ---
 
-## Deferred (post-v5.1)
+## v5.2 音色仿写支持
+
+**Defined:** 2026-07-01
+**Goal:** 在转写阶段自动提取原视频说话人音色，通过 SiliconFlow API 实现 TTS 音色克隆，让配音保留原说话人声音特征。
+
+### VOICE — 自动音色提取
+
+- [ ] **VOICE-01**: 转写（TRANSCRIBE）阶段从 `original_audio.wav` 自动提取高质量人声片段（5-15s）作为音色参考样本
+- [ ] **VOICE-02**: 参考音频持久化保存到 `{work_dir}/clone_sample.wav`（不再用完即删）
+- [ ] **VOICE-03**: 提取算法复用 `_extract_speech_sample` 逻辑，按 Whisper 置信度评分选择最佳片段
+
+### CLONE — 音色克隆与 TTS
+
+- [ ] **CLONE-01**: 提取的参考音频自动上传到 SiliconFlow（`POST /v1/uploads/audio/voice`）注册自定义音色
+- [ ] **CLONE-02**: 注册成功后获取 URI 存储在 `Video.cloned_voice_uri` 字段，持久化跨阶段使用
+- [ ] **CLONE-03**: TTS 管线（`SiliconFlowTTSProvider`）支持使用克隆音色 URI 作为 `voice` 参数
+- [ ] **CLONE-04**: `voice_clone_enabled` 开启时，合成阶段优先使用克隆音色；克隆失败则回退到预设音色
+
+### UI — 音色选择与配置
+
+- [ ] **UI-01**: 任务创建对话框（DubCreateDialog）Step 2 增加「音色模式」选项：预设音色 / 克隆原声
+- [ ] **UI-02**: 「克隆原声」模式下自动提取并注册原视频说话人音色，合成时使用克隆音色
+- [ ] **UI-03**: 克隆成功后该视频的后续任务默认使用已注册的克隆音色
+
+---
+
+## Deferred (post-v5.2)
 
 - Playlist 跟踪（yt-dlp playlist 提取 + 顺序保持）
 - Trending 热点跟踪（yt-dlp explore 页面 + 定期快照）
@@ -62,11 +88,15 @@
 |---------|--------|
 | v4.0 五维评分引擎 | v5.1 用简单筛选替代，不做智能评分 |
 | v4.0 自定义规则引擎 | 不在本 milestone 范围 |
-| Playlist / Trending / Topic 跟踪 | 推迟到 post-v5.1，先聚焦关键词+频道 |
+| Playlist / Trending / Topic 跟踪 | 推迟到 post-v5.2，先聚焦音色仿写 |
 | YouTube Data API v3 集成 | yt-dlp 爬取已足够；API key 管理 + 配额限制对个人工具不划算 |
 | 本地模型（Ollama/LM Studio） | 全部使用硅基流动云端 API |
 | 多用户系统 | 个人自用工具 |
 | 移动端 App | 仅 Web 界面 |
+| MOSS-TTSD 双说话人对话 | 本 milestone 聚焦单说话人克隆，对话模式推迟 |
+| Speaker diarization（多说话人分离） | 本 milestone 无需区分说话人 |
+| 手动上传参考音频克隆 | 自动提取即可，不增加手动上传复杂度 |
+| 音色管理页面（增删改查） | 简化 UI，统一放在配置下拉框中 |
 
 ---
 
@@ -115,10 +145,11 @@
 | BUG-02 | Phase 11 | Complete | 11-01-PLAN.md |
 
 **Coverage:**
-- v5.1 requirements: 18 total
-- Mapped: 18 (all assigned to phases)
-- Unmapped: 0
+- v5.1 requirements: 18 total — all Complete ✅
+- v5.2 requirements: 9 total — defining...
+- Mapped: 0 (pending roadmap creation)
+- Unmapped: 9
 
 ---
 *Requirements defined: 2026-06-29*
-*Last updated: 2026-06-29 — Phase 10 Plan 03 complete (UI-01, UI-04 done). Phase 10 done (4/4 requirements, 3/3 plans). All 18/18 v5.1 requirements done.*
+*Last updated: 2026-07-01 — Added v5.2 音色仿写 support requirements (9 requirements in VOICE/CLONE/UI categories)*
