@@ -89,6 +89,31 @@ def convert_storage_state_to_biliup(
         except (ValueError, TypeError):
             expires_in = 0
 
+    # Try to get access_token from refresh_token if missing
+    if not access_token and refresh_token:
+        try:
+            import httpx
+            resp = httpx.post(
+                "https://passport.bilibili.com/x/passport-login/oauth2/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                },
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=10,
+            )
+            token_data = resp.json()
+            if token_data.get("code") == 0:
+                data = token_data.get("data", {})
+                access_token = data.get("access_token", "") or access_token
+                refresh_token = data.get("refresh_token", "") or refresh_token
+                expires_in = data.get("expires_in", expires_in)
+                logger.info("Fetched access_token from refresh_token")
+            else:
+                logger.warning("Token refresh failed: %s", token_data.get("message"))
+        except Exception as e:
+            logger.warning("Failed to exchange refresh_token: %s", e)
+
     login_info = {
         "cookie_info": cookies_flat,
         "sso": [],
@@ -99,6 +124,15 @@ def convert_storage_state_to_biliup(
             "expires_in": expires_in,
         },
     }
+
+    # Add device cookies if missing (biliup requires buvid3/buvid4)
+    if "buvid3" not in cookies_flat or "buvid4" not in cookies_flat:
+        import uuid
+        if "buvid3" not in cookies_flat:
+            cookies_flat["buvid3"] = str(uuid.uuid4()).upper()
+        if "buvid4" not in cookies_flat:
+            cookies_flat["buvid4"] = str(uuid.uuid4()).upper()
+        login_info["cookie_info"] = cookies_flat
 
     # Write atomically
     tmp_path = cookie_file_path + ".tmp"

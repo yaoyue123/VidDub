@@ -157,8 +157,9 @@ class BilibiliLogin(PlatformLoginBase):
             except Exception as e:
                 logger.warning("fetch nav after login failed: %s", e)
 
-            # 持久化 storage_state
-            self._persist_storage_state(cookies, result.get("user_info"))
+            # 持久化 storage_state（含 refresh_token 供后续换 access_token）
+            result["refresh_token"] = inner.get("refresh_token")
+            self._persist_storage_state(cookies, result.get("user_info"), refresh_token=inner.get("refresh_token"))
 
         return result
 
@@ -252,7 +253,8 @@ class BilibiliLogin(PlatformLoginBase):
             logger.warning("load storage_state failed: %s", e)
             return None
 
-    def _persist_storage_state(self, cookies: dict[str, str], user_info: Optional[dict]) -> None:
+    def _persist_storage_state(self, cookies: dict[str, str], user_info: Optional[dict],
+                                 refresh_token: Optional[str] = None) -> None:
         import json
         import os
         import time
@@ -262,6 +264,8 @@ class BilibiliLogin(PlatformLoginBase):
             "cookies": cookies,
             "user_info": user_info or {},
         }
+        if refresh_token:
+            state["refresh_token"] = refresh_token
         os.makedirs(os.path.dirname(self.storage_state_path), exist_ok=True)
         tmp = self.storage_state_path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
