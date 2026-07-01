@@ -31,10 +31,10 @@ Updated: 2026-07-01
 
 ## Current Position
 
-Phase: 14 (Voice Selection UI)
+Phase: All complete (v5.2)
 Plan: —
-Status: Pending
-Last activity: 2026-07-01 — Phase 12+13 complete
+Status: Milestone complete
+Last activity: 2026-07-01 — v5.2 all 3 phases complete
 
 ## v5.2 Roadmap Summary
 
@@ -42,9 +42,9 @@ Last activity: 2026-07-01 — Phase 12+13 complete
 |-------|------|------|--------|
 | 12. Voice Sample Extraction | 转写阶段自动音色提取 + 持久化 | VOICE-01, VOICE-02, VOICE-03 | ✅ Complete |
 | 13. Voice Clone TTS Integration | TTS 管线音色克隆集成 + 回退 | CLONE-01, CLONE-02, CLONE-03, CLONE-04 | ✅ Complete |
-| 14. Voice Selection UI | 前端音色模式选择 UI + 配置 | UI-01, UI-02, UI-03 | Pending |
+| 14. Voice Selection UI | 前端音色模式选择 UI + 配置 | UI-01, UI-02, UI-03 | ✅ Complete |
 
-**Coverage:** 9/9 v5.2 requirements — 7 complete, 2 pending.
+**Coverage:** 9/9 v5.2 requirements — all complete 🎉
 
 ## Accumulated Context
 

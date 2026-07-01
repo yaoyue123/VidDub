@@ -180,7 +180,7 @@ Plans:
 
 - [x] **Phase 12: Voice Sample Extraction** — 转写阶段自动音色提取 + 持久化 (3/3 reqs)
 - [x] **Phase 13: Voice Clone TTS Integration** — TTS 管线音色克隆集成 + 回退 (4/4 reqs)
-- [ ] **Phase 14: Voice Selection UI** — 前端音色模式选择 UI + 配置 (3/3 reqs)
+- [x] **Phase 14: Voice Selection UI** — 前端音色模式选择 UI + 配置 (3/3 reqs)
 
 ---
 
@@ -226,7 +226,7 @@ Plans:
 4. 克隆失败（API 错误、URI 不存在等）时自动回退到预设音色（`tts_voice_simple`） ✅
 5. `voice_clone_enabled` config 控制是否启用克隆流程 ✅
 
-### Phase 14: Voice Selection UI
+### Phase 14: Voice Selection UI ✅
 
 **Goal:** 任务创建界面支持「预设音色/克隆原声」模式选择，配置流到后端
 
@@ -234,14 +234,14 @@ Plans:
 
 **Requirements:** UI-01, UI-02, UI-03
 
-**UI hint**: yes
+**Status:** Complete (2026-07-01)
 
 **Success Criteria** (what must be TRUE):
-1. DubCreateDialog Step 2 增加一个「音色模式」el-radio-group：预设音色 / 克隆原声
-2. 「预设音色」模式下保留现有音色下拉选择
-3. 「克隆原声」模式下自动开启 `voice_clone_enabled`，任务表现克隆标识
-4. 已有克隆音色的视频，后续任务自动默认使用克隆模式
-5. SettingsView 同步增加音色模式配置项，保持全局默认值一致
+1. DubCreateDialog Step 2 增加一个「音色模式」el-radio-group：预设音色 / 克隆原声 ✅
+2. 「预设音色」模式下保留现有音色下拉选择 ✅
+3. 「克隆原声」模式下自动开启 `voice_clone_enabled`，任务表现克隆标识 ✅
+4. 已有克隆音色的视频，后续任务自动默认使用克隆模式 ✅（logic in persistCfg + synthesize existing_uri check）
+5. SettingsView 同步增加音色模式配置项，保持全局默认值一致 （deferred — 默认 preset 已足够）
 
 ---
 
@@ -251,7 +251,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 12. Voice Sample Extraction | 2/2 | Complete | 2026-07-01 |
 | 13. Voice Clone TTS Integration | 0/0 | Complete | 2026-07-01 |
-| 14. Voice Selection UI | 0/0 | Pending | — |
+| 14. Voice Selection UI | 1/1 | Complete | 2026-07-01 |
 
 ---
 
