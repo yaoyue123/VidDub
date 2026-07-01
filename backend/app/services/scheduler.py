@@ -759,6 +759,7 @@ class TaskScheduler:
 
     async def _handle_compose(self, task_id: int, video_id: int) -> None:
         work_base = get_download_dir()
+        configs = await _load_configs()
 
         async with async_session_factory() as session:
             await session.execute(
@@ -853,19 +854,27 @@ class TaskScheduler:
             original_srt_lines.append("")
         original_srt_content = "\n".join(original_srt_lines)
 
-        # 生成双语字幕烧录版视频
-        try:
-            from app.services.dubbing.subtitle_burn import (
-                write_bilingual_ass,
-                burn_subtitles_into_video,
-            )
-            ass_path = video_file(video_id, "bilingual.ass", base_dir=work_base)
-            write_bilingual_ass(segments, translations, ass_path)
-            await burn_subtitles_into_video(final_path, ass_path, subtitled_path)
-            logger.info("Subtitled video generated: %s", subtitled_path)
-        except Exception as e:
-            logger.warning("Failed to generate subtitled video: %s", e)
-            subtitled_path = None  # 烧录失败不阻塞主流程
+        # 生成双语字幕烧录版视频（受 subtitle_enabled 配置控制）
+        subtitle_enabled = configs.get("subtitle_enabled", "true").lower() in ("true", "1", "yes")
+        if subtitle_enabled:
+            try:
+                from app.services.dubbing.subtitle_burn import (
+                    write_bilingual_ass,
+                    burn_subtitles_into_video,
+                )
+                sub_font_size = max(int(configs.get("subtitle_font_size", "20")), 12)
+                sub_position = configs.get("subtitle_position", "bottom")
+                ass_path = video_file(video_id, "bilingual.ass", base_dir=work_base)
+                write_bilingual_ass(segments, translations, ass_path,
+                                    font_size=sub_font_size, position=sub_position)
+                await burn_subtitles_into_video(final_path, ass_path, subtitled_path)
+                logger.info("Subtitled video generated: %s", subtitled_path)
+            except Exception as e:
+                logger.warning("Failed to generate subtitled video: %s", e)
+                subtitled_path = None  # 烧录失败不阻塞主流程
+        else:
+            subtitled_path = None
+            logger.info("Subtitle burning disabled by config")
 
         async with async_session_factory() as session:
             # 保存翻译字幕

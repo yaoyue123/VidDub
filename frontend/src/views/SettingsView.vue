@@ -167,6 +167,30 @@ const fields: FieldDef[] = [
     group: 'advanced',
   },
   {
+    key: 'subtitle_enabled', label: '视频烧录字幕', type: 'select',
+    options: [
+      { label: '开启 (合成视频嵌入中文字幕)', value: 'true' },
+      { label: '关闭 (仅配音不烧录字幕)', value: 'false' },
+    ],
+    help: '开启后最终视频会嵌入双语字幕（英文在上、中文在下）',
+    group: 'advanced',
+  },
+  {
+    key: 'subtitle_font_size', label: '字幕字体大小', type: 'number',
+    min: 12, max: 48, step: 2, placeholder: '20',
+    help: '烧录字幕的字体大小（中文字幕尺寸，英文字幕自动小 2 号）',
+    group: 'advanced',
+  },
+  {
+    key: 'subtitle_position', label: '字幕位置', type: 'select',
+    options: [
+      { label: '底部 (中文在下)', value: 'bottom' },
+      { label: '顶部 (中文在上)', value: 'top' },
+    ],
+    help: '双语字幕的显示位置',
+    group: 'advanced',
+  },
+  {
     key: 'auto_publish_enabled', label: '自动发布', type: 'select',
     options: [
       { label: '开启 (配音完成自动发布)', value: 'true' },

@@ -13,10 +13,23 @@ from app.services.dubbing.ffmpeg import run_ffmpeg_async
 
 logger = logging.getLogger(__name__)
 
-# ASS header template — bilingual layout:
-#   "Original" style: top-center, white, medium
-#   "Chinese" style:  bottom-center, yellow, larger
-ASS_HEADER = """\
+
+def _build_ass_header(font_size: int = 20, position: str = "bottom") -> str:
+    """Build ASS header with configurable font size and position.
+
+    Args:
+        font_size: Base font size for Chinese subtitles (original is font_size-2).
+        position: "bottom" (Chinese at bottom, original at top) or "top".
+
+    Returns:
+        ASS header string.
+    """
+    orig_size = max(font_size - 2, 12)
+    cn_size = font_size
+    # Alignment: 2=bottom center, 8=top center
+    cn_align = 2 if position == "bottom" else 8
+    orig_align = 8 if position == "bottom" else 2
+    return f"""\
 [Script Info]
 Title: Bilingual Subtitles
 ScriptType: v4.00+
@@ -27,8 +40,8 @@ PlayResY: 1080
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Original,Microsoft YaHei,20,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,8,20,20,15,1
-Style: Chinese,Microsoft YaHei,24,&H0000FFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,20,20,15,1
+Style: Original,Microsoft YaHei,{orig_size},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,{orig_align},20,20,15,1
+Style: Chinese,Microsoft YaHei,{cn_size},&H0000FFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,{cn_align},20,20,15,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -48,22 +61,26 @@ def write_bilingual_ass(
     segments: list[dict[str, Any]],
     translations: list[str],
     out_path: str,
+    font_size: int = 20,
+    position: str = "bottom",
 ) -> str:
     """Generate a bilingual ASS subtitle file.
 
     Each segment produces two dialogue lines:
-    - Original language: top of screen (Style=Original, Alignment=8)
-    - Chinese translation: bottom of screen (Style=Chinese, Alignment=2)
+    - Original language (Style=Original)
+    - Chinese translation (Style=Chinese)
 
     Args:
         segments: Whisper segments with start/end/text.
         translations: Per-segment Chinese translations (1:1 with segments).
         out_path: Output .ass file path.
+        font_size: Base font size for Chinese subtitles (default 20).
+        position: Subtitle position ("bottom" or "top").
 
     Returns:
         out_path
     """
-    lines: list[str] = [ASS_HEADER]
+    lines: list[str] = [_build_ass_header(font_size, position)]
 
     for i, seg in enumerate(segments):
         start_ts = _format_ass_timestamp(float(seg.get("start", 0.0)))

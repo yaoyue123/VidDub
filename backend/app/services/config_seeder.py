@@ -149,6 +149,19 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "value": "8",
         "description": "AI 候选标签数量 (默认 8)",
     },
+    # ── Subtitle ──
+    "subtitle_enabled": {
+        "value": "true",
+        "description": "合成视频时是否烧录中文字幕（true/false）",
+    },
+    "subtitle_font_size": {
+        "value": "20",
+        "description": "字幕字体大小 (12-48)",
+    },
+    "subtitle_position": {
+        "value": "bottom",
+        "description": "字幕位置 (bottom/top)",
+    },
     # ── Channel Scanner ──
     "scan_max_concurrent": {
         "value": "3",
