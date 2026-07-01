@@ -71,6 +71,7 @@ const persisted = (() => {
 
 const cfg = reactive({
   voice: persisted.voice || 'anna',
+  voiceMode: persisted.voiceMode || 'preset',
   whisperModel: persisted.whisperModel || 'tiny',
   autoPublish: persisted.autoPublish !== false, // default ON per spec
   aiTitle: persisted.aiTitle !== false,         // default ON per spec
@@ -116,6 +117,7 @@ function persistCfg() {
   try {
     localStorage.setItem('viddub.dubConfig', JSON.stringify({
       voice: cfg.voice,
+      voiceMode: cfg.voiceMode,
       whisperModel: cfg.whisperModel,
       autoPublish: cfg.autoPublish,
       aiTitle: cfg.aiTitle,
@@ -204,15 +206,22 @@ async function submit() {
   }
 
   // Optionally persist user-overridable settings to backend config.
-  if (successCount > 0) {
-    const cfgUpdates: { key: string; value: string }[] = [
-      { key: 'whisper_model', value: cfg.whisperModel },
-      { key: 'tts_voice_simple', value: cfg.voice },
-      { key: 'tts_speed', value: String(cfg.speed) },
-      { key: 'tts_gain', value: String(cfg.volume) },
-      { key: 'auto_publish_enabled', value: String(cfg.autoPublish) },
-      { key: 'title_generator_enabled', value: String(cfg.aiTitle) },
-    ]
+    if (successCount > 0) {
+      const cfgUpdates: { key: string; value: string }[] = [
+        { key: 'whisper_model', value: cfg.whisperModel },
+        { key: 'tts_voice_simple', value: cfg.voice },
+        { key: 'tts_speed', value: String(cfg.speed) },
+        { key: 'tts_gain', value: String(cfg.volume) },
+        { key: 'auto_publish_enabled', value: String(cfg.autoPublish) },
+        { key: 'title_generator_enabled', value: String(cfg.aiTitle) },
+      ]
+      // Add voice cloning config when in clone mode
+      if (cfg.voiceMode === 'clone') {
+        cfgUpdates.push(
+          { key: 'voice_clone_enabled', value: 'true' },
+          { key: 'extract_voice_sample_during_transcribe', value: 'true' },
+        )
+      }
     try {
       await configApi.updateMany({ configs: cfgUpdates })
     } catch {
@@ -318,9 +327,18 @@ https://youtu.be/..."
 
       <el-form label-position="top" class="cfg-form">
         <el-form-item label="音色">
-          <el-select v-model="cfg.voice" style="width: 100%">
-            <el-option v-for="v in voices" :key="v.value" :label="v.label" :value="v.value" />
-          </el-select>
+          <el-radio-group v-model="cfg.voiceMode" style="margin-bottom: 8px;">
+            <el-radio value="preset">预设音色</el-radio>
+            <el-radio value="clone">克隆原声</el-radio>
+          </el-radio-group>
+          <template v-if="cfg.voiceMode === 'preset'">
+            <el-select v-model="cfg.voice" style="width: 100%">
+              <el-option v-for="v in voices" :key="v.value" :label="v.label" :value="v.value" />
+            </el-select>
+          </template>
+          <div v-else class="text-caption" style="margin-top: 4px;">
+            配音时将自动提取原视频说话人的音色进行克隆，保留原声特征。
+          </div>
         </el-form-item>
 
         <el-form-item label="Whisper 转写模型">
