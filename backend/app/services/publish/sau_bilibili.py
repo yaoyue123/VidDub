@@ -178,6 +178,9 @@ class SauBilibiliPublisher(PlatformPublisher):
         desc = _re.sub(r'[^\x20-\x7E\u4e00-\u9fff\u3000-\u303f\uff00-\uffef,.;:!?，。；：！？、\s]', '', desc)
         desc = desc[:2000].strip()
 
+        # source_url for repost (--copyright 2 requires --source)
+        source_url = fields.source_url or (storage_state.get("user_info") or {}).get("source_url", "")
+
         args = [
             "-u", cookie_file,
             "upload", video_file_path,
@@ -186,6 +189,7 @@ class SauBilibiliPublisher(PlatformPublisher):
             "--tid", str(tid),
             "--tag", ",".join(tags),
             "--copyright", "2",  # 2 = repost
+            "--source", source_url or "https://youtube.com",
         ]
 
         logger.info(
