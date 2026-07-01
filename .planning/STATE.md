@@ -31,20 +31,20 @@ Updated: 2026-07-01
 
 ## Current Position
 
-Phase: 12 (Voice Sample Extraction)
+Phase: 14 (Voice Selection UI)
 Plan: —
-Status: Roadmap created
-Last activity: 2026-07-01 — Milestone v5.2 roadmap created (3 phases, 9 requirements)
+Status: Pending
+Last activity: 2026-07-01 — Phase 12+13 complete
 
 ## v5.2 Roadmap Summary
 
-| Phase | Goal | Reqs | Depends on |
-|-------|------|------|------------|
-| 12. Voice Sample Extraction | 转写阶段自动音色提取 + 持久化 | VOICE-01, VOICE-02, VOICE-03 | — |
-| 13. Voice Clone TTS Integration | TTS 管线音色克隆集成 + 回退 | CLONE-01, CLONE-02, CLONE-03, CLONE-04 | Phase 12 |
-| 14. Voice Selection UI | 前端音色模式选择 UI + 配置 | UI-01, UI-02, UI-03 | Phase 13 |
+| Phase | Goal | Reqs | Status |
+|-------|------|------|--------|
+| 12. Voice Sample Extraction | 转写阶段自动音色提取 + 持久化 | VOICE-01, VOICE-02, VOICE-03 | ✅ Complete |
+| 13. Voice Clone TTS Integration | TTS 管线音色克隆集成 + 回退 | CLONE-01, CLONE-02, CLONE-03, CLONE-04 | ✅ Complete |
+| 14. Voice Selection UI | 前端音色模式选择 UI + 配置 | UI-01, UI-02, UI-03 | Pending |
 
-**Coverage:** 9/9 v5.2 requirements mapped.
+**Coverage:** 9/9 v5.2 requirements — 7 complete, 2 pending.
 
 ## Accumulated Context
 

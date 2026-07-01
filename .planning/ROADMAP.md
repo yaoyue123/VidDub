@@ -178,8 +178,8 @@ Plans:
 
 ### Phases
 
-- [ ] **Phase 12: Voice Sample Extraction** — 转写阶段自动音色提取 + 持久化 (3/3 reqs)
-- [ ] **Phase 13: Voice Clone TTS Integration** — TTS 管线音色克隆集成 + 回退 (4/4 reqs)
+- [x] **Phase 12: Voice Sample Extraction** — 转写阶段自动音色提取 + 持久化 (3/3 reqs)
+- [x] **Phase 13: Voice Clone TTS Integration** — TTS 管线音色克隆集成 + 回退 (4/4 reqs)
 - [ ] **Phase 14: Voice Selection UI** — 前端音色模式选择 UI + 配置 (3/3 reqs)
 
 ---
@@ -209,7 +209,7 @@ Plans:
 - [ ] 12-02-PLAN.md — Transcribe integration: voice extraction during TRANSCRIBE + synthesize fallback
 ```
 
-### Phase 13: Voice Clone TTS Integration
+### Phase 13: Voice Clone TTS Integration ✅
 
 **Goal:** 提取的参考音频上传到 SiliconFlow 注册音色，TTS 管线使用克隆音色合成中文配音
 
@@ -217,12 +217,14 @@ Plans:
 
 **Requirements:** CLONE-01, CLONE-02, CLONE-03, CLONE-04
 
+**Status:** Complete (2026-07-01) — implemented as part of Phase 12. All 5 success criteria met.
+
 **Success Criteria** (what must be TRUE):
-1. `clone_sample.wav` 自动上传到 SiliconFlow `POST /uploads/audio/voice`，成功获取 URI
-2. URI 持久化写入 `Video.cloned_voice_uri` 字段（当前已有此字段）
-3. TTS 合成阶段 (`_handle_synthesize`) 检测到克隆 URI 时优先使用，传给 `SiliconFlowTTSProvider.synthesize(voice=URI)`
-4. 克隆失败（API 错误、URI 不存在等）时自动回退到预设音色（`tts_voice_simple`）
-5. `voice_clone_enabled` config 控制是否启用克隆流程
+1. `clone_sample.wav` 自动上传到 SiliconFlow `POST /uploads/audio/voice`，成功获取 URI ✅
+2. URI 持久化写入 `Video.cloned_voice_uri` 字段（当前已有此字段） ✅
+3. TTS 合成阶段 (`_handle_synthesize`) 检测到克隆 URI 时优先使用，传给 `SiliconFlowTTSProvider.synthesize(voice=URI)` ✅
+4. 克隆失败（API 错误、URI 不存在等）时自动回退到预设音色（`tts_voice_simple`） ✅
+5. `voice_clone_enabled` config 控制是否启用克隆流程 ✅
 
 ### Phase 14: Voice Selection UI
 
@@ -248,7 +250,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 12. Voice Sample Extraction | 2/2 | Complete | 2026-07-01 |
-| 13. Voice Clone TTS Integration | 0/0 | Pending | — |
+| 13. Voice Clone TTS Integration | 0/0 | Complete | 2026-07-01 |
 | 14. Voice Selection UI | 0/0 | Pending | — |
 
 ---
