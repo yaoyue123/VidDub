@@ -123,6 +123,7 @@ def convert_storage_state_to_biliup(
             "refresh_token": refresh_token,
             "expires_in": expires_in,
         },
+        "platform": "BiliTV",
     }
 
     # Add device cookies if missing (biliup requires buvid3/buvid4)

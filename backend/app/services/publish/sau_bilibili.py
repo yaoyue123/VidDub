@@ -189,6 +189,7 @@ class SauBilibiliPublisher(PlatformPublisher):
             "--tid", str(tid),
             "--tag", ",".join(tags),
             "--copyright", "1",  # 1 = 原创
+            "--submit", "web",   # web submission uses cookies only, no access_token
         ]
 
         logger.info(
