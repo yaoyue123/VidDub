@@ -94,7 +94,7 @@ function parseSrt(text: string) {
     const start = parseSrtTime(tm[1])
     const end = parseSrtTime(tm[2])
     i++
-    const t = linesList.slice(i).join(' ')
+    const t = linesList.slice(i).join('\n')
     // Bilingual SRT: first line is original, second line is translation
     const parts = t.split('\n').filter(Boolean)
     const text_en = parts.length > 1 ? parts[0].trim() : ''
