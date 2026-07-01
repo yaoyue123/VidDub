@@ -26,6 +26,7 @@ dependencies = [
     "patchright==1.58.2",
     "opencv-python-headless>=4.13.0.92",
     "segno>=1.6.6",
+    "loguru>=0.7.3",
 ]
 
 [project.optional-dependencies]
