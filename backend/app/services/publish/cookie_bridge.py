@@ -81,7 +81,21 @@ def convert_storage_state_to_biliup(
     # access_token / refresh_token may be in storage_state or token_info
     token_info = storage_state.get("token_info") or user_info.get("token_info") or {}
     access_token = token_info.get("access_token") or cookies_flat.get("access_token", "")
-    refresh_token = token_info.get("refresh_token") or cookies_flat.get("refresh_token", "")
+    # Only use refresh_token if we have a non-empty access_token to pair it with,
+    # or if we can successfully exchange it. biliup tries to OAuth-refresh when
+    # refresh_token is present but access_token is empty, and Bilibili's OAuth
+    # token endpoint (passport.bilibili.com/x/passport-login/oauth2/token) now
+    # returns 404, causing upload to fail with -101.
+    # If no access_token is available, omit refresh_token so biliup falls back
+    # to cookie-based auth (--submit web mode works with cookies only).
+    if access_token:
+        refresh_token = (
+            token_info.get("refresh_token")
+            or storage_state.get("refresh_token")
+            or cookies_flat.get("refresh_token", "")
+        )
+    else:
+        refresh_token = ""
     expires_in = token_info.get("expires_in", 0)
     if isinstance(expires_in, str):
         try:
