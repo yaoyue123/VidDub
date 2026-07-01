@@ -226,7 +226,22 @@ class PublishManager:
             if video_file_path is None:
                 video_file_path = v.dubbed_filepath or ""
 
-        if not video_file_path or not video_file_path.strip():
+        # 如果 dubbed_filepath 不存在，在工作目录中查找实际视频文件
+        if video_file_path and not os.path.exists(video_file_path):
+            logger.warning("dubbed_filepath not found on disk: %s", video_file_path)
+            # Look for actual video file in the work directory
+            from app.core.storage import get_download_dir
+            work_dir = os.path.join(get_download_dir(), str(video_id))
+            if os.path.isdir(work_dir):
+                for f in sorted(os.listdir(work_dir), reverse=True):
+                    if f.endswith(".mp4") and f not in ("original.mp4",) and "_subtitled" not in f:
+                        candidate = os.path.join(work_dir, f)
+                        if os.path.isfile(candidate):
+                            video_file_path = candidate
+                            logger.info("Resolved video file: %s", video_file_path)
+                            break
+
+        if not video_file_path or not os.path.exists(video_file_path):
             for pf in platforms:
                 results[pf] = PublishResult(
                     success=False,
