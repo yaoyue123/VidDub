@@ -1,7 +1,7 @@
 # VidDub 知识库
 
-**生成:** 2026-06-30
-**提交:** 997b813
+**生成:** 2026-11-23
+**提交:** 69a374c
 **分支:** master
 
 ## 概览
@@ -12,21 +12,22 @@ YouTube 视频中文配音 + 多平台自动发布。后端 Python/FastAPI + 前
 
 ```
 VidDub/
-├── backend/          # Python FastAPI 后端（129 文件）
+├── backend/          # Python FastAPI 后端（app 99 / tests 27 个 .py）
 │   ├── app/
-│   │   ├── api/      # 17 个路由模块（FastAPI）
-│   │   ├── core/     # 配置、数据库、WebSocket
-│   │   ├── models/   # 12 个 SQLAlchemy ORM 模型
-│   │   ├── services/ # 业务逻辑（调度、配音、发布等）
+│   │   ├── api/      # 16 个路由模块（FastAPI）
+│   │   ├── core/     # 配置、数据库、存储、WebSocket
+│   │   ├── models/   # 11 个 SQLAlchemy ORM 模型
+│   │   ├── services/ # 业务逻辑（调度、配音、翻译、TTS、发布等）
 │   │   ├── cli.py    # CLI 入口（dub/status/resume）
 │   │   └── main.py   # FastAPI 应用入口
+│   ├── alembic/      # 数据库迁移脚本
 │   └── tests/        # pytest 测试
-├── frontend/         # Vue 3 + Vite + TypeScript（28 文件）
+├── frontend/         # Vue 3 + Vite + TypeScript（26 文件）
 │   └── src/
 │       ├── views/     # 7 个页面组件
 │       ├── stores/    # 6 个 Pinia 状态存储
-│       └── components/# 共享组件
-├── docs/             # 文档（8 篇）
+│       └── components/# 4 个共享组件
+├── docs/             # 文档（9 篇）
 └── social-auto-upload/ # vendored 发布库
 ```
 
@@ -36,13 +37,14 @@ VidDub/
 |------|------|------|
 | 新增 API 端点 | `backend/app/api/` | 在 router.py 注册 |
 | 修改数据库模型 | `backend/app/models/` | 需同步创建 Alembic 迁移 |
-| 修改配音管线 | `backend/app/services/dubbing/` | 管线编排在 scheduler.py |
-| 新增发布平台 | `backend/app/services/publish/` | 继承 BasePublisher |
-| 新增翻译引擎 | `backend/app/services/siliconflow/` | 或新增 provider |
+| 修改配音管线 | `backend/app/services/dubbing/pipeline.py` | 6 步管线；任务级调度在 `services/scheduler.py` |
+| 新增发布平台 | `backend/app/services/publish/` | 继承 `PlatformPublisher`，在 `platforms/registry.py` 注册描述符 |
+| 新增翻译引擎 | `backend/app/services/translator/` | 继承 `TranslationProvider`，在 service.py 按配置选择 |
+| 新增 TTS 引擎 | `backend/app/services/tts_new/` | 继承 `TTSProvider`，在 service.py 按配置选择 |
 | 修改前端页面 | `frontend/src/views/` | Vue 3 Composition API |
 | 修改状态管理 | `frontend/src/stores/` | Pinia stores |
 | 修改配置项 | `backend/app/core/config.py` | 同时更新 docs/CONFIGURATION.md |
-| 数据库迁移 | `alembic/versions/` | `alembic revision --autogenerate` |
+| 数据库迁移 | `backend/alembic/versions/` | `alembic revision --autogenerate` |
 
 ## 约定
 
