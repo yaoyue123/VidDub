@@ -72,9 +72,10 @@ sudo chown $USER:$USER /opt/viddub
 cd /opt/viddub
 git clone <your-repo-url> .
 
-# 一键 setup
-chmod +x setup.sh start.sh
-./setup.sh
+# 初始化发布 submodule + 安装依赖
+git submodule update --init --recursive
+chmod +x start.sh
+./start.sh   # 安装依赖并前台启动；生产环境请改用 systemd/nssm 托管
 ```
 
 ### A.3 配置 `.env`

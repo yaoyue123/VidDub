@@ -2,6 +2,7 @@
 Integration tests for SiliconFlow API integration.
 """
 
+import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import tempfile
@@ -53,14 +54,18 @@ class TestTranscriptionServiceIntegration:
 class TestTTSServiceIntegration:
     """Integration tests for TTSService."""
 
-    def test_tts_service_provider_integration(self):
+    @patch("app.services.tts_new.service._get_tts_backend", new_callable=AsyncMock)
+    def test_tts_service_provider_integration(self, mock_get_backend):
         """Test TTSService with SiliconFlow provider."""
+        mock_get_backend.return_value = "siliconflow"
+
         service = TTSService()
 
-        # Verify provider type
+        # Verify provider type (selected lazily from the DB config)
         from app.services.tts_new.siliconflow_provider import SiliconFlowTTSProvider
 
-        assert isinstance(service._provider, SiliconFlowTTSProvider)
+        provider = asyncio.run(service._get_provider())
+        assert isinstance(provider, SiliconFlowTTSProvider)
 
     @pytest.mark.asyncio
     async def test_tts_service_voices_integration(self):

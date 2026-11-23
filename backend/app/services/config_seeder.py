@@ -41,6 +41,10 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "value": "",
         "description": "yt-dlp Cookie 文件路径 (可选)",
     },
+    "yt_dlp_proxy": {
+        "value": "",
+        "description": "yt-dlp 代理，如 http://127.0.0.1:7890 (留空=直连或读 HTTPS_PROXY)",
+    },
     # ── Target language ──
     "target_language": {
         "value": "zh",
@@ -71,7 +75,7 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
     # ── TTS ──
     "tts_backend": {
         "value": "siliconflow",
-        "description": "语音合成后端 (siliconflow/edge-tts)",
+        "description": "语音合成后端 (siliconflow/edge-tts/moss)",
     },
     "tts_model": {
         "value": "FunAudioLLM/CosyVoice2-0.5B",
@@ -101,6 +105,23 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "value": "32000",
         "description": "采样率 Hz",
     },
+    # ── MOSS-TTS-Nano (local ONNX) ──
+    "moss_tts_repo_path": {
+        "value": "",
+        "description": "MOSS-TTS-Nano 源码目录（留空=backend/data/models/MOSS-TTS-Nano）",
+    },
+    "moss_tts_python": {
+        "value": "",
+        "description": "MOSS-TTS-Nano 虚拟环境 Python（留空=仓库内 .venv）",
+    },
+    "moss_tts_voice": {
+        "value": "Junhao",
+        "description": "MOSS 内置音色 (Junhao/Zhiming/Weiguo/Xiaoyu/Yuewen/Lingyu)",
+    },
+    "moss_tts_cpu_threads": {
+        "value": "4",
+        "description": "MOSS ONNX CPU 线程数",
+    },
     # ── Voice cloning ──
     "voice_clone_enabled": {
         "value": "false",
@@ -112,11 +133,11 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
     },
     # ── Dubbing pipeline ──
     "atempo_min": {
-        "value": "0.7",
-        "description": "atempo 调速下限（<则 pad 静音）",
+        "value": "0.85",
+        "description": "atempo 调速下限（<则 pad 静音；越大越自然）",
     },
     "atempo_max": {
-        "value": "1.5",
+        "value": "1.4",
         "description": "atempo 调速上限（>则 trim 截断）",
     },
     # ── Upload / Platform ──
@@ -172,8 +193,8 @@ DEFAULT_CONFIGS: dict[str, dict[str, Any]] = {
         "description": "合成视频时是否烧录中文字幕（true/false）",
     },
     "subtitle_font_size": {
-        "value": "20",
-        "description": "字幕字体大小 (12-48)",
+        "value": "48",
+        "description": "字幕字体大小 (12-64，1080p 推荐 44-56)",
     },
     "subtitle_position": {
         "value": "bottom",

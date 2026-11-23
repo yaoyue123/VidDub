@@ -44,11 +44,17 @@ const searchLoading = ref(false)
 const searchResults = ref<{ title: string; url: string; thumbnail?: string }[]>([])
 
 const voices: VoiceOption[] = [
+  { label: 'MOSS 俊豪 (中文男声，推荐)', value: 'Junhao' },
+  { label: 'MOSS 志明 (中文男声/京味)', value: 'Zhiming' },
+  { label: 'MOSS 卫国 (中文男声/说书)', value: 'Weiguo' },
+  { label: 'MOSS 小雨 (中文女声)', value: 'Xiaoyu' },
+  { label: 'MOSS 月雯 (中文女声)', value: 'Yuewen' },
+  { label: 'MOSS 凌雨 (中文女声/电台)', value: 'Lingyu' },
   { label: 'alex (男声)', value: 'alex' },
   { label: 'benjamin (男声)', value: 'benjamin' },
   { label: 'charles (男声)', value: 'charles' },
   { label: 'david (男声)', value: 'david' },
-  { label: 'anna (女声，推荐)', value: 'anna' },
+  { label: 'anna (女声)', value: 'anna' },
   { label: 'bella (女声)', value: 'bella' },
   { label: 'claire (女声)', value: 'claire' },
   { label: 'diana (女声)', value: 'diana' },

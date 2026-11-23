@@ -9,6 +9,7 @@ POST /api/dub/{id}/resume   — 失败任务断点续跑
 注意：调度器在 main.py lifespan 启动后会自动 polling pending tasks，
 所以 POST /api/dub 只需创建 Video + download Task 即可触发整个 chain。
 """
+import asyncio
 import logging
 import os
 from urllib.parse import urlparse
@@ -38,6 +39,17 @@ YOUTUBE_HOSTS = frozenset({
     "music.youtube.com",
     "youtu.be",
 })
+
+
+async def _resolve_download_dir(db: AsyncSession) -> str:
+    """Resolve download_dir from DB config first, then the startup cache."""
+    row = (await db.execute(
+        select(Config).where(Config.key == "download_dir")
+    )).scalar_one_or_none()
+    value = (row.value or "").strip() if row else ""
+    if value:
+        return os.path.normpath(os.path.abspath(value))
+    return get_download_dir()
 
 
 def _validate_youtube_url(url: str) -> None:
@@ -108,9 +120,9 @@ async def create_dub(
     from app.services.youtube import YoutubeService
     yt = YoutubeService()
     try:
-        info = await yt.get_video_info(url)
+        info = await asyncio.wait_for(yt.get_video_info(url), timeout=45)
     except Exception as e:
-        logger.warning("get_video_info failed: %s — using placeholder metadata", e)
+        logger.warning("get_video_info failed/timed out: %s — using placeholder metadata", e)
         info = None
 
     if info:
@@ -125,6 +137,24 @@ async def create_dub(
         channel = "Unknown"
         duration = None
         thumbnail_url = None
+
+    # 去重：youtube_id 是唯一键，重复提交时给出明确提示而不是 500
+    existing = (await db.execute(
+        select(Video).where(Video.youtube_id == youtube_id)
+    )).scalar_one_or_none()
+    if existing:
+        latest = (await db.execute(
+            select(Task).where(Task.video_id == existing.id)
+            .order_by(Task.created_at.desc()).limit(1)
+        )).scalar_one_or_none()
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"该视频已存在: video_id={existing.id}, status={existing.status}, "
+                f"task_id={latest.id if latest else 'none'}。"
+                "请在该视频上续跑，或删除后重新创建。"
+            ),
+        )
 
     # 创建 Video
     video = Video(
@@ -218,7 +248,7 @@ async def download_dubbed_video(
     final_path = v.dubbed_filepath
     if not final_path or not os.path.exists(final_path):
         # 兜底：按约定路径找
-        download_dir = get_download_dir()
+        download_dir = await _resolve_download_dir(db)
         final_path = os.path.join(download_dir, str(video_id), "final.mp4")
         if not os.path.exists(final_path):
             raise HTTPException(404, detail="final.mp4 not found on disk")
@@ -236,7 +266,7 @@ async def get_subtitle(
     if not v:
         raise HTTPException(404, detail="Video not found")
 
-    work_dir = os.path.join(get_download_dir(), str(video_id))
+    work_dir = os.path.join(await _resolve_download_dir(db), str(video_id))
     if not os.path.isdir(work_dir):
         logger.warning("work dir not found for video %s at %s", video_id, work_dir)
         return ""
@@ -483,7 +513,7 @@ async def preview_dub_artifact(
     if not v:
         raise HTTPException(404, detail="Video not found")
 
-    download_dir = get_download_dir()
+    download_dir = await _resolve_download_dir(db)
     work_dir = os.path.join(download_dir, str(video_id))
 
     filename = _PREVIEW_FILENAMES[kind]

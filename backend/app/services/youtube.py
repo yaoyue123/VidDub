@@ -177,6 +177,8 @@ class YoutubeService:
             "outtmpl": os.path.join(self.download_dir, "%(id)s.%(ext)s"),
             "progress_hooks": hooks,
         }
+        # Proxy / cookies / extractor args from the shared wrapper config.
+        opts = self._wrapper.apply_network_opts(opts)
         if cookies_file and os.path.exists(cookies_file):
             opts["cookiefile"] = cookies_file
 
@@ -199,7 +201,11 @@ class YoutubeService:
                 ):
                     if os.path.exists(candidate):
                         return candidate
-                return filepath  # best guess
+                logger.error(
+                    "yt-dlp reported success but no output file found for %s (id=%s)",
+                    url, youtube_id,
+                )
+                return None
             except Exception as e:
                 logger.error("yt-dlp download failed for %s: %s", url, e)
                 return None

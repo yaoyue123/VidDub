@@ -168,6 +168,10 @@ class RetranslateResponse(BaseModel):
 
 
 def _resolve_download_dir(db_configs: dict[str, str]) -> str:
+    """Prefer the DB config value (UI-editable) over the startup cache."""
+    configured = (db_configs.get("download_dir") or "").strip()
+    if configured:
+        return os.path.normpath(os.path.abspath(configured))
     return get_download_dir()
 
 

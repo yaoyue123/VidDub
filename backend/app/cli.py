@@ -8,7 +8,8 @@
 约束（per RESEARCH Q4 + 用户要求）：
 - argparse 接口
 - 进度通过 stdout 实时打印（WebSocket 非必需）
-- SILICONFLOW_API_KEY 必须在 .env 设置，否则退出
+- SILICONFLOW_API_KEY 仅在使用 SiliconFlow 翻译/TTS 时需要；
+  Google 翻译 + Edge-TTS 可免费运行
 """
 import argparse
 import asyncio
@@ -38,14 +39,27 @@ def _setup_logging(verbose: bool = False) -> None:
     )
 
 
-def _check_env() -> None:
-    """启动前检查必需的环境变量."""
+def _check_env(configs: dict[str, str]) -> None:
+    """Check provider credentials after DB defaults have been seeded.
+
+    A SiliconFlow key is only required when at least one pipeline stage still
+    uses SiliconFlow.  Google Translate + Edge-TTS run without any key.
+    """
     key = settings.siliconflow_api_key.strip()
-    if not key:
-        print("ERROR: SILICONFLOW_API_KEY 未设置。", file=sys.stderr)
-        print("请复制 backend/.env.example 为 backend/.env 并填入密钥", file=sys.stderr)
-        print("获取地址: https://cloud.siliconflow.cn/account/ak", file=sys.stderr)
-        sys.exit(2)
+    backends = {
+        "翻译": configs.get("translation_backend", "siliconflow"),
+        "TTS": configs.get("tts_backend", "siliconflow"),
+        "转写": configs.get("transcription_backend", "whisper"),
+    }
+    if not any(v == "siliconflow" for v in backends.values()) or key:
+        return
+
+    print("ERROR: 当前后端配置需要 SILICONFLOW_API_KEY，但未设置。", file=sys.stderr)
+    for name, backend in backends.items():
+        print(f"  {name}: {backend}", file=sys.stderr)
+    print("免费方案: 在设置中将翻译后端改为 google、TTS 后端改为 edge-tts，", file=sys.stderr)
+    print("或复制 backend/.env.example 为 backend/.env 并填入密钥。", file=sys.stderr)
+    sys.exit(2)
 
 
 def _print(msg: str) -> None:
@@ -57,12 +71,11 @@ def _print(msg: str) -> None:
 
 async def _cmd_dub(args: argparse.Namespace) -> int:
     """端到端配音."""
-    _check_env()
-
     from sqlalchemy import select
     from app.core.database import engine, Base, async_session_factory
     from app.models.video import Video
     from app.models.task import Task
+    from app.models.config import Config
     from app.models.enums import VideoStatus, TaskType, TaskStatus
     from app.services.config_seeder import seed_default_config
     from app.services.scheduler import TaskScheduler
@@ -73,6 +86,12 @@ async def _cmd_dub(args: argparse.Namespace) -> int:
     async with async_session_factory() as db:
         await seed_default_config(db)
         await db.commit()
+
+    # 2. 按后端配置检查凭据（google + edge-tts 无需 API key）
+    async with async_session_factory() as db:
+        rows = (await db.execute(select(Config))).scalars().all()
+        configs = {c.key: c.value for c in rows}
+    _check_env(configs)
 
     # 2. 提取视频元数据
     from app.services.youtube import YoutubeService
@@ -148,7 +167,7 @@ async def _cmd_dub(args: argparse.Namespace) -> int:
                 work_dir = os.path.dirname(v.dubbed_filepath) if v.dubbed_filepath else ""
                 if work_dir:
                     _print(f"  工作目录: {work_dir}")
-                    _print(f"  字幕: {os.path.join(work_dir, 'subtitle.srt')}")
+                    _print(f"  字幕: {os.path.splitext(v.dubbed_filepath)[0]}.srt")
                 return 0
             if status == VideoStatus.FAILED:
                 err = latest_task.error_msg if latest_task else "unknown"

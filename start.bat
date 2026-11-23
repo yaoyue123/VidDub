@@ -22,6 +22,17 @@ if %ERRORLEVEL% neq 0 (
     echo [OK] uv ready
 )
 
+:: ----- 1b. social-auto-upload submodule (publishing backend) -----
+if not exist "social-auto-upload\uploader" (
+    echo [*] initializing social-auto-upload submodule...
+    git submodule update --init --recursive
+    if errorlevel 1 (
+        echo [WARN] social-auto-upload init failed; publishing will be unavailable
+    ) else (
+        echo [OK] social-auto-upload ready
+    )
+)
+
 :: ----- 2. backend deps + .venv -----
 if not exist "backend\.venv" (
     echo [*] installing backend deps...

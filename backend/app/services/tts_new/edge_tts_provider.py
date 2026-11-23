@@ -91,6 +91,27 @@ class EdgeTTSProvider(TTSProvider):
         sign = "+" if percent >= 0 else ""
         return f"{sign}{percent}%"
 
+    def _resolve_voice(self, voice: Optional[str]) -> str:
+        """Return a valid Edge voice id, falling back to the default.
+
+        Guards against callers that still pass a SiliconFlow voice name
+        (e.g. ``anna``) after switching ``tts_backend`` to ``edge-tts``.
+        """
+        configured = self._voice
+        fallback = (
+            configured
+            if configured and configured.endswith("Neural") and "-" in configured
+            else "zh-CN-XiaoxiaoNeural"
+        )
+        candidate = voice or fallback
+        if candidate and candidate.endswith("Neural") and "-" in candidate:
+            return candidate
+        logger.warning(
+            "Ignoring invalid Edge-TTS voice %r; using %s",
+            candidate, fallback,
+        )
+        return fallback
+
     async def synthesize(
         self,
         text: str,
@@ -122,7 +143,7 @@ class EdgeTTSProvider(TTSProvider):
         if not text or not text.strip():
             raise ValueError("Text is empty")
 
-        voice_id = voice or self._voice
+        voice_id = self._resolve_voice(voice)
         rate = self._speed_to_rate(speed or self._speed)
 
         start_time = time.time()
@@ -187,7 +208,7 @@ class EdgeTTSProvider(TTSProvider):
         if not text or not text.strip():
             return
 
-        voice_id = voice or self._voice
+        voice_id = self._resolve_voice(voice)
         rate = self._speed_to_rate(speed or self._speed)
 
         try:

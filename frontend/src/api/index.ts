@@ -92,10 +92,21 @@ export interface ConfigTestResult {
   latency_ms: number
   error: string | null
 }
+export interface ConfigKeyStatus {
+  siliconflow_api_key_configured: boolean
+  needs_siliconflow_key: boolean
+  translation_backend: string
+  tts_backend: string
+  transcription_backend: string
+}
 
 export const configApi = {
   list() {
     return api.get<ConfigItem[]>('/config')
+  },
+  /** Whether the current providers need a SiliconFlow key (GET /api/config/key-status) */
+  keyStatus() {
+    return api.get<ConfigKeyStatus>('/config/key-status')
   },
   updateMany(body: { configs: { key: string; value: string }[] }) {
     return api.put<ConfigItem[]>('/config', body)

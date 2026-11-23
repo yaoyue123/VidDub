@@ -146,7 +146,7 @@ async def create_video(body: CreateVideoRequest, db: AsyncSession = Depends(get_
 @router.get("", response_model=VideoListResponse)
 async def list_videos(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),

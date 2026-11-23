@@ -53,15 +53,21 @@ class TranslationService:
     def __init__(self):
         self._provider: Optional[TranslationProvider] = None
         self._backend: Optional[str] = None
+        self._model: Optional[str] = None
 
     async def _get_provider(self) -> TranslationProvider:
         """Get or create the appropriate provider based on config."""
         backend = await _get_translation_backend()
         model = await _get_translation_model()
 
-        # Recreate provider if backend changed
-        if self._backend != backend or self._provider is None:
+        # Recreate provider if backend or model changed
+        if (
+            self._backend != backend
+            or self._model != model
+            or self._provider is None
+        ):
             self._backend = backend
+            self._model = model
 
             if backend == "google":
                 from app.services.translator.google_provider import GoogleTranslateProvider
@@ -92,12 +98,53 @@ class TranslationService:
             List of translated strings.
         """
         provider = await self._get_provider()
-        return await provider.translate_segments(
-            segments,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            **kwargs,
-        )
+        try:
+            return await provider.translate_segments(
+                segments,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                **kwargs,
+            )
+        except Exception as exc:
+            fallback = await self._fallback_provider(exc)
+            if fallback is None:
+                raise
+            logger.warning(
+                "Translation backend %r failed (%s); retrying with %s",
+                self._backend, exc, type(fallback).__name__,
+            )
+            return await fallback.translate_segments(
+                segments,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                **kwargs,
+            )
+
+    async def _fallback_provider(self, exc: Exception) -> Optional[TranslationProvider]:
+        """Return a best-effort fallback provider, or None.
+
+        Google's free endpoint is rate-limited and frequently unreachable; when
+        it fails we must not silently dub the English source.  If a SiliconFlow
+        key is configured, retry there (and downgrade a failed Qwen model to
+        DeepSeek-V4-Flash).
+        """
+        from app.core.config import settings
+
+        if not settings.siliconflow_api_key.strip():
+            return None
+
+        if self._backend == "google":
+            logger.error("Google Translate failed: %s", exc)
+            return SiliconFlowTranslationProvider()
+
+        fallback_model = "deepseek-ai/DeepSeek-V4-Flash"
+        if self._backend == "siliconflow" and self._model != fallback_model:
+            logger.error(
+                "SiliconFlow model %r failed: %s; falling back to %s",
+                self._model, exc, fallback_model,
+            )
+            return SiliconFlowTranslationProvider(model=fallback_model)
+        return None
 
     async def translate_text(
         self,

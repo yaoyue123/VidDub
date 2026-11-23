@@ -6,6 +6,40 @@
 
 ---
 
+## [v5.3.0] — 2026-11-24 — 产品级可用性修复 + 本地 MOSS-TTS
+
+### 修复
+
+- **发布 submodule 丢失**：`social-auto-upload/` 仅剩 gitlink，补回 `.gitmodules` 并在启动脚本中自动 `git submodule update --init --recursive`；后端首次发布自动生成 `conf.py`
+- **迁移脚本表名错误**：`drop_ixigua` 迁移读写不存在的 `app_config`，改为实际的 `configs` 表
+- **yt-dlp 代理/Cookie 未生效**：新增 `yt_dlp_proxy` 配置，下载路径也通过 `YtDlpWrapper` 注入 proxy/cookies；修正 `ytdlp_cookie_file` 与 `yt_dlp_cookies` 键名不一致
+- **音色跨后端不匹配**：Edge-TTS 收到 SiliconFlow 音色（如 `anna`）会 403；MOSS 收到非预置音色同样失败。现按后端自动回退到默认音色
+- **自动发布忽略默认平台**：`auto_publish` 过去会向全部 5 个平台发布，现只发 `default_upload_platform`
+- **CLI 强制要求 SiliconFlow Key**：Google + MOSS 免费组合现在可直接运行
+- **字幕可读性**：默认字号 20 → 48（1080p），并转义 ASS 中的 `{}`/换行，避免字幕被当作样式标签
+- **配音对齐**：段落切分从“8 秒静音”改为“1.5 秒静音或 20 秒上限”，避免整段旁白合并成一个 TTS 导致后段口型漂移；atempo 默认收窄到 0.85-1.4，优先自然语速
+- **下载信号量泄漏**：`YtDlpRateLimiter.__aexit__` 未 `await release()`，第 3 次 YouTube 调用会永久阻塞；已修复并加回归测试
+- **重复视频 500**：同一 `youtube_id` 再次提交会触发唯一约束；现在返回 409 与明确提示
+- **首页误报 Key 未配置**：新增 `/api/config/key-status`，免费组合（Google + MOSS）不再显示警告
+- **任务页 422**：视频列表 `page_size` 上限从 100 提升到 500，前端一次加载 200 条不再被拒绝
+- **翻译阻塞事件循环**：Google 翻译改用 `asyncio.to_thread`，避免翻译期间 WebSocket/API 卡住
+- **Docker 构建**：镜像补拷 `social-auto-upload`、新增 `.dockerignore`；`requirements.txt` 与 `pyproject.toml` 对齐
+- **测试基线**：修复 pytest 事件循环、迁移夹具、TTS 懒加载断言等，套件从 226 通过/28 失败恢复为全绿；并修复硬删除测试误删真实 `downloads/1` 的隔离问题
+
+### 新增
+
+- **MOSS-TTS-Nano 本地 TTS**（`tts_backend=moss`）：0.1B ONNX、6 个中文内置音色、独立 venv、自动下载权重
+- `backend/scripts/install_moss_tts.ps1` 一键安装脚本
+- Web UI 支持 MOSS/Edge/SiliconFlow 后端与音色选择、yt-dlp 代理配置
+- 前端 `npm run build` 现在包含 `vue-tsc --noEmit` 类型检查
+
+### 测试
+
+- 新增 `tests/unit/test_subtitle_burn.py`、`tests/unit/test_ytdlp_proxy.py` 与 MOSS 音色/回退用例
+- `backend`：289 passed / 1 skipped（真实网络用例默认跳过）
+
+---
+
 ## [v5.0.0] — 2026-06-29 — Phase 1-6: 开源化深度改造
 
 > v5.0 是一次重大重构：从个人 VidDub 工具转型为开源 VidDub 项目。核心变化包括 5 平台支持（去掉了 ixigua）、social-auto-upload 集成、TTS 架构升级、文档全面 rewrite。

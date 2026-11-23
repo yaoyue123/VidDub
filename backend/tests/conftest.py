@@ -1,11 +1,46 @@
 """Shared pytest fixtures for viddub backend tests."""
 import asyncio
+import inspect
 import json
 import os
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_download_dir():
+    """Prevent the global download_dir cache from leaking between tests."""
+    from app.core.storage import invalidate_download_dir
+
+    invalidate_download_dir()
+    yield
+    invalidate_download_dir()
+
+
+@pytest.fixture(autouse=True)
+def _ensure_event_loop(request):
+    """Keep a usable current event loop for synchronous tests.
+
+    pytest-asyncio >= 1.x closes the loop after each async test and does not
+    install a fresh one, while several legacy sync tests still call
+    ``asyncio.get_event_loop().run_until_complete(...)``.  Python 3.11 then
+    raises "There is no current event loop in thread 'MainThread'".
+    """
+    if inspect.iscoroutinefunction(getattr(request, "function", None)):
+        yield
+        return
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("event loop is closed")
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    yield
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 

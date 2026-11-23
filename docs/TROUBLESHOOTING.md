@@ -6,20 +6,19 @@
 
 ## 1. API Key 与 SiliconFlow
 
-### 1.1 报错 `SILICONFLOW_API_KEY is required` / 启动即退出
+### 1.1 启动提示 `SILICONFLOW_API_KEY 未配置`
 
-**原因**：`backend/.env` 缺少 `SILICONFLOW_API_KEY`，或 `.env` 文件本身不存在。
+**原因**：当前翻译 / TTS / STT 后端仍包含 `siliconflow`，但 `backend/.env` 没有 Key。
+（纯 Google + MOSS/Edge 组合不会再报这个错。）
 
-**排查**：
-```bash
-# 确认文件存在
-ls backend/.env
-
-# 确认 key 不为空
-grep SILICONFLOW_API_KEY backend/.env
+**修复方案 A — 免费本地运行**：
+```
+translation_backend = google
+tts_backend = moss        # 需先安装 scripts/install_moss_tts.ps1
+transcription_backend = whisper
 ```
 
-**修复**：
+**修复方案 B — 使用 SiliconFlow**：
 1. 申请 key：https://cloud.siliconflow.cn/account/ak
 2. 编辑 `backend/.env`：`SILICONFLOW_API_KEY=sk_xxx`
 3. 重启服务
@@ -70,7 +69,7 @@ grep SILICONFLOW_API_KEY backend/.env
 export HF_ENDPOINT=https://hf-mirror.com
 # Windows PowerShell
 $env:HF_ENDPOINT="https://hf-mirror.com"
-# 再跑 setup.sh / setup.ps1 的预下载步骤
+# 再跑 start.bat / start.sh 的依赖安装步骤
 uv run python -c "import whisper; whisper.load_model('tiny')"
 ```
 
@@ -250,13 +249,13 @@ cp social-auto-upload/conf.example.py social-auto-upload/conf.py
 
 ### 6.2 PowerShell 执行策略阻止脚本运行
 
-**症状**：`.\setup.ps1 cannot be loaded because running scripts is disabled on this system`
+**症状**：`.\install_moss_tts.ps1 cannot be loaded because running scripts is disabled on this system`
 
 **修复**：
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 # 或一次性绕过
-powershell -ExecutionPolicy Bypass -File .\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\backend\scripts\install_moss_tts.ps1
 ```
 
 ### 6.3 虚拟环境创建失败
@@ -273,7 +272,7 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 
 **修复**：
 ```bash
-dos2unix setup.sh start.sh
+dos2unix start.sh
 # 或在 git 配置（仅本仓库）
 git config core.autocrlf false
 ```

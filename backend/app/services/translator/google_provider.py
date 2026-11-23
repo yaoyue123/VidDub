@@ -8,6 +8,7 @@ Note: Rate limits apply for heavy usage. For production volume,
 consider Google Cloud Translation API (paid, higher quota).
 """
 
+import asyncio
 import logging
 from typing import Any, Optional
 
@@ -82,8 +83,6 @@ class GoogleTranslateProvider(TranslationProvider):
         Returns:
             List of translated strings.
         """
-        import asyncio
-
         source = _to_google_code(source_lang)
         target = _to_google_code(target_lang)
         batch_size = int(kwargs.get("batch_size", 10))
@@ -112,17 +111,26 @@ class GoogleTranslateProvider(TranslationProvider):
             batch_texts = [item[1] for item in non_empty]
 
             try:
-                if len(batch_texts) == 1:
-                    translated = translator.translate(batch_texts[0])
-                    batch_results = [translated]
-                else:
-                    batch_results = translator.translate_batch(batch_texts)
-            except Exception as e:
-                logger.warning(
-                    "Google Translate batch failed (offset=%d): %s — falling back to source",
-                    i, e,
+                def _do_batch() -> list[str]:
+                    if len(batch_texts) == 1:
+                        return [translator.translate(batch_texts[0])]
+                    return translator.translate_batch(batch_texts)
+
+                batch_results = await asyncio.wait_for(
+                    asyncio.to_thread(_do_batch), timeout=30,
                 )
-                batch_results = batch_texts  # fallback to source
+            except asyncio.TimeoutError as e:
+                logger.error(
+                    "Google Translate timed out after 30s (offset=%d)", i,
+                )
+                raise RuntimeError("Google Translate request timed out") from e
+            except Exception as e:
+                logger.error(
+                    "Google Translate batch failed (offset=%d): %s", i, e,
+                )
+                # Never silently substitute the English source: the caller
+                # would otherwise dub English audio with a Chinese voice.
+                raise RuntimeError(f"Google Translate failed: {e}") from e
 
             # Reconstruct full batch with empty slots
             full_results: list[str] = list(batch)  # copy original
@@ -165,11 +173,16 @@ class GoogleTranslateProvider(TranslationProvider):
 
         try:
             translator = GoogleTranslator(source=source, target=target)
-            result = translator.translate(text)
+            result = await asyncio.wait_for(
+                asyncio.to_thread(translator.translate, text), timeout=30,
+            )
             return result or text
+        except asyncio.TimeoutError as e:
+            logger.error("Google Translate timed out after 30s")
+            raise RuntimeError("Google Translate request timed out") from e
         except Exception as e:
-            logger.warning("Google Translate text failed: %s — returning source", e)
-            return text
+            logger.error("Google Translate text failed: %s", e)
+            raise RuntimeError(f"Google Translate failed: {e}") from e
 
     @property
     def is_available(self) -> bool:

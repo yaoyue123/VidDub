@@ -51,6 +51,10 @@ class TTSService:
                 from app.services.tts_new.edge_tts_provider import EdgeTTSProvider
                 self._provider = EdgeTTSProvider()
                 logger.info("Using Edge-TTS provider (free, local)")
+            elif backend in ("moss", "moss-nano", "moss-tts"):
+                from app.services.tts_new.moss_tts_provider import MossTTSProvider
+                self._provider = MossTTSProvider()
+                logger.info("Using MOSS-TTS-Nano provider (local ONNX)")
             else:
                 self._provider = SiliconFlowTTSProvider()
                 logger.info("Using SiliconFlow TTS provider")
@@ -84,6 +88,7 @@ class TTSService:
             TTSResult with timing and metadata.
         """
         provider = await self._get_provider()
+        voice = self._normalize_voice(voice)
         return await provider.synthesize(
             text=text,
             output_path=output_path,
@@ -94,6 +99,43 @@ class TTSService:
             response_format=response_format,
             sample_rate=sample_rate,
         )
+
+    def _normalize_voice(self, voice: Optional[str]) -> Optional[str]:
+        """Drop voices that belong to a different TTS backend.
+
+        ``tts_voice_simple`` defaults to the SiliconFlow name ``anna``; after
+        switching ``tts_backend`` to ``edge-tts`` that value is not a valid
+        Edge voice and the API rejects it.  Symmetrically, an Edge voice must
+        not be sent to SiliconFlow.  Falling back to the provider default keeps
+        the pipeline working when users switch backends in the Settings UI.
+        """
+        if not voice:
+            return voice
+
+        from app.services.tts_new.moss_tts_provider import MOSS_BACKENDS, MOSS_VOICE_IDS
+
+        if self._backend in MOSS_BACKENDS:
+            if voice in MOSS_VOICE_IDS:
+                return voice
+            logger.warning(
+                "Voice %r is not a MOSS-TTS preset; using %s",
+                voice, "Junhao",
+            )
+            return None
+
+        is_edge_voice = voice.endswith("Neural") and "-" in voice
+        if self._backend == "edge-tts" and not is_edge_voice:
+            logger.warning(
+                "Voice %r is not an Edge-TTS voice; using provider default", voice,
+            )
+            return None
+        if self._backend != "edge-tts" and is_edge_voice:
+            logger.warning(
+                "Edge-TTS voice %r cannot be used with backend %r; "
+                "using provider default", voice, self._backend,
+            )
+            return None
+        return voice
 
     async def synthesize_stream(
         self,
@@ -120,6 +162,7 @@ class TTSService:
             Audio data chunks.
         """
         provider = await self._get_provider()
+        voice = self._normalize_voice(voice)
         async for chunk in provider.synthesize_stream(
             text=text,
             voice=voice,

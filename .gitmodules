@@ -1,0 +1,3 @@
+[submodule "social-auto-upload"]
+	path = social-auto-upload
+	url = https://github.com/dreammis/social-auto-upload.git

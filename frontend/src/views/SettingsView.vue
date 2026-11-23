@@ -78,16 +78,23 @@ const fields: FieldDef[] = [
   {
     key: 'tts_voice_simple', label: '默认音色', type: 'select',
     options: [
-      { label: 'alex (男声)', value: 'alex' },
-      { label: 'benjamin (男声)', value: 'benjamin' },
-      { label: 'charles (男声)', value: 'charles' },
-      { label: 'david (男声)', value: 'david' },
-      { label: 'anna (女声)', value: 'anna' },
-      { label: 'bella (女声)', value: 'bella' },
-      { label: 'claire (女声)', value: 'claire' },
-      { label: 'diana (女声)', value: 'diana' },
+      { label: 'MOSS 俊豪 (中文男声)', value: 'Junhao' },
+      { label: 'MOSS 志明 (中文男声/京味)', value: 'Zhiming' },
+      { label: 'MOSS 卫国 (中文男声/说书)', value: 'Weiguo' },
+      { label: 'MOSS 小雨 (中文女声)', value: 'Xiaoyu' },
+      { label: 'MOSS 月雯 (中文女声)', value: 'Yuewen' },
+      { label: 'MOSS 凌雨 (中文女声/电台)', value: 'Lingyu' },
+      { label: 'Edge 晓晓 (中文女声)', value: 'zh-CN-XiaoxiaoNeural' },
+      { label: 'Edge 云希 (中文男声)', value: 'zh-CN-YunxiNeural' },
+      { label: 'Edge 云健 (中文男声)', value: 'zh-CN-YunjianNeural' },
+      { label: 'alex (SiliconFlow 男声)', value: 'alex' },
+      { label: 'benjamin (SiliconFlow 男声)', value: 'benjamin' },
+      { label: 'anna (SiliconFlow 女声)', value: 'anna' },
+      { label: 'bella (SiliconFlow 女声)', value: 'bella' },
+      { label: 'claire (SiliconFlow 女声)', value: 'claire' },
+      { label: 'diana (SiliconFlow 女声)', value: 'diana' },
     ],
-    help: '音色自动拼 model:voice 前缀',
+    help: '音色必须与「配音后端」匹配；不匹配时自动回退到该后端默认音色',
     group: 'dub',
   },
   {
@@ -106,9 +113,10 @@ const fields: FieldDef[] = [
     key: 'tts_backend', label: '配音后端', type: 'select',
     options: [
       { label: 'SiliconFlow (CosyVoice2 高质量云API)', value: 'siliconflow' },
-      { label: 'Edge-TTS (免费/本地/低延迟)', value: 'edge-tts' },
+      { label: 'MOSS-TTS-Nano (本地/免费/0.1B)', value: 'moss' },
+      { label: 'Edge-TTS (免费在线，部分网络被限制)', value: 'edge-tts' },
     ],
-    help: 'SiliconFlow 质量更高但需付费；Edge-TTS 完全免费，适合批量处理',
+    help: 'MOSS 本地离线运行，需先执行 scripts/install_moss_tts.ps1；Edge-TTS 无需安装但依赖微软服务',
     group: 'dub',
   },
   {
@@ -195,7 +203,7 @@ const fields: FieldDef[] = [
   },
   {
     key: 'subtitle_font_size', label: '字幕字体大小', type: 'number',
-    min: 12, max: 48, step: 2, placeholder: '20',
+    min: 12, max: 64, step: 2, placeholder: '48',
     help: '烧录字幕的字体大小（中文字幕尺寸，英文字幕自动小 2 号）',
     group: 'advanced',
   },
@@ -206,6 +214,24 @@ const fields: FieldDef[] = [
       { label: '顶部 (中文在上)', value: 'top' },
     ],
     help: '双语字幕的显示位置',
+    group: 'advanced',
+  },
+  {
+    key: 'moss_tts_repo_path', label: 'MOSS 源码目录', type: 'input',
+    placeholder: 'backend/data/models/MOSS-TTS-Nano',
+    help: '留空使用默认路径；需先运行 scripts/install_moss_tts.ps1',
+    group: 'advanced',
+  },
+  {
+    key: 'moss_tts_python', label: 'MOSS Python 解释器', type: 'input',
+    placeholder: '留空使用仓库内 .venv',
+    help: 'MOSS 的独立虚拟环境（torch 2.7），不要指向 VidDub 后端 venv',
+    group: 'advanced',
+  },
+  {
+    key: 'moss_tts_cpu_threads', label: 'MOSS CPU 线程数', type: 'number',
+    min: 1, max: 32, step: 1, placeholder: '4',
+    help: 'ONNX Runtime 线程数；核数越多合成越快',
     group: 'advanced',
   },
   {
@@ -265,7 +291,7 @@ const sections = computed(() => [
   {
     key: 'api',
     title: 'API 配置',
-    description: 'SiliconFlow API Key 是必需的，用于云端 STT / TTS / 翻译。',
+    description: 'SiliconFlow API Key 仅在云端 STT / TTS / 翻译时需要；MOSS + Google 翻译可完全本地/免费运行。',
     fields: fields.filter((f) => f.group === 'api' && matchSearch(f)),
   },
   {

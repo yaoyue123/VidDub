@@ -29,6 +29,8 @@ def sqlite_path(tmp_path):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 status VARCHAR(32) NOT NULL,
                 title VARCHAR(512),
+                youtube_id VARCHAR(64),
+                thumbnail_url VARCHAR(512),
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )

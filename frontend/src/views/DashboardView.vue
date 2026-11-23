@@ -88,9 +88,10 @@ async function fetchPlatformStates() {
 
 async function fetchApiKeyConfigured() {
   try {
-    const res = await configApi.list()
-    const item = (res.data as any[]).find((c) => c.key === 'siliconflow_api_key')
-    apiKeyConfigured.value = !!(item && item.value && String(item.value).trim())
+    const res = await configApi.keyStatus()
+    const { siliconflow_api_key_configured, needs_siliconflow_key } = res.data
+    // Free mode (google + moss/edge + whisper) needs no key at all.
+    apiKeyConfigured.value = siliconflow_api_key_configured || !needs_siliconflow_key
   } catch {
     apiKeyConfigured.value = null
   }
@@ -233,7 +234,7 @@ onMounted(() => {
       class="key-banner"
     >
       <template #title>
-        SiliconFlow API Key 尚未配置 — 大部分功能无法使用。
+        SiliconFlow API Key 尚未配置 — 当前翻译/TTS/STT 后端需要云端 API。
         <el-button text type="primary" size="small" @click="router.push('/settings')">
           立即配置 →
         </el-button>
@@ -464,15 +465,15 @@ onMounted(() => {
         <p class="welcome-intro">3 步开始你的第一次配音发布：</p>
         <ol class="welcome-steps">
           <li>
-            <strong>1. 配置 API Key</strong>
-            <p class="text-caption">从 SiliconFlow 获取 Key，粘贴到设置页。</p>
+            <strong>配置 API Key（或使用免费本地后端）</strong>
+            <p class="text-caption">云端后端需 SiliconFlow Key；翻译=Google、配音=MOSS 可免费运行。</p>
           </li>
           <li>
-            <strong>2. 扫码登录平台</strong>
-            <p class="text-caption">用 App 扫码，授权后自动发布到 5 大平台。</p>
+            <strong>扫码登录平台</strong>
+            <p class="text-caption">用 App 扫码登录；配音完成后自动发布到默认平台。</p>
           </li>
           <li>
-            <strong>3. 粘贴 YouTube URL 启动</strong>
+            <strong>粘贴 YouTube URL 启动</strong>
             <p class="text-caption">点击首页巨型按钮，按向导完成首次配音。</p>
           </li>
         </ol>

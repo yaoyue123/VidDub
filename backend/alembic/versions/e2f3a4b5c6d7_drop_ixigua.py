@@ -16,18 +16,15 @@ depends_on = None
 def upgrade() -> None:
     # Delete all ixigua publish records
     op.execute("DELETE FROM publish_records WHERE platform = 'ixigua'")
-    # Remove ixigua-specific config entry (table may not exist in fresh DB)
-    try:
-        op.execute("DELETE FROM app_config WHERE key = 'ixigua_default_copyright'")
-    except Exception:
-        pass
+    # Remove ixigua-specific config entry (configs table comes from init migration)
+    op.execute("DELETE FROM configs WHERE key = 'ixigua_default_copyright'")
 
 
 def downgrade() -> None:
     # Historical publish records cannot be restored.
     # Re-seed the config row so rollback keeps the app functional.
     op.execute("""
-        INSERT OR IGNORE INTO app_config (key, value, description)
+        INSERT OR IGNORE INTO configs (key, value, description)
         VALUES ('ixigua_default_copyright', 'repost',
                 '西瓜视频默认版权类型 (original=原创 / repost=转载)')
     """)

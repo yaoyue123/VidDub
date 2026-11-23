@@ -41,7 +41,7 @@ flowchart LR
         subgraph DB["数据库 (SQLite)"]
             Videos[videos]
             Tasks[tasks]
-            Configs[app_config]
+            Configs[configs]
             Subtitles[subtitles]
             Channels[channels]
             ScanLogs[scan_logs]

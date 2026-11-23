@@ -14,7 +14,7 @@
 [**简体中文**](README.md) | [**English**](README_EN.md)
 
 > 自动把 YouTube 英文视频转成中文配音视频，并一键发布到 Bilibili / Douyin / Kuaishou / Tencent Video / Xiaohongshu。
-> **v5.0** 端到端管线：YouTube URL → Whisper STT → SiliconFlow 翻译 → CosyVoice2 TTS → ffmpeg 合成 → 字幕 → 多平台自动发布。
+> **v5.3** 端到端管线：YouTube URL → Whisper STT → 多引擎翻译（Google / SiliconFlow）→ 多引擎 TTS（MOSS 本地 / Edge / CosyVoice2）→ ffmpeg 合成 → 双语字幕 → 多平台自动发布。
 
 ---
 
@@ -46,7 +46,7 @@
 1. 📥 **下载** — 通过 `yt-dlp` 下载 YouTube 视频（音频 + 视频）
 2. 🎙️ **转写** — 使用本地 **Whisper** 将英文语音转为带时间戳的字幕
 3. 🌐 **翻译** — 通过 **SiliconFlow AI**（Qwen2.5 / DeepSeek）将英文字幕翻译为中文
-4. 🗣️ **配音** — 使用 **CosyVoice2 TTS** 合成自然流畅的中文语音
+4. 🗣️ **配音** — 使用 **MOSS-TTS-Nano（本地）/ Edge-TTS / CosyVoice2** 合成中文语音
 5. 🎬 **合成** — 用 `ffmpeg` 替换原始音轨，生成高质量中文配音视频
 6. 🤖 **智能标题** — AI 自动生成 5 个标题候选 + 8 个标签
 7. 📤 **发布** — 一键发布到 **5 个主流中文视频平台**
@@ -61,8 +61,8 @@
 |------|------|------|
 | 1️⃣ 📥 视频下载 | `yt-dlp` | 下载 YouTube 视频（音频 + 视频流） |
 | 2️⃣ 🎙️ 语音转文字 | **Whisper**（本地） | 生成带单词级时间戳的源语言字幕 |
-| 3️⃣ 🌐 智能翻译 | **SiliconFlow Chat**（Qwen2.5 / DeepSeek-V4） | 英文→中文翻译，支持滑窗上下文增强连贯性 |
-| 4️⃣ 🗣️ 语音合成 | **CosyVoice2 TTS** 通过 SiliconFlow API | 逐段合成自然中文语音 |
+| 3️⃣ 🌐 智能翻译 | **Google / SiliconFlow** | 英文→中文翻译；Google 免费无需 Key，SiliconFlow 提供 LLM 上下文翻译 |
+| 4️⃣ 🗣️ 语音合成 | **MOSS-TTS-Nano / Edge-TTS / CosyVoice2** | MOSS 本地离线（0.1B，中文内置音色）、Edge 在线免费、CosyVoice2 云端高质量 |
 | 5️⃣ 🎬 音频处理 | `ffmpeg` | 速度对齐、混音、替换音轨 |
 | 6️⃣ 🤖 AI 标题 | **SiliconFlow JSON 模式** | 每视频生成 5 个标题候选 + 8 个标签 |
 | 7️⃣ 📤 自动发布 | **social-auto-upload** | 一键发布到 Bilibili、抖音、快手、腾讯视频、小红书 |
@@ -72,7 +72,7 @@
 | 特性 | 说明 |
 |------|------|
 | 🎯 **生产就绪** | 从 YouTube URL 到发布的完整端到端管线 |
-| 🔊 **高质量配音** | CosyVoice2 TTS，支持声音克隆 |
+| 🔊 **多引擎配音** | MOSS 本地离线、Edge 免费在线、CosyVoice2 云端高质量，支持声音克隆 |
 | 🌍 **多平台发布** | 覆盖 5 个主流中文视频平台 |
 | 🤖 **AI 驱动** | 上下文感知翻译、AI 标题生成、智能标签 |
 | 💻 **全栈覆盖** | Web UI + CLI 命令行 + REST API，任你选择 |
@@ -90,7 +90,7 @@
 | Node.js | **18+**（推荐 20 LTS） |
 | ffmpeg | 任意现代版本，需在 PATH 中 |
 | yt-dlp | pip 自动安装 |
-| 网络 | 需能访问 YouTube + SiliconFlow API（`https://api.siliconflow.cn`） |
+| 网络 | 需能访问 YouTube；本地 MOSS + Whisper 可离线运行（模型首次下载需联网）；云端后端需访问 SiliconFlow / Google |
 | GPU | 可选（Whisper 可在 CPU 运行；CUDA 可加速） |
 | 磁盘 | >= 5 GB（Whisper 模型 + Playwright Chromium + node_modules） |
 
@@ -110,6 +110,7 @@ $ ./start.sh
 ```
 
 启动脚本自动完成以下操作：
+- ✅ 初始化 `social-auto-upload` submodule（发布后端）
 - ✅ 检查 / 自动安装 **uv**（Rust 编写的极速 Python 包管理器）
 - ✅ `uv sync` 创建 `.venv` + 安装所有 Python 依赖
 - ✅ 安装 Playwright Chromium
@@ -118,15 +119,32 @@ $ ./start.sh
 - ✅ 复制 `.env.example` 到 `backend/.env`
 - ✅ 启动后端 + 前端服务
 
-### 第二步：配置 API 密钥
+> 手动克隆后如果没跑启动脚本，请先执行一次：
+> `git submodule update --init --recursive`
 
-编辑 `backend/.env`：
+### 第二步：选择配音/翻译后端
+
+**完全免费 + 本地离线**（推荐，无需 API Key）：在 Web UI → 设置中改为
+
+```
+翻译后端 = google
+配音后端 = moss
+默认音色 = Junhao
+```
+
+首次使用 MOSS 前安装本地模型（约 500MB，脚本会创建独立 venv）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File backend\scripts\install_moss_tts.ps1 -DownloadModels
+```
+
+**云端高质量**：编辑 `backend/.env`
 
 ```dotenv
 SILICONFLOW_API_KEY=sk_your_real_key_here
 ```
 
-申请密钥：https://cloud.siliconflow.cn/account/ak
+申请密钥：https://cloud.siliconflow.cn/account/ak ，然后在设置中选择 `siliconflow` 后端。
 
 > 完整配置参考见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
 
@@ -139,29 +157,32 @@ SILICONFLOW_API_KEY=sk_your_real_key_here
 
 ## 🔑 API 配置
 
-VidDub 使用 [SiliconFlow API](https://cloud.siliconflow.cn/) 提供翻译和 TTS 服务。配置通过 `backend/.env` 管理：
+VidDub 支持**云端**与**本地免费**两类后端，均在 Web UI → 设置或 `/api/config` 中切换。
+
+### 免费 / 本地（无需 API Key）
+
+| 服务 | 后端 | 说明 |
+|------|------|------|
+| 翻译 | `google` | Google Translate 免费接口，无需 Key |
+| TTS | `moss` | MOSS-TTS-Nano 0.1B，本地 ONNX，中文内置音色 |
+| TTS | `edge-tts` | 微软 Edge 免费语音，无需安装；部分网络会被 403 限制 |
+| STT | `whisper` | 本地 Whisper 模型（tiny/base/small/medium） |
+
+### 云端 SiliconFlow（可选）
 
 ```dotenv
-# 核心 API 密钥（必填）
+# backend/.env
 SILICONFLOW_API_KEY=sk_your_key_here
-
-# 翻译模型设置（可选）
-TRANSLATION_MODEL=Qwen/Qwen2.5-7B-Instruct
-TRANSLATION_CONTEXT_WINDOW=5
-
-# TTS 设置（可选）
-TTS_MODEL=CosyVoice2-0.5B
-TTS_VOICE=default
+# SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
 ```
-
-### 支持的模型
 
 | 服务 | 可用模型 |
 |------|---------|
-| 翻译 | Qwen2.5-7B/14B/72B, DeepSeek-V2.5, DeepSeek-V4-Flash |
-| TTS | CosyVoice2-0.5B, CosyVoice2 声音克隆 |
+| 翻译 | Qwen2.5-7B/14B/72B、DeepSeek-V2.5、DeepSeek-V4-Flash |
+| TTS | CosyVoice2-0.5B、CosyVoice2 声音克隆 |
 
-> 你也可以通过调整 `TRANSLATION_API_BASE_URL` 配置项，使用任何兼容 OpenAI 格式的 API。
+模型选择、语速、音色等运行时参数在 `configs` 表中（Web UI 可改），不是 `.env`。
+完整清单见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
 
 ---
 
@@ -208,14 +229,16 @@ viddub/
 │   ├── alembic/                # 数据库迁移
 │   │   └── versions/           # 迁移脚本
 │   ├── app/
-│   │   ├── api/                # FastAPI 路由（20 个模块）
+│   │   ├── api/                # FastAPI 路由（16 个模块）
 │   │   ├── core/               # 配置、数据库、WebSocket
 │   │   ├── models/             # SQLAlchemy ORM 模型
 │   │   ├── services/           # 业务逻辑
-│   │   │   ├── siliconflow/    # SiliconFlow API 封装
-│   │   │   ├── tts_new/        # TTS 架构（提供者模式）
-│   │   │   ├── dubbing/        # ffmpeg 编排
-│   │   │   ├── platform/       # 平台登录（5 平台）
+│   │   │   ├── siliconflow/    # SiliconFlow 云端 API
+│   │   │   ├── translator/     # 翻译提供者（google / siliconflow）
+│   │   │   ├── tts_new/        # TTS 提供者（moss / edge-tts / siliconflow）
+│   │   │   ├── dubbing/        # ffmpeg 编排、对齐、字幕烧录
+│   │   │   ├── platforms/      # 平台注册表（5 平台）
+│   │   │   ├── platform/       # 平台登录/扫码
 │   │   │   ├── publish/        # 平台发布
 │   │   │   ├── title_generator.py     # AI 标题生成
 │   │   │   ├── channel_scanner.py     # 定时频道扫描
@@ -224,7 +247,8 @@ viddub/
 │   │   │   └── youtube.py             # yt-dlp 封装
 │   │   ├── cli.py              # CLI 入口
 │   │   └── main.py             # FastAPI 应用
-│   ├── data/                   # SQLite 数据库（gitignore）
+│   ├── scripts/                # 手动工具（install_moss_tts、发布调试）
+│   ├── data/                   # SQLite + 本地模型（gitignore）
 │   ├── downloads/              # 视频输出（gitignore）
 │   ├── tests/                  # pytest 测试
 │   ├── pyproject.toml           # uv 项目配置（推荐）
@@ -240,7 +264,7 @@ viddub/
 │   │   └── router/             # vue-router 配置
 │   ├── package.json
 │   └── vite.config.ts
-├── social-auto-upload/         # 发布库（5 平台）
+├── social-auto-upload/         # 发布库 submodule（5 平台）
 ├── docs/                       # 文档
 │   ├── ARCHITECTURE.md         # 架构说明
 │   ├── API.md                  # API 参考
@@ -250,8 +274,8 @@ viddub/
 │   └── SOCIAL_AUTO_UPLOAD.md   # 发布配置
 ├── docker-compose.yml          # Docker Compose
 ├── Dockerfile                  # Docker 多阶段构建
-├── setup.ps1 / setup.sh        # 一键环境初始化
-├── start.bat / start.sh        # 一键启动脚本
+├── .gitmodules                 # social-auto-upload 子模块定义
+├── start.bat / start.sh        # 一键启动脚本（含 submodule 初始化）
 ├── README.md                   # 本文件（中文版）
 ├── README_EN.md                # 英文版 README
 ├── LICENSE                     # MIT 许可证
@@ -274,8 +298,8 @@ viddub/
 | **任务调度** | APScheduler 3.10 + 自定义 TaskScheduler |
 | **视频下载** | yt-dlp |
 | **语音转文字** | 本地 Whisper（tiny / base / small / medium） |
-| **翻译引擎** | SiliconFlow Chat（Qwen2.5 / DeepSeek-V4-Flash） |
-| **语音合成** | CosyVoice2-0.5B 通过 SiliconFlow API |
+| **翻译引擎** | Google Translate（免费）/ SiliconFlow Chat（Qwen2.5 / DeepSeek-V4-Flash） |
+| **语音合成** | MOSS-TTS-Nano 0.1B（本地 ONNX）/ Edge-TTS / CosyVoice2-0.5B |
 | **声音克隆** | CosyVoice2 通过 tts_new 提供者模式 |
 | **浏览器自动化** | Playwright（平台登录） |
 | **发布引擎** | social-auto-upload（5 平台） |
@@ -371,6 +395,6 @@ npm run build
 
 **如果你觉得 VidDub 对你有帮助，请在 GitHub 上给我们一个 ⭐！**
 
-*文档版本：v5.0 · 最后更新：2026-06-30*
+*文档版本：v5.3 · 最后更新：2026-11-24*
 
 </div>

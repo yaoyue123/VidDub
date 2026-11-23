@@ -78,7 +78,7 @@
 - **痛点**：
   1. 8 个 tab 一字排开（`SettingsView.vue` 第 195-286 行 tabs 计算属性），新手看到「Whisper/TTS/Translate/高级」直接劝退。
   2. 「平台管理」tab 其实只是个跳转链接到 /platform 页（`SettingsView.vue` 第 510-512 行），冗余。
-  3. SiliconFlow API Key 是必填项（无 Key 任何功能都跑不起来），但藏在 tab 里，没有首次引导。
+  3. SiliconFlow API Key 过去是必填项；现在可通过 Google 翻译 + MOSS/Edge-TTS 免费运行，但首次引导仍应提示云端与免费两种选择。
   4. 「自动发布」和「AI 标题」相关配置混在 Settings，但其实是业务策略，新手不会主动来 Settings 找。
 - **改造方向**：8 tab → 3 大类（API 配置 / 配音参数 / 高级）。首次启动 if API Key empty → Dashboard 强制弹窗引导。把「自动发布」「AI 标题」配置挪到 Dashboard 的快速设置区。
 

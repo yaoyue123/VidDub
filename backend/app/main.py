@@ -95,15 +95,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     max_res = int(configs.get("max_resolution", "1080"))
 
     # 4. Initialize global YtDlpWrapper (INFRA-01)
-    cookies_file = configs.get("ytdlp_cookie_file")
+    cookies_file = configs.get("ytdlp_cookie_file") or configs.get("yt_dlp_cookies")
     extractor_args = configs.get("ytdlp_extractor_args")
+    proxy = (
+        configs.get("yt_dlp_proxy")
+        or os.environ.get("YTDLP_PROXY")
+        or os.environ.get("HTTPS_PROXY")
+        or os.environ.get("HTTP_PROXY")
+        or ""
+    ).strip() or None
     ytdlp_wrapper = YtDlpWrapper(
         cookies_file=cookies_file,
         extractor_args=extractor_args,
+        proxy=proxy,
     )
     set_ytdlp_wrapper(ytdlp_wrapper)
-    logging.getLogger("app.main").info("YtDlpWrapper initialized (cookies=%s, extractor_args=%s)",
-                 cookies_file, "set" if extractor_args else "none")
+    logging.getLogger("app.main").info(
+        "YtDlpWrapper initialized (cookies=%s, extractor_args=%s, proxy=%s)",
+        cookies_file, "set" if extractor_args else "none", proxy or "none",
+    )
 
     # 5. Start scheduler
     scheduler = TaskScheduler(

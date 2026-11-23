@@ -304,11 +304,12 @@ def test_resolve_transcript_text_from_param():
     assert _resolve_transcript_text(video, segments) == "你好\n世界"
 
 
-def test_resolve_transcript_text_empty_segments():
-    from app.services.title_generator import _resolve_transcript_text
+def test_resolve_transcript_text_empty_segments(tmp_path, monkeypatch):
+    from app.services import title_generator as tg
+    monkeypatch.setattr(tg, "get_download_dir", lambda: str(tmp_path))
     video = MagicMock()
     video.id = 1
-    assert _resolve_transcript_text(video, []) == ""
+    assert tg._resolve_transcript_text(video, []) == ""
 
 
 def test_resolve_transcript_text_no_id():
@@ -333,6 +334,7 @@ def test_resolve_transcript_text_reads_file(tmp_path, monkeypatch):
     )
 
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(tg, "get_download_dir", lambda: str(tmp_path / "downloads"))
     result = tg._resolve_transcript_text(video, None)
     assert "中文段1" in result
     assert "中文段2" in result

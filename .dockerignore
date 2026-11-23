@@ -1,0 +1,25 @@
+# Build context exclusions — keep the image small and secrets out.
+.git
+.gitmodules
+.planning
+.claude
+.sisyphus
+docs
+*.log
+
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+
+frontend/node_modules
+frontend/dist
+
+backend/data
+backend/downloads
+backend/.env
+backend/tests
+
+# The submodule itself is required by the image (see Dockerfile).
+!social-auto-upload

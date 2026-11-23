@@ -127,6 +127,22 @@ async def test_phase10_full_pipeline_chain_reaches_composed(
 
     monkeypatch.setattr("app.services.dubbing.pipeline._run_whisper", fake_whisper)
 
+    # ── Mock TTS (TTSService uses its own HTTP client) ──
+    from app.services.tts_new.base import TTSResult
+
+    async def fake_tts(self, text, output_path, **kwargs):
+        os.makedirs(os.path.dirname(str(output_path)) or ".", exist_ok=True)
+        with open(output_path, "wb") as f:
+            f.write(b"FAKE_MP3")
+        return TTSResult(
+            audio_data=b"FAKE_MP3", duration=2.0,
+            sample_rate=24000, format="mp3",
+        )
+
+    monkeypatch.setattr(
+        "app.services.tts_new.service.TTSService.synthesize", fake_tts,
+    )
+
     # ── Mock SiliconFlow httpx client ──
     sf_calls: list[dict] = {}
 
@@ -139,7 +155,7 @@ async def test_phase10_full_pipeline_chain_reaches_composed(
         "choices": [{
             "message": {
                 "content": "\n".join(
-                    f"[ID:{i}] {t}" for i, t in enumerate(sample_translations)
+                    f"[{i}] {t}" for i, t in enumerate(sample_translations)
                 )
             }
         }]
@@ -252,11 +268,12 @@ def test_phase10_docs_and_scripts_exist():
     )
 
     expected_files = [
-        # Setup / start scripts
-        "setup.ps1",
-        "setup.sh",
-        "start.ps1",
+        # Start scripts (Windows: start.bat, POSIX: start.sh)
+        "start.bat",
         "start.sh",
+        # Container deployment
+        "Dockerfile",
+        "docker-compose.yml",
         # 顶层文档
         "README.md",
         "CHANGELOG.md",
@@ -266,8 +283,8 @@ def test_phase10_docs_and_scripts_exist():
         "docs/CONFIGURATION.md",
         "docs/TROUBLESHOOTING.md",
         "docs/DEPLOYMENT.md",
-        # Phase 10 SUMMARY
-        ".planning/phases/10-docker-docs/10-01-SUMMARY.md",
+        # Publishing dependency reference
+        ".gitmodules",
         # Integration test (本文件)
         "backend/tests/integration/test_phase10_e2e.py",
     ]
@@ -286,26 +303,27 @@ def test_phase10_docs_and_scripts_exist():
 # ─────────────────────────────────────────────────────────
 
 def test_phase10_setup_scripts_have_valid_structure():
-    """检查 setup.ps1 / setup.sh / start.ps1 / start.sh 基本结构正确."""
+    """检查 start.sh / start.bat 基本结构正确."""
     project_root = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "..", "..")
     )
 
-    # .sh 应有 bash shebang
-    for sh_file in ("setup.sh", "start.sh"):
-        path = os.path.join(project_root, sh_file)
-        with open(path, "r", encoding="utf-8") as f:
-            head = f.read(100)
-        assert head.startswith("#!/usr/bin/env bash") or head.startswith("#!/bin/bash"), \
-            f"{sh_file} 缺少 bash shebang"
+    # start.sh 应有 bash shebang 和 uv/npm 引导步骤
+    sh_path = os.path.join(project_root, "start.sh")
+    with open(sh_path, "r", encoding="utf-8") as f:
+        sh_content = f.read()
+    assert sh_content.startswith("#!/usr/bin/env bash") or sh_content.startswith("#!/bin/bash"), \
+        "start.sh 缺少 bash shebang"
+    assert "uv sync" in sh_content
+    assert "npm install" in sh_content
 
-    # .ps1 应有 PowerShell 标准结构
-    for ps1_file in ("setup.ps1", "start.ps1"):
-        path = os.path.join(project_root, ps1_file)
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        assert ".SYNOPSIS" in content or "param(" in content or "[CmdletBinding()]" in content, \
-            f"{ps1_file} 缺少 PowerShell 标准结构"
+    # start.bat 应设置 UTF-8 代码页并包含同等引导步骤
+    bat_path = os.path.join(project_root, "start.bat")
+    with open(bat_path, "r", encoding="utf-8") as f:
+        bat_content = f.read()
+    assert "chcp 65001" in bat_content
+    assert "uv sync" in bat_content
+    assert "npm install" in bat_content
 
 
 # ─────────────────────────────────────────────────────────
@@ -319,8 +337,8 @@ def test_phase10_docs_have_required_sections():
     )
 
     docs_to_check = {
-        "README.md": ["VidDub", "setup", "SILICONFLOW_API_KEY"],
-        "CHANGELOG.md": ["Phase 10", "Phase 4", "v2.0"],
+        "README.md": ["VidDub", "start.bat", "SILICONFLOW_API_KEY", "submodule"],
+        "CHANGELOG.md": ["Phase 10", "Phase 4", "v5.3"],
         "docs/ARCHITECTURE.md": ["mermaid", "scheduler", "状态机"],
         "docs/API.md": ["/api/dub", "WebSocket", "/api/platform"],
         "docs/CONFIGURATION.md": ["SILICONFLOW_API_KEY", "whisper_model", "auto_publish_enabled"],

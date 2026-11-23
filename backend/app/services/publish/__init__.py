@@ -3,6 +3,11 @@
 Douyin / Kuaishou / Tencent / Xiaohongshu → SAU Playwright browser uploaders
 Bilibili → SAU biliup Rust binary
 """
+from app.services.publish.sau_env import ensure_sau_conf
+
+# Create social-auto-upload/conf.py before any uploader module imports it.
+ensure_sau_conf()
+
 from app.services.publish.base import (  # noqa: F401
     PlatformPublisher,
     PublishFields,

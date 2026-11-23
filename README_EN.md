@@ -44,7 +44,7 @@
 1. Downloads YouTube videos via `yt-dlp`
 2. Transcribes English speech to text using **Whisper** (local)
 3. Translates English subtitles to Chinese via **SiliconFlow AI** (Qwen2.5 / DeepSeek)
-4. Synthesizes natural Chinese speech with **CosyVoice2 TTS**
+4. Synthesizes Chinese speech with **MOSS-TTS-Nano / Edge-TTS / CosyVoice2**
 5. Replaces the original audio track with high-quality Chinese dubbing
 6. Generates AI-powered titles and tags
 7. Publishes to **5 Chinese video platforms** automatically with one click
@@ -59,8 +59,8 @@ Whether you're a content creator looking to expand to the Chinese market, or a d
 |---|------|-----------|--------------|
 | 1 | 📥 Download | `yt-dlp` | Downloads YouTube video (audio + video streams) |
 | 2 | 🎙️ Speech-to-Text | **Whisper** (local) | Generates source subtitles with word-level timestamps |
-| 3 | 🌐 Translation | **SiliconFlow Chat** (Qwen2.5 / DeepSeek-V4) | Translates English → Chinese with sliding-window context |
-| 4 | 🗣️ Text-to-Speech | **CosyVoice2 TTS** via SiliconFlow API | Synthesizes natural Chinese speech per subtitle segment |
+| 3 | 🌐 Translation | **Google / SiliconFlow** | English → Chinese; Google is free with no key, SiliconFlow adds LLM context |
+| 4 | 🗣️ Text-to-Speech | **MOSS-TTS-Nano / Edge-TTS / CosyVoice2** | MOSS runs locally (0.1B, built-in Chinese voices), Edge is free online, CosyVoice2 is cloud-quality |
 | 5 | 🎬 Audio Processing | `ffmpeg` | Speed-aligns, mixes, and replaces the audio track |
 | 6 | 🤖 AI Titles | **SiliconFlow JSON mode** | Generates 5 title candidates + 8 tags per video |
 | 7 | 📤 Auto-Publish | **social-auto-upload** | One-click publish to Bilibili, Douyin, Kuaishou, Tencent Video, Xiaohongshu |
@@ -68,7 +68,7 @@ Whether you're a content creator looking to expand to the Chinese market, or a d
 ### Why VidDub?
 
 - **🎯 Production Ready**: End-to-end pipeline from YouTube URL to published video
-- **🔊 High Quality Voice**: CosyVoice2 TTS with voice cloning support
+- **🔊 Flexible Voice**: Local MOSS-TTS-Nano (offline), free Edge-TTS, or cloud CosyVoice2 with voice cloning
 - **🌍 Multi-Platform**: Publish to 5 major Chinese video platforms
 - **🤖 AI-Powered**: Smart translation with context awareness, AI title generation
 - **💻 Full Stack**: Web UI + CLI + REST API — use it your way
@@ -96,7 +96,7 @@ Whether you're a content creator looking to expand to the Chinese market, or a d
 | Node.js | **18+** (20 LTS recommended) |
 | ffmpeg | Any modern version, must be in PATH |
 | yt-dlp | Installed automatically by pip |
-| Network | Must reach YouTube + SiliconFlow API (`https://api.siliconflow.cn`) |
+| Network | YouTube access required for downloads; local MOSS + Whisper work offline after the first model download; cloud backends need SiliconFlow / Google |
 | GPU | Optional (Whisper runs on CPU; CUDA for acceleration) |
 | Disk | >= 5 GB (Whisper model + Playwright Chromium + node_modules) |
 
@@ -153,29 +153,40 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for production deployment details.
 
 ## 🔑 API Configuration
 
-VidDub uses [SiliconFlow API](https://cloud.siliconflow.cn/) for translation and TTS. Configuration is managed via `backend/.env`:
+VidDub supports cloud and local backends, switchable in the Web UI (Settings) or via `/api/config`.
+
+### Free / local (no API key)
+
+| Service | Backend | Notes |
+|---------|---------|-------|
+| Translation | `google` | Free Google Translate endpoint, no key |
+| TTS | `moss` | MOSS-TTS-Nano 0.1B, local ONNX, built-in Chinese voices |
+| TTS | `edge-tts` | Free Microsoft Edge voices; some networks receive 403 |
+| STT | `whisper` | Local Whisper (tiny/base/small/medium) |
+
+### Cloud SiliconFlow (optional)
 
 ```dotenv
-# Core API Key
+# backend/.env
 SILICONFLOW_API_KEY=sk_your_key_here
-
-# Translation Settings (optional)
-TRANSLATION_MODEL=Qwen/Qwen2.5-7B-Instruct
-TRANSLATION_CONTEXT_WINDOW=5
-
-# TTS Settings (optional)
-TTS_MODEL=CosyVoice2-0.5B
-TTS_VOICE=default
+# SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
 ```
-
-### Supported Models
 
 | Service | Available Models |
 |---------|-----------------|
 | Translation | Qwen2.5-7B/14B/72B, DeepSeek-V2.5, DeepSeek-V4-Flash |
-| TTS | CosyVoice2-0.5B, CosyVoice2-voice-cloning |
+| TTS | CosyVoice2-0.5B, CosyVoice2 voice cloning |
 
-> You can also use any OpenAI-compatible API by adjusting the `TRANSLATION_API_BASE_URL` setting.
+Runtime parameters (model, voice, speed) live in the `configs` table and are editable in the UI — not in `.env`.
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the full list.
+
+### Install local MOSS-TTS (optional)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File backend\scripts\install_moss_tts.ps1 -DownloadModels
+```
+
+Then set `translation_backend=google` and `tts_backend=moss` in Settings.
 
 ---
 
@@ -244,8 +255,8 @@ viddub/
 ├── docs/                     # Documentation
 ├── docker-compose.yml        # Docker Compose configuration
 ├── Dockerfile                # Multi-stage Docker build
-├── setup.ps1 / setup.sh      # One-click environment setup (uv)
-├── start.bat / start.sh      # One-click startup scripts
+├── .gitmodules               # social-auto-upload submodule
+├── start.bat / start.sh      # One-click startup scripts (inits submodule too)
 ├── README.md                 # Chinese README (default)
 ├── README_EN.md              # English README
 ├── LICENSE                   # MIT License
@@ -269,7 +280,7 @@ viddub/
 | **Video Download** | yt-dlp |
 | **Speech-to-Text** | Local Whisper (tiny / base / small / medium) |
 | **Translation** | SiliconFlow Chat (Qwen2.5 / DeepSeek-V4-Flash) |
-| **Text-to-Speech** | CosyVoice2-0.5B via SiliconFlow API |
+| **Text-to-Speech** | MOSS-TTS-Nano 0.1B (local ONNX) / Edge-TTS / CosyVoice2-0.5B |
 | **Voice Cloning** | CosyVoice2 via tts_new provider pattern |
 | **Browser Automation** | Playwright (platform login) |
 | **Publishing** | social-auto-upload (5 platforms) |
@@ -362,6 +373,6 @@ The authors assume no liability for any misuse of this software.
 
 **If you find VidDub useful, please give us a ⭐ on GitHub!**
 
-*Document version: v5.0 · Last updated: 2026-06-30*
+*Document version: v5.3 · Last updated: 2026-11-24*
 
 </div>

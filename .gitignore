@@ -19,6 +19,11 @@ dist/
 downloads/
 *.log
 *.db
+*.db-wal
+*.db-shm
+
+# Local model weights (Whisper / MOSS-TTS / Piper)
+backend/data/models/
 
 # Runtime artifacts
 .pytest_cache/

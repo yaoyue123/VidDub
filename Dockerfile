@@ -37,6 +37,11 @@ RUN python -m playwright install chromium && \
 
 COPY backend/ /app/backend/
 
+# social-auto-upload submodule (must be initialized in the build context:
+# `git submodule update --init --recursive` before `docker compose build`)
+COPY social-auto-upload/ /app/social-auto-upload/
+RUN cp -n /app/social-auto-upload/conf.example.py /app/social-auto-upload/conf.py
+
 # ── Stage 3: Frontend builder ──
 FROM node:20-slim AS frontend-builder
 
@@ -53,6 +58,7 @@ FROM python-base AS runtime
 COPY --from=backend-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=backend-builder /usr/local/bin /usr/local/bin
 COPY --from=backend-builder /app/backend /app/backend
+COPY --from=backend-builder /app/social-auto-upload /app/social-auto-upload
 COPY --from=backend-builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
 # Copy frontend dist

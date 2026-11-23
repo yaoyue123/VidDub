@@ -14,7 +14,7 @@ from app.services.dubbing.ffmpeg import run_ffmpeg_async
 logger = logging.getLogger(__name__)
 
 
-def _build_ass_header(font_size: int = 20, position: str = "bottom") -> str:
+def _build_ass_header(font_size: int = 48, position: str = "bottom") -> str:
     """Build ASS header with configurable font size and position.
 
     Args:
@@ -57,11 +57,22 @@ def _format_ass_timestamp(seconds: float) -> str:
     return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
 
 
+def _ass_escape(text: str) -> str:
+    """Escape characters that libass would interpret as override tags."""
+    return (
+        text.replace("\\", "\\\\")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("\r\n", "\\N")
+        .replace("\n", "\\N")
+    )
+
+
 def write_bilingual_ass(
     segments: list[dict[str, Any]],
     translations: list[str],
     out_path: str,
-    font_size: int = 20,
+    font_size: int = 48,
     position: str = "bottom",
 ) -> str:
     """Generate a bilingual ASS subtitle file.
@@ -90,7 +101,7 @@ def write_bilingual_ass(
         orig_text = seg.get("text", "").strip()
         if orig_text:
             lines.append(
-                f"Dialogue: 0,{start_ts},{end_ts},Original,,0,0,0,,{orig_text}"
+                f"Dialogue: 0,{start_ts},{end_ts},Original,,0,0,0,,{_ass_escape(orig_text)}"
             )
 
         # Chinese translation (bottom)
@@ -98,7 +109,7 @@ def write_bilingual_ass(
         zh_text = zh_text.strip()
         if zh_text:
             lines.append(
-                f"Dialogue: 0,{start_ts},{end_ts},Chinese,,0,0,0,,{zh_text}"
+                f"Dialogue: 0,{start_ts},{end_ts},Chinese,,0,0,0,,{_ass_escape(zh_text)}"
             )
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)

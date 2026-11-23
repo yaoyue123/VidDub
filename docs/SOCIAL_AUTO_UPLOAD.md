@@ -7,9 +7,19 @@ that provides automated uploading to Chinese video platforms (Douyin, Kuaishou, 
 Xiaohongshu, and Bilibili via the biliup Rust binary). It is the publishing backend for all
 platforms in viddub.
 
-The library is currently **vendored** as a nested git repository inside the viddub repository
-at `social-auto-upload/`. It is not a git submodule — it has its own `.git` directory and
-remote.
+The library is a **git submodule** at `social-auto-upload/`, pinned to a known-good
+upstream commit. It is tracked as a gitlink (mode `160000`) and configured by
+`.gitmodules`.
+
+After a fresh clone, initialize it once:
+
+```bash
+git submodule update --init --recursive
+```
+
+`start.bat` / `start.sh` also run this automatically when the directory is empty.
+The backend creates `social-auto-upload/conf.py` from `conf.example.py` on first
+publish, so no manual copy is required.
 
 ## How It Is Used
 
@@ -27,34 +37,24 @@ if os.path.isdir(_SAU_DIR) and _SAU_DIR not in sys.path:
 
 ## Local Development — Three Options
 
-### Option A: Use the vendored copy (simplest)
+### Option A: Initialize the submodule (recommended)
 
-The vendored copy at `social-auto-upload/` is ready to use. No setup is needed for local
-development — the `sys.path` injection handles everything.
+```bash
+git submodule update --init --recursive
+```
 
-To update the vendored copy from upstream:
+That is all that is needed: the backend injects the directory into `sys.path`,
+creates `conf.py` on first use, and stores platform cookies under
+`social-auto-upload/cookies/`.
+
+To update the pinned copy from upstream:
 
 ```bash
 cd social-auto-upload
 git pull origin main
 ```
 
-### Option B: Git submodule
-
-If you prefer a proper submodule relationship:
-
-```bash
-git submodule add https://github.com/dreammis/social-auto-upload.git social-auto-upload
-git submodule update --init
-```
-
-Then remove the existing `.git` directory inside `social-auto-upload/`:
-
-```bash
-rm -rf social-auto-upload/.git
-```
-
-### Option C: pip install from upstream
+### Option B: pip install from upstream
 
 ```bash
 pip install git+https://github.com/dreammis/social-auto-upload.git
@@ -67,11 +67,11 @@ If installed via pip, the `sys.path` injection becomes a no-op (the directory is
 
 ### Configuration
 
-`social-auto-upload` uses a `conf.py` file for platform cookies and credentials. The file at
-`social-auto-upload/conf.py` contains sensitive cookies and **must never be committed to
-version control**. The vendored repo's `.gitignore` already excludes `conf.py`.
+`social-auto-upload` uses a `conf.py` file for platform settings. The backend creates it
+automatically from `conf.example.py` on first publish; the file is gitignored because it may
+gain sensitive cookies when using SAU's own login flows.
 
-To set up your own configuration:
+To customise it:
 
 ```bash
 cp social-auto-upload/conf.example.py social-auto-upload/conf.py

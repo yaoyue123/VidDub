@@ -12,6 +12,7 @@ WebSocket progress 通过 manager.broadcast 推送。
 import asyncio
 import logging
 import os
+import time
 from typing import Any, Optional
 
 from sqlalchemy import select, update
@@ -32,11 +33,31 @@ logger = logging.getLogger(__name__)
 # ── Progress helpers ──
 
 def _make_progress_hook(task_id: int, video_id: int, db_session_factory) -> callable:
-    """Create a yt-dlp progress hook for download tasks."""
+    """Create a yt-dlp progress hook for download tasks.
+
+    yt-dlp invokes the hook from the worker thread started by
+    ``asyncio.to_thread``, so ``asyncio.create_task`` cannot be used here.
+    Coroutines are scheduled on the captured main event loop instead.
+    """
+    loop = asyncio.get_running_loop()
+    last_emit = 0.0
+
+    def _submit(coro) -> None:
+        try:
+            asyncio.run_coroutine_threadsafe(coro, loop)
+        except Exception:
+            logger.warning("progress hook scheduling failed", exc_info=True)
+            coro.close()
 
     def progress_hook(d: dict[str, Any]) -> None:
+        nonlocal last_emit
         status = d.get("status", "")
         if status == "downloading":
+            now = time.monotonic()
+            if now - last_emit < 1.0:
+                return
+            last_emit = now
+
             total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
             downloaded = d.get("downloaded_bytes", 0)
             progress = (downloaded / total * 100) if total > 0 else 0
@@ -55,23 +76,16 @@ def _make_progress_hook(task_id: int, video_id: int, db_session_factory) -> call
                     )
                     await session.commit()
 
-            try:
-                asyncio.create_task(_update())
-            except Exception:
-                pass
+            _submit(_update())
 
-            msg = {
+            _submit(ws_manager.broadcast({
                 "type": "task_progress",
                 "data": {
                     "task_id": task_id, "video_id": video_id,
                     "progress": round(progress, 1), "speed": speed_str,
                     "eta": eta_str, "status": "downloading",
                 },
-            }
-            try:
-                asyncio.create_task(ws_manager.broadcast(msg))
-            except Exception:
-                pass
+            }))
 
         elif status == "finished":
             async def _finish():
@@ -82,19 +96,11 @@ def _make_progress_hook(task_id: int, video_id: int, db_session_factory) -> call
                     )
                     await session.commit()
 
-            try:
-                asyncio.create_task(_finish())
-            except Exception:
-                pass
-
-            msg = {
+            _submit(_finish())
+            _submit(ws_manager.broadcast({
                 "type": "task_progress",
                 "data": {"task_id": task_id, "video_id": video_id, "progress": 100, "status": "finished"},
-            }
-            try:
-                asyncio.create_task(ws_manager.broadcast(msg))
-            except Exception:
-                pass
+            }))
 
         elif status == "error":
             error_msg = d.get("msg", "下载错误")
@@ -107,10 +113,7 @@ def _make_progress_hook(task_id: int, video_id: int, db_session_factory) -> call
                     )
                     await session.commit()
 
-            try:
-                asyncio.create_task(_error())
-            except Exception:
-                pass
+            _submit(_error())
 
     return progress_hook
 
@@ -354,7 +357,9 @@ class TaskScheduler:
         filepath = await self._yt_service.download(v.youtube_url, progress_hook=hook)
 
         if not filepath:
-            raise RuntimeError("下载失败，请检查网络或视频链接")
+            raise RuntimeError("下载失败，请检查网络、代理或视频链接")
+        if not os.path.exists(filepath):
+            raise RuntimeError(f"下载文件不存在: {filepath}")
 
         # 把视频复制/重命名到 downloads/{video_id}/original.mp4（D-15 约定）
         from app.services.dubbing.paths import video_file, video_work_dir
@@ -542,7 +547,7 @@ class TaskScheduler:
         async with async_session_factory() as session:
             await session.execute(
                 update(Task).where(Task.id == task_id)
-                .values(status=TaskStatus.RUNNING, progress=0, message=f"{backend} 翻译中...")
+                .values(status=TaskStatus.RUNNING, progress=5, message=f"{backend} 翻译中...")
             )
             await session.execute(
                 update(Video).where(Video.id == video_id).values(status=VideoStatus.TRANSCRIBED)
@@ -721,15 +726,41 @@ class TaskScheduler:
             video_file(video_id, "original.mp4", base_dir=work_base)
         )
 
-        # Group segments into paragraphs (split on >=8s silence gaps)
-        paragraphs = group_segments_by_silence(segments, threshold_sec=8.0)
+        # Group segments into paragraphs (split on >=1.5s gaps or 20s max span)
+        paragraphs = group_segments_by_silence(segments, threshold_sec=1.5, max_paragraph_sec=20.0)
         logger.info(
-            "Grouped %d segments into %d paragraphs (threshold=8.0s)",
+            "Grouped %d segments into %d paragraphs (gap>=1.5s or >20s)",
             len(segments), len(paragraphs),
         )
 
         aligned_files = []
         sem = asyncio.Semaphore(3)
+        completed_paragraphs = 0
+        progress_lock = asyncio.Lock()
+
+        async def _report_paragraph_progress() -> None:
+            nonlocal completed_paragraphs
+            async with progress_lock:
+                completed_paragraphs += 1
+                pct = 5 + int(85 * completed_paragraphs / max(len(paragraphs), 1))
+            try:
+                async with async_session_factory() as session:
+                    await session.execute(
+                        update(Task).where(Task.id == task_id).values(
+                            progress=pct,
+                            message=f"配音合成中... {completed_paragraphs}/{len(paragraphs)}",
+                        )
+                    )
+                    await session.commit()
+                await ws_manager.broadcast({
+                    "type": "task_progress",
+                    "data": {
+                        "task_id": task_id, "video_id": video_id,
+                        "progress": pct, "status": "synthesizing",
+                    },
+                })
+            except Exception as exc:
+                logger.debug("paragraph progress update failed: %s", exc)
 
         async def _one_paragraph(p: dict, merged_zh: str):
             async with sem:
@@ -751,6 +782,7 @@ class TaskScheduler:
                             "-t", f"{dur:.3f}",
                             aligned_path,
                         ])
+                    await _report_paragraph_progress()
                     return {"aligned_path": aligned_path, "segment": p}
 
                 # Idempotency: skip TTS if output already exists
@@ -766,6 +798,7 @@ class TaskScheduler:
                         tts_path, float(p["start"]), float(p["end"]), aligned_path,
                         atempo_min=atempo_min, atempo_max=atempo_max,
                     )
+                await _report_paragraph_progress()
                 return {"aligned_path": aligned_path, "segment": p}
 
         # Build merged Chinese text per paragraph from per-segment translations
@@ -1018,16 +1051,18 @@ class TaskScheduler:
     # ── Phase 7: publish handler (D7-08) ──
 
     async def _handle_publish(self, video_id: int) -> None:
-        """配音完成后自动发布到所有平台.
+        """配音完成后自动发布到配置的默认平台.
 
         与 download/transcribe 等 _handle_xxx 不同：
         - 不操作 Task 表（发布是 best-effort，不阻塞主 chain）
         - 失败记录在 publish_records 表，由 API / UI 单独展示
         """
         try:
+            configs = await _load_configs()
+            platform = (configs.get("default_upload_platform") or "bilibili").strip()
             from app.services.publish.manager import get_publish_manager
             pm = get_publish_manager()
-            await pm.auto_publish(video_id=video_id)
+            await pm.auto_publish(video_id=video_id, platforms=[platform])
         except Exception as e:
             logger.error("Auto-publish for video %d failed: %s", video_id, e, exc_info=True)
 

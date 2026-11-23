@@ -130,3 +130,27 @@ class TestGroupSegmentsBySilence:
         result = group_segments_by_silence([seg])
         assert result[0]["segments"][0] is seg
         assert result[0]["segments"][0]["extra"] == "keep"
+
+    def test_continuous_narration_is_split_by_duration(self):
+        """A 58s voice-over with no 8s pauses must not become one paragraph."""
+        segments = [
+            {"id": 0, "start": 0.0, "end": 7.0, "text": "A."},
+            {"id": 1, "start": 7.0, "end": 11.0, "text": "B."},
+            {"id": 2, "start": 14.0, "end": 25.0, "text": "C."},
+            {"id": 3, "start": 26.0, "end": 36.0, "text": "D."},
+            {"id": 4, "start": 36.0, "end": 45.0, "text": "E."},
+            {"id": 5, "start": 45.0, "end": 58.0, "text": "F."},
+        ]
+        result = group_segments_by_silence(segments)
+        assert len(result) >= 3
+        for para in result:
+            assert para["end"] - para["start"] <= 25.0
+
+    def test_sentence_pause_splits_paragraph(self):
+        """Narration sentence gaps (~3s) should start a new paragraph."""
+        segments = [
+            {"id": 0, "start": 0.0, "end": 7.0, "text": "A."},
+            {"id": 1, "start": 10.0, "end": 14.0, "text": "B."},
+        ]
+        result = group_segments_by_silence(segments)
+        assert len(result) == 2

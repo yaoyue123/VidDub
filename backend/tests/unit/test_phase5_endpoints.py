@@ -257,3 +257,47 @@ def test_retranslate_out_of_range(app_client, tmp_path):
     r = app_client.post("/api/subtitles/1/retranslate?segment_index=5")
     assert r.status_code == 422
     assert "越界" in r.json()["detail"]
+
+
+# ── Config key status / pagination limits ──
+
+def test_config_key_status_endpoint(app_client):
+    r = app_client.get("/api/config/key-status")
+    assert r.status_code == 200
+    body = r.json()
+    assert "needs_siliconflow_key" in body
+    assert "siliconflow_api_key_configured" in body
+    assert body["translation_backend"]
+
+
+def test_videos_list_accepts_page_size_200(app_client):
+    r = app_client.get("/api/videos?page=1&page_size=200")
+    assert r.status_code == 200
+    assert "items" in r.json()
+
+
+def test_create_dub_duplicate_youtube_id_returns_409(app_client, monkeypatch):
+    from app.models.video import Video
+
+    async def fake_info(self, url):
+        return {
+            "youtube_id": "dup001", "title": "Dup", "channel": "c",
+            "duration": 10, "thumbnail_url": None,
+        }
+
+    monkeypatch.setattr(
+        "app.services.youtube.YoutubeService.get_video_info", fake_info,
+    )
+    asyncio.get_event_loop().run_until_complete(
+        _seed(
+            app_client._test_factory,
+            Video(
+                youtube_url="https://youtu.be/dup001", youtube_id="dup001",
+                title="Existing", channel="c", status="completed",
+            ),
+        )
+    )
+
+    r = app_client.post("/api/dub", json={"youtube_url": "https://youtu.be/dup001"})
+    assert r.status_code == 409
+    assert "已存在" in r.json()["detail"]

@@ -36,7 +36,36 @@ class ConfigTestResponse(BaseModel):
     error: Optional[str] = None
 
 
+class KeyStatusResponse(BaseModel):
+    """Whether the current backend combination needs a SiliconFlow key."""
+    siliconflow_api_key_configured: bool
+    needs_siliconflow_key: bool
+    translation_backend: str
+    tts_backend: str
+    transcription_backend: str
+
+
 # ── Endpoints ──
+
+@router.get("/key-status", response_model=KeyStatusResponse)
+async def key_status(db: AsyncSession = Depends(get_db)):
+    """Report key availability without making a network call."""
+    from app.core.config import settings
+
+    result = await db.execute(select(Config))
+    configs = {c.key: (c.value or "").strip() for c in result.scalars().all()}
+    translation = configs.get("translation_backend", "siliconflow")
+    tts = configs.get("tts_backend", "siliconflow")
+    transcription = configs.get("transcription_backend", "whisper")
+    needs_key = "siliconflow" in (translation, tts, transcription)
+    return KeyStatusResponse(
+        siliconflow_api_key_configured=bool(settings.siliconflow_api_key.strip()),
+        needs_siliconflow_key=needs_key,
+        translation_backend=translation,
+        tts_backend=tts,
+        transcription_backend=transcription,
+    )
+
 
 @router.get("", response_model=list[ConfigResponse])
 async def list_configs(db: AsyncSession = Depends(get_db)):

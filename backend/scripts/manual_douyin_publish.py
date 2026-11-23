@@ -1,13 +1,13 @@
 """Douyin publish test — login + video upload via social-auto-upload.
 
-Usage: cd backend && python test_douyin_publish.py
+Usage: cd backend && python scripts/manual_douyin_publish.py
 """
 import asyncio
 import os
 import sys
 from pathlib import Path
 
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SAU_DIR = os.path.normpath(os.path.join(BACKEND_DIR, "..", "social-auto-upload"))
 
 # ── Step 0: Find video from DB while still in backend dir ──

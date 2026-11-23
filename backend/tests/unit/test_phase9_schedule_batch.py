@@ -59,7 +59,7 @@ def _make_isolated_db():
 
 
 @pytest.fixture
-def app_client():
+def app_client(tmp_path):
     """TestClient with /api/* deps overridden to use a fresh in-memory DB."""
     from app.core.database import get_db
     from app.main import create_app
@@ -94,6 +94,10 @@ def app_client():
         c._test_engine = engine
         c._test_loop = loop
         c._test_factory = factory
+        # Keep destructive tests (hard delete) out of the real downloads/ dir.
+        from app.core.storage import set_download_dir
+
+        set_download_dir(str(tmp_path / "downloads"))
         yield c
 
     loop.run_until_complete(engine.dispose())

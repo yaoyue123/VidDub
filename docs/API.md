@@ -115,7 +115,7 @@ FastAPI 自动生成 OpenAPI 3 文档，运行时即可交互测试：
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| GET | `/api/config` | 列出所有 `app_config` 项 |
+| GET | `/api/config` | 列出所有 `configs` 表配置项 |
 | PUT | `/api/config/{key}` | 修改单项 |
 | POST | `/api/config/test-siliconflow` | 测试 SiliconFlow 连通性（用 tiny TTS payload） |
 

@@ -76,7 +76,7 @@ class YtDlpRateLimiter:
         exc_val: Optional[BaseException],
         exc_tb: Optional[object],
     ) -> None:
-        self.release()
+        await self.release()
 
 
 class CircuitBreaker:
@@ -245,7 +245,8 @@ class YtDlpWrapper:
         "no_color": True,
         "sleep_interval": 1,
         "max_sleep_interval": 3,
-        "retries": 10,
+        "socket_timeout": 20,
+        "retries": 3,
     }
 
     def __init__(
@@ -254,6 +255,7 @@ class YtDlpWrapper:
         circuit_breaker: Optional[CircuitBreaker] = None,
         cookies_file: Optional[str] = None,
         extractor_args: Optional[str] = None,
+        proxy: Optional[str] = None,
     ) -> None:
         """Initialize the YtDlpWrapper.
 
@@ -262,13 +264,49 @@ class YtDlpWrapper:
             circuit_breaker: Circuit breaker instance; defaults to CircuitBreaker().
             cookies_file: Path to the cookies file for authenticated requests.
             extractor_args: JSON string of yt-dlp extractor arguments.
+            proxy: Optional HTTP(S) proxy URL passed to every yt-dlp call.
         """
         self._rate_limiter = rate_limiter or YtDlpRateLimiter()
         self._circuit_breaker = circuit_breaker or CircuitBreaker()
         self._cookies_file = cookies_file
         self._extractor_args = extractor_args
+        self._proxy = proxy
 
     # ── Option merging ──
+
+    def apply_network_opts(self, opts: dict[str, Any]) -> dict[str, Any]:
+        """Attach proxy / cookie / extractor-args options to a yt-dlp opts dict.
+
+        Unlike :meth:`_merge_opts`, this does not add extraction-only defaults,
+        so it is safe for download calls as well.
+        """
+        merged = dict(opts)
+
+        if self._proxy:
+            merged["proxy"] = self._proxy
+
+        # Attach cookie file if configured and present
+        if self._cookies_file and os.path.exists(self._cookies_file):
+            merged["cookiefile"] = self._cookies_file
+        elif self._cookies_file:
+            logger.warning("yt-dlp cookie file not found: %s", self._cookies_file)
+
+        # Attach extractor-args from JSON config
+        if self._extractor_args:
+            try:
+                parsed = json.loads(self._extractor_args)
+                if isinstance(parsed, dict):
+                    existing = merged.get("extractor_args", {})
+                    if isinstance(existing, dict):
+                        merged["extractor_args"] = {**existing, **parsed}
+                    else:
+                        merged["extractor_args"] = parsed
+                else:
+                    logger.warning("extractor_args is not a dict JSON: %s", type(parsed).__name__)
+            except json.JSONDecodeError as e:
+                logger.warning("Failed to parse extractor_args JSON: %s", e)
+
+        return merged
 
     def _merge_opts(self, opts: dict[str, Any]) -> dict[str, Any]:
         """Merge wrapper-level defaults into *opts* without mutating the original.
@@ -282,31 +320,7 @@ class YtDlpWrapper:
         Returns:
             A new dict with defaults merged in.
         """
-        merged = {**self.BASE_OPTS, **opts}
-
-        # Attach cookie file if configured and present
-        if self._cookies_file and os.path.exists(self._cookies_file):
-            merged["cookiefile"] = self._cookies_file
-        elif self._cookies_file:
-            logger.warning("yt-dlp cookie file not found: %s", self._cookies_file)
-
-        # Attach extractor-args from JSON config
-        if self._extractor_args:
-            try:
-                parsed = json.loads(self._extractor_args)
-                if isinstance(parsed, dict):
-                    # Merge with any existing extractor_args in opts
-                    existing = merged.get("extractor_args", {})
-                    if isinstance(existing, dict):
-                        merged["extractor_args"] = {**existing, **parsed}
-                    else:
-                        merged["extractor_args"] = parsed
-                else:
-                    logger.warning("extractor_args is not a dict JSON: %s", type(parsed).__name__)
-            except json.JSONDecodeError as e:
-                logger.warning("Failed to parse extractor_args JSON: %s", e)
-
-        return merged
+        return self.apply_network_opts({**self.BASE_OPTS, **opts})
 
     # ── Core extraction ──
 
@@ -350,7 +364,13 @@ class YtDlpWrapper:
         """
         merged = self._merge_opts(opts)
         async with self._rate_limiter:
-            return await self._circuit_breaker.call(self._run_extract, merged, url, download)
+            try:
+                return await asyncio.wait_for(
+                    self._circuit_breaker.call(self._run_extract, merged, url, download),
+                    timeout=90,
+                )
+            except asyncio.TimeoutError as e:
+                raise TimeoutError(f"yt-dlp extraction timed out: {url}") from e
 
     def extract_info_sync(
         self, opts: dict[str, Any], url: str, download: bool = False

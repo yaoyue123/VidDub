@@ -33,6 +33,13 @@ if ! command -v uv &>/dev/null; then
     ok "uv 已安装"
 fi
 
+# ── 1b. social-auto-upload submodule ──
+if [ ! -d "$PROJECT_ROOT/social-auto-upload/uploader" ]; then
+    log "初始化 social-auto-upload submodule..."
+    git -C "$PROJECT_ROOT" submodule update --init --recursive
+    ok "social-auto-upload 已就绪"
+fi
+
 # ── 2. 安装后端依赖 + 创建 .venv ──
 if [ ! -d "$BACKEND/.venv" ]; then
     log "安装后端依赖..."

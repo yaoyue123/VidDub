@@ -67,20 +67,26 @@ def video_file(video_id: int, name: str, base_dir: str | None = None) -> str:
 
 def group_segments_by_silence(
     segments: list[dict[str, Any]],
-    threshold_sec: float = 8.0,
+    threshold_sec: float = 1.5,
+    max_paragraph_sec: float = 20.0,
 ) -> list[dict[str, Any]]:
     """Group consecutive segments into paragraphs split on silence gaps.
 
-    A new paragraph starts when the gap between segment[i].end and
-    segment[i+1].start is >= threshold_sec.  This reduces the number of
-    TTS calls from one-per-segment to one-per-paragraph, and eliminates
-    per-segment atempo artifacts by aligning only paragraph boundaries.
+    A new paragraph starts when:
+    - the gap between segment[i].end and segment[i+1].start is >= threshold_sec, or
+    - the paragraph would exceed max_paragraph_sec (bounds TTS drift).
+
+    The duration cap matters for continuous narration (e.g. a 60s voice-over
+    with no 8s pauses): grouping the whole clip into one paragraph makes the
+    synthesized speech finish early and pads the remainder with silence, which
+    breaks lip sync for every sentence after the first.
 
     Args:
         segments: Whisper segments sorted by start time.
                   Each dict must have: start (float), end (float), text (str).
                   May optionally have: id (int).
-        threshold_sec: Minimum silence gap to split paragraphs (default 8.0).
+        threshold_sec: Minimum silence gap to split paragraphs (default 1.5).
+        max_paragraph_sec: Maximum paragraph duration (default 20s; <=0 disables).
 
     Returns:
         List of paragraph dicts, each with:
@@ -95,13 +101,17 @@ def group_segments_by_silence(
 
     paragraphs: list[dict[str, Any]] = []
     current_segs: list[dict[str, Any]] = [segments[0]]
+    current_start = float(segments[0]["start"])
 
     for i in range(1, len(segments)):
         gap = segments[i]["start"] - segments[i - 1]["end"]
-        if gap >= threshold_sec:
+        span = float(segments[i]["end"]) - current_start
+        too_long = max_paragraph_sec > 0 and span > max_paragraph_sec
+        if gap >= threshold_sec or too_long:
             # Flush current paragraph
             paragraphs.append(_make_paragraph(len(paragraphs), current_segs))
             current_segs = [segments[i]]
+            current_start = float(segments[i]["start"])
         else:
             current_segs.append(segments[i])
 

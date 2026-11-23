@@ -40,7 +40,7 @@ async def test_pipeline_full_run_mocked(tmp_path, monkeypatch, sample_segments, 
     translate_resp.raise_for_status = MagicMock()
     translate_resp.json.return_value = {
         "choices": [{"message": {"content": "\n".join(
-            f"[ID:{i}] {t}" for i, t in enumerate(sample_translations)
+            f"[{i}] {t}" for i, t in enumerate(sample_translations)
         )}}]
     }
     # tts 返回（每次 post 都返回不同的 mock，但 content 一致即可）
@@ -48,8 +48,13 @@ async def test_pipeline_full_run_mocked(tmp_path, monkeypatch, sample_segments, 
     tts_resp.status_code = 200
     tts_resp.raise_for_status = MagicMock()
     tts_resp.content = b"FAKE_MP3"
-    # sf_post 内部把 retry policy 包了，简单 mock 直接调底层 post
-    http_client.post.side_effect = [translate_resp] + [tts_resp] * 10
+    # sf_post 内部把 retry policy 包了，简单 mock 直接调底层 post。
+    # chat/completions → 翻译响应；audio/speech → TTS 响应。
+    async def fake_post(url, *args, **kwargs):
+        if "chat/completions" in str(url):
+            return translate_resp
+        return tts_resp
+    http_client.post.side_effect = fake_post
     http_client.aclose = AsyncMock()
 
     # Mock ffmpeg subprocess
@@ -87,6 +92,22 @@ async def test_pipeline_full_run_mocked(tmp_path, monkeypatch, sample_segments, 
     async def fake_whisper(audio, model, lang):
         return sample_segments
     monkeypatch.setattr("app.services.dubbing.pipeline._run_whisper", fake_whisper)
+
+    # Mock TTS (TTSService uses its own HTTP client, not the pipeline client)
+    from app.services.tts_new.base import TTSResult
+
+    async def fake_tts(self, text, output_path, **kwargs):
+        os.makedirs(os.path.dirname(str(output_path)) or ".", exist_ok=True)
+        with open(output_path, "wb") as f:
+            f.write(b"FAKE_MP3")
+        return TTSResult(
+            audio_data=b"FAKE_MP3", duration=2.0,
+            sample_rate=24000, format="mp3",
+        )
+
+    monkeypatch.setattr(
+        "app.services.tts_new.service.TTSService.synthesize", fake_tts,
+    )
 
     # 让 extract_audio 不真的失败 — fake_exec 返回 0 即可，但需要文件存在让 exists() 判断
     # 改让 pipeline 跳过 extract（先建空文件）

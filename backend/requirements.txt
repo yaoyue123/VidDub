@@ -1,3 +1,4 @@
+# Runtime dependencies (keep in sync with backend/pyproject.toml)
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 sqlalchemy[asyncio]==2.0.35
@@ -13,11 +14,18 @@ openai>=1.40
 httpx>=0.28.1
 tenacity>=8.5
 edge-tts>=6.1
+deep-translator>=1.11
+# Platform login / publishing
+playwright>=1.40
+patchright==1.58.2
+qrcode>=7.4
+pillow>=10.0
+opencv-python-headless>=4.13.0.92
+segno>=1.6.6
+loguru>=0.7.3
+APScheduler>=3.10
+
+# Dev / test (the recommended `uv sync --group dev` path reads pyproject.toml)
 pytest>=8.0
 pytest-asyncio>=0.23
 pytest-mock>=3.12
-# Phase 6: 平台登录
-playwright>=1.40
-qrcode>=7.4
-# Phase 9: 定时扫描频道
-APScheduler>=3.10

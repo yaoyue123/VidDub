@@ -1,6 +1,6 @@
 # 配置项完整说明
 
-> VidDub 所有可配置项的清单。`.env` 用于敏感数据（API Key），`app_config` 表用于运行时可调参数。
+> VidDub 所有可配置项的清单。`.env` 用于敏感数据（API Key），`configs` 表用于运行时可调参数。
 
 ---
 
@@ -10,27 +10,25 @@
 
 | 变量名 | 必填 | 默认 | 说明 |
 |--------|------|------|------|
-| `SILICONFLOW_API_KEY` | **是** | — | SiliconFlow API Key，配音/翻译/标题全部依赖。申请：https://cloud.siliconflow.cn/account/ak |
+| `SILICONFLOW_API_KEY` | 否* | — | 仅在使用 SiliconFlow 翻译/TTS/STT 时需要。申请：https://cloud.siliconflow.cn/account/ak |
 | `SILICONFLOW_BASE_URL` | 否 | `https://api.siliconflow.cn/v1` | API base URL，第三方代理可改 |
-| `SILICONFLOW_TTS_MODEL` | 否 | `FunAudioLLM/CosyVoice2-0.5B` | TTS 模型名（覆盖 `app_config.tts_model`） |
-| `SILICONFLOW_TRANSLATE_MODEL` | 否 | `Qwen/Qwen2.5-7B-Instruct` | 翻译模型名（覆盖 `app_config.translation_model`） |
-| `WHISPER_MODEL` | 否 | `tiny` | 本地 Whisper 模型：`tiny\|base\|small\|medium\|large`（覆盖 `app_config.whisper_model`） |
+| `WHISPER_MODEL` | 否 | `tiny` | 本地 Whisper 模型：`tiny\|base\|small\|medium\|large`（覆盖 DB `whisper_model`） |
 | `WHISPER_LANGUAGE` | 否 | `en` | Whisper 源语言代码：`en\|zh\|ja\|...` |
-| `DOWNLOADS_DIR` | 否 | `./downloads` | 视频成品输出目录 |
+| `DOWNLOADS_DIR` | 否 | `./downloads` | 视频成品输出目录（启动时会被 DB `download_dir` 覆盖） |
 | `DATABASE_URL` | 否 | `sqlite+aiosqlite:///./data/viddub.db` | 数据库连接串（建议保持 SQLite） |
-| `HTTP_PROXY` | 否 | — | 出站 HTTP 代理（如有） |
-| `HTTPS_PROXY` | 否 | — | 出站 HTTPS 代理 |
+| `HTTP_PROXY` / `HTTPS_PROXY` | 否 | — | 出站代理；yt-dlp 未单独配置 `yt_dlp_proxy` 时会读取它 |
+| `YTDLP_PROXY` | 否 | — | 仅给 yt-dlp 使用的代理（优先级高于 HTTP(S)_PROXY） |
+
+\* 免费组合：`translation_backend=google` + `tts_backend=moss`（或 `edge-tts`）时无需 API Key。
 
 ### `.env` 模板（`.env.example`）
 
 ```dotenv
-# SiliconFlow API Credentials
+# SiliconFlow API Credentials (optional for google + moss/edge-tts)
 SILICONFLOW_API_KEY=
 
 # Optional overrides
 SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
-SILICONFLOW_TTS_MODEL=FunAudioLLM/CosyVoice2-0.5B
-SILICONFLOW_TRANSLATE_MODEL=Qwen/Qwen2.5-7B-Instruct
 
 WHISPER_MODEL=tiny
 WHISPER_LANGUAGE=en
@@ -38,14 +36,14 @@ WHISPER_LANGUAGE=en
 DOWNLOADS_DIR=./downloads
 DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 
-# Network (optional, for proxy)
+# Network (optional) — used by yt-dlp unless yt_dlp_proxy is configured in the UI
 # HTTP_PROXY=http://127.0.0.1:7890
 # HTTPS_PROXY=http://127.0.0.1:7890
 ```
 
 ---
 
-## 二、`app_config` 表配置项（运行时通过 `/api/config` 或 Web UI 修改）
+## 二、`configs` 表配置项（运行时通过 `/api/config` 或 Web UI 修改）
 
 所有项以字符串存储，由业务代码按需类型转换。首次启动 `config_seeder.py` 自动 seed 默认值。
 
@@ -58,6 +56,7 @@ DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 | `max_concurrent_downloads` | `"3"` | int | 最大并发下载数 |
 | `max_results_per_search` | `"20"` | int | 每次搜索最大返回数 |
 | `yt_dlp_cookies` | `""` | path | yt-dlp Cookie 文件路径（可选，YouTube 风控严格时使用） |
+| `yt_dlp_proxy` | `""` | url | yt-dlp 代理，如 `http://127.0.0.1:7890`（留空则读 `YTDLP_PROXY` / `HTTP(S)_PROXY`） |
 | `target_language` | `"zh"` | ISO code | 翻译目标语言 |
 
 ### 2.2 STT / Whisper
@@ -71,29 +70,56 @@ DATABASE_URL=sqlite+aiosqlite:///./data/viddub.db
 
 | Key | 默认 | 类型 | 说明 |
 |-----|------|------|------|
-| `translation_model` | `deepseek-ai/DeepSeek-V4-Flash` | string | 翻译模型名 |
+| `translation_backend` | `"siliconflow"` | enum | `siliconflow\|google`；Google 免费、无需 Key，适合本地/低成本 |
+| `translation_model` | `deepseek-ai/DeepSeek-V4-Flash` | string | SiliconFlow 翻译模型名（Google 后端忽略） |
 | `translation_context_window` | `"2"` | int (作为 str) | 翻译滑窗上下文段数（建议 2-4） |
 
 ### 2.4 TTS
 
 | Key | 默认 | 类型 | 说明 |
 |-----|------|------|------|
-| `tts_model` | `FunAudioLLM/CosyVoice2-0.5B` | string | TTS 模型名 |
+| `tts_backend` | `"siliconflow"` | enum | `siliconflow\|moss\|edge-tts` |
+| `tts_model` | `FunAudioLLM/CosyVoice2-0.5B` | string | SiliconFlow TTS 模型名 |
 | `tts_voice` | `FunAudioLLM/CosyVoice2-0.5B:alex` | string | 完整音色 ID（含模型前缀） |
-| `tts_voice_simple` | `"anna"` | string | 简短音色名（自动拼 model:voice 前缀） |
-| `tts_speed` | `"1.0"` | float | 语速 0.25 - 4.0 |
-| `tts_gain` | `"0"` | int (dB) | 音量增益 -10 ~ +10 |
+| `tts_voice_simple` | `"anna"` | string | 简短音色名；后端不匹配时自动回退（MOSS→Junhao，Edge→晓晓） |
+| `tts_speed` | `"1.0"` | float | 语速 0.25 - 4.0（MOSS 通过 ffmpeg atempo 后处理） |
+| `tts_gain` | `"0"` | int (dB) | 音量增益 -10 ~ +10（Edge/MOSS 暂不生效） |
 | `tts_format` | `"mp3"` | enum | 输出格式：`mp3\|wav\|opus\|pcm` |
 | `tts_sample_rate` | `"32000"` | int (Hz) | 采样率 |
+| `moss_tts_repo_path` | `""` | path | MOSS-TTS-Nano 源码目录（留空=`backend/data/models/MOSS-TTS-Nano`） |
+| `moss_tts_python` | `""` | path | MOSS 独立虚拟环境 Python（留空=仓库内 `.venv`） |
+| `moss_tts_voice` | `"Junhao"` | string | MOSS 内置音色：`Junhao\|Zhiming\|Weiguo\|Xiaoyu\|Yuewen\|Lingyu` |
+| `moss_tts_cpu_threads` | `"4"` | int | ONNX Runtime CPU 线程数 |
+
+#### MOSS-TTS-Nano（本地免费，推荐离线使用）
+
+MOSS-TTS-Nano 是 OpenMOSS 的 0.1B 本地 TTS，支持中文内置音色，纯 CPU 可运行：
+
+```powershell
+# Windows：克隆 + 安装独立 venv（torch 2.7，不会污染后端环境）
+powershell -ExecutionPolicy Bypass -File backend\scripts\install_moss_tts.ps1 `
+  -Proxy http://127.0.0.1:7890 -DownloadModels
+```
+
+然后在 Web UI 或 API 设置：
+
+```
+tts_backend = moss
+tts_voice_simple = Junhao
+```
+
+> 首次合成会自动下载约 500MB ONNX 权重到
+> `backend/data/models/MOSS-TTS-Nano/models/`。8B 版本需要 ≥8GB 显存，
+> 6GB 显卡请使用 Nano。Edge-TTS 无需安装，但部分网络会被微软服务端 403 拒绝。
 
 ### 2.5 音频对齐 / 时间控制
 
 | Key | 默认 | 类型 | 说明 |
 |-----|------|------|------|
-| `atempo_min` | `"0.7"` | float | atempo 调速下限 — 中文 TTS 比原文长且 `duration/original < 0.7` 时改为 pad 静音 |
-| `atempo_max` | `"1.5"` | float | atempo 调速上限 — 中文 TTS 比原文短且 `duration/original > 1.5` 时改为 trim 截断 |
+| `atempo_min` | `"0.85"` | float | atempo 调速下限 — 中文 TTS 比原文短且 `duration/original < 0.85` 时改为 pad 静音（越大越自然） |
+| `atempo_max` | `"1.4"` | float | atempo 调速上限 — 中文 TTS 比原文长且 `duration/original > 1.4` 时改为 trim 截断 |
 
-> **范围说明**：建议保持 0.7-1.5x。低于 0.5x 听感明显异常；高于 2.0x ffmpeg atempo 需链式两段。
+> **范围说明**：默认 0.85-1.4x，优先自然语速；ratio 超出范围时用 pad/trim 兜底。低于 0.5x 听感明显异常；高于 2.0x ffmpeg atempo 需链式两段。
 
 ### 2.6 发布 / 平台
 
@@ -170,8 +196,8 @@ curl -X POST http://localhost:8000/api/config/test-siliconflow
 
 ```bash
 sqlite3 backend/data/viddub.db
-> SELECT key, value FROM app_config;
-> UPDATE app_config SET value='base' WHERE key='whisper_model';
+> SELECT key, value FROM configs;
+> UPDATE configs SET value='base' WHERE key='whisper_model';
 ```
 
 修改后需重启 uvicorn 让某些缓存失效。
@@ -180,19 +206,24 @@ sqlite3 backend/data/viddub.db
 
 ## 四、典型配置场景
 
-### 场景 1：低配电脑（CPU 跑得慢）
+### 场景 1：完全免费 / 低配电脑
 
-```dotenv
-WHISPER_MODEL=tiny
 ```
-- 把 `atempo_min` 调到 `0.5`（容忍更慢语速）
-- `max_concurrent_downloads=1`
+translation_backend=google
+tts_backend=moss
+tts_voice_simple=Junhao
+whisper_model=tiny
+```
+- 无需 SiliconFlow API Key
+- MOSS 本地 TTS 首次运行会下载模型；CPU 合成速度约为实时的 1.5-2 倍
+- 把 `atempo_min` 调到 `0.5`（容忍更慢语速），`max_concurrent_downloads=1`
 
-### 场景 2：高质量需求（GPU 充足）
+### 场景 2：高质量需求
 
 ```dotenv
 WHISPER_MODEL=small      # 或 medium
 ```
+- `translation_backend=siliconflow` + `tts_backend=siliconflow`（需 API Key）
 - Web UI 改 `tts_speed=0.95`（更自然）
 - `atempo_min=0.8` `atempo_max=1.3`（容忍范围窄，更自然）
 
@@ -210,4 +241,4 @@ WHISPER_MODEL=small      # 或 medium
 
 ---
 
-*本文档对应 v5.0 (Phase 6) · 完整默认值定义见 `backend/app/services/config_seeder.py` 的 `DEFAULT_CONFIGS` dict（当前 33 项）*
+*本文档对应 v5.3 · 完整默认值定义见 `backend/app/services/config_seeder.py` 的 `DEFAULT_CONFIGS` dict（当前 44 项）*

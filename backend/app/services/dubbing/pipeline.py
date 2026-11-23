@@ -4,7 +4,7 @@
 1. extract_audio        — 提取 44.1kHz 立体声 WAV
 2. whisper STT          — 本地 Whisper（per ADDENDUM D-17），返回 segments
 3. translate            — SiliconFlow Qwen2.5-7B-Instruct，滑窗翻译（per-segment）
-4. group + tts + align  — 按 ≥8s 静音分段 → paragraph TTS → paragraph 级 align
+4. group + tts + align  — 按 ≥1.5s 静音或 20s 上限分段 → paragraph TTS → paragraph 级 align
 5. stitch               — 拼接整轨 dubbing.wav（paragraph 级，更少输入）
 6. compose              — 替换原视频音轨 → final.mp4
 
@@ -131,10 +131,10 @@ async def run_dubbing_pipeline(
         aligned_dir = os.path.join(work_dir, "aligned")
         os.makedirs(aligned_dir, exist_ok=True)
 
-        # Group segments into paragraphs (split on >=8s silence gaps)
-        paragraphs = group_segments_by_silence(segments, threshold_sec=8.0)
+        # Group segments into paragraphs (split on >=1.5s gaps or 20s max span)
+        paragraphs = group_segments_by_silence(segments, threshold_sec=1.5, max_paragraph_sec=20.0)
         logger.info(
-            "Grouped %d segments into %d paragraphs (threshold=8.0s)",
+            "Grouped %d segments into %d paragraphs (gap>=1.5s or >20s)",
             len(segments), len(paragraphs),
         )
 
